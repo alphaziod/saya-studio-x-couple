@@ -45,8 +45,7 @@ pub fn resume(token: &str, job: &str) -> Result<Value> {
 }
 
 pub fn api_token() -> String {
-    let path = std::env::var_os("HOME")
-        .map(std::path::PathBuf::from)
+    let path = crate::paths::home_dir().ok()
         .map(|home| home.join(".config/civitai/token"));
     path.and_then(|p| std::fs::read_to_string(p).ok())
         .unwrap_or_default()

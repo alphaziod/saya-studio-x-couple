@@ -305,7 +305,7 @@ fn split_dirs() -> Vec<PathBuf> {
     if let Some(d) = std::env::var_os("SAYA_PASSES_DIR") {
         dirs.push(PathBuf::from(d));
     }
-    if let Some(h) = std::env::var_os("HOME") {
+    if let Ok(h) = crate::paths::home_dir() {
         dirs.push(Path::new(&h).join("AI/ComfyUI/user/default/workflows/ILUSTCOUPLE_PASSES"));
     }
     dirs.push(crate::paths::presets_dir().join("passes"));

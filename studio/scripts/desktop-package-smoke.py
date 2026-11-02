@@ -51,7 +51,7 @@ if platform.startswith("windows"):
     env["USERPROFILE"] = str(work)
     env["APPDATA"] = str(work / "AppData/Roaming")
     env["LOCALAPPDATA"] = str(work / "AppData/Local")
-    data = Path(env["APPDATA"]) / "studio.saya.desktop"
+    data = Path(os.environ["APPDATA"]) / "studio.saya.desktop"
 else:
     # Cocoa resolves the runner account's home independently of HOME. This runner is disposable.
     data = Path.home() / "Library/Application Support/studio.saya.desktop"
@@ -69,7 +69,9 @@ with log_path.open("w") as log:
                 try:
                     with sqlite3.connect(db_path) as db:
                         rows = db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
-                        initialized = len(rows) > 20
+                        preset = db.execute("SELECT value_json FROM preferences WHERE key='presetBase'").fetchone()
+                        expected = json.loads((resources / "presets/preset.json").read_text())["version"]
+                        initialized = len(rows) > 20 and preset is not None and json.loads(preset[0]) == expected
                 except sqlite3.Error:
                     pass
             if initialized:

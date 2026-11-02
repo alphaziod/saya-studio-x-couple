@@ -7,7 +7,7 @@ This repository holds two things, both local and built around ComfyUI:
 | | What it is | Version |
 |---|---|---|
 | **Saya Couple** | The ComfyUI custom node pack described on this page. | **2.3.0** |
-| **[Saya Studio](#saya-studio-desktop-app-linux-beta)** | A Linux desktop app that drives ComfyUI and these nodes: casting, six-pass workflow, gallery, characters, LoRA manager. | **1.0.0-beta.2** |
+| **[Saya Studio](#saya-studio-desktop-app-linux-beta)** | A desktop app for Linux, Windows and macOS that drives ComfyUI and these nodes: casting, six-pass workflow, gallery, characters, LoRA manager. | **1.0.0-beta.2** |
 
 Saya Couple is a ComfyUI custom node pack. One generation gets separate prompts that actually work together:
 

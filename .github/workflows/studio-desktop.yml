@@ -44,8 +44,8 @@ jobs:
           workspaces: studio
           key: ${{ matrix.artifact }}
       - run: npm ci
-      - name: Generate platform icons from the existing app icon
-        run: npx tauri icon src-tauri/icons/icon.png --output src-tauri/icons
+      - name: Python bridge process safety
+        run: python scripts/desktop-process.test.py
       - name: Native core checks
         run: cargo test -p studio-core --locked --lib platform_tests
       - name: Build native installer

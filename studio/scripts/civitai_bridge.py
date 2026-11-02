@@ -345,12 +345,36 @@ class H(BaseHTTPRequestHandler):
             self.out(202,{"job":job})
         except Exception as e: self.out(400,{"error":str(e)})
 
+def parent_alive(parent):
+    if os.name == "nt":
+        # os.kill(pid, 0) terminates the target on Windows; wait on a read-only handle instead.
+        import ctypes
+        from ctypes import wintypes
+        kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+        kernel.OpenProcess.restype = wintypes.HANDLE
+        kernel.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+        kernel.WaitForSingleObject.restype = wintypes.DWORD
+        kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+        kernel.CloseHandle.restype = wintypes.BOOL
+        handle = kernel.OpenProcess(0x00100000, False, parent)  # SYNCHRONIZE only
+        if not handle:
+            return False
+        try:
+            return kernel.WaitForSingleObject(handle, 0) == 258  # WAIT_TIMEOUT: still running
+        finally:
+            kernel.CloseHandle(handle)
+    try:
+        os.kill(parent, 0)
+        return True
+    except OSError:
+        return False
+
+
 def watch_parent(parent):
     while True:
         time.sleep(2)
-        try:
-            os.kill(parent, 0)
-        except OSError:
+        if not parent_alive(parent):
             os._exit(0)
 
 if __name__=="__main__":

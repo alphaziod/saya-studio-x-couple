@@ -1,9 +1,25 @@
 # Packaging
 
-Release: **Saya Studio 1.0.0-beta.2 (Linux beta)**, tag `studio-v1.0.0-beta.2`, built by
-`.github/workflows/studio-release.yml` (draft prerelease on GitHub). Formats: deb, Fedora rpm,
-openSUSE rpm, Arch, AUR, Nix, AppImage, Flatpak, Snap. Everything below the Arch section was
-written without being run locally; see "Not tested" at the end.
+Release: **Saya Studio 1.0.0-beta.2**, tag `studio-v1.0.0-beta.2`, published by
+`.github/workflows/studio-release.yml`. Linux formats: deb, Fedora rpm, openSUSE rpm, Arch, Nix,
+AppImage and Flatpak. Windows and macOS builds live in the reusable `studio-desktop.yml` workflow,
+also dispatchable separately to add native assets to an existing release without rebuilding Linux.
+
+## Windows and macOS
+
+On Windows x64, `cd studio`, `npm ci`, then `npx tauri build` produces the NSIS `.exe` installer.
+The same commands on a Mac produce a `.dmg` for that Mac's architecture. CI uses Windows x64,
+Apple Silicon and Intel Mac runners. Platform configurations include the public presets and Python
+helpers in Tauri's native resource directory. The `.ico` and `.icns` derive from the existing PNG icon.
+
+The desktop workflow installs its EXE or mounts/copies its DMG, verifies every preset hash,
+starts the packaged app, checks its database and seeded preset, and asserts that it stays running.
+This checks native installation/startup, not a manual UI tour or GPU rendering.
+`scripts/desktop-package-smoke.py` refuses to run outside disposable GitHub Actions runners.
+
+Windows builds are unsigned; Mac builds are ad-hoc signed, not Apple-notarized. Production trust
+requires the publisher's signing certificates. Python and ComfyUI remain external requirements.
+Linux-only limitations are listed in `../README.md`.
 
 Snap is not attached to beta.2: CI could not reliably download build prerequisites from the Snapcraft store.
 The recipe remains available for a later build.
