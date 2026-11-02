@@ -5,7 +5,7 @@ Release: **Saya Studio 1.0.0-beta.2 (Linux beta)**, tag `studio-v1.0.0-beta.2`, 
 openSUSE rpm, Arch, AUR, Nix, AppImage, Flatpak, Snap. Everything below the Arch section was
 written without being run locally; see "Not tested" at the end.
 
-Snap is not attached to beta.2: the Snapcraft store was unreachable during all three CI attempts.
+Snap is not attached to beta.2: CI could not reliably download build prerequisites from the Snapcraft store.
 The recipe remains available for a later build.
 
 ## Arch Linux

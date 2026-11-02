@@ -2,11 +2,19 @@
 
 ## Saya Studio 1.0.0-beta.2 — 2026-11-02
 
-- Improve readability, spacing and responsive layouts across the desktop interface.
-- Discover local test scripts in Casting and run the selected test with the Generate button; preserve
-  real exit status and bounded logs, and reject unknown or overlapping test requests.
-- Fix gallery grid sizing and editor toolbar placement; update wording across all 14 languages.
-- Preserve the existing public presets and Saya Couple 2.3.0 node package.
+- **Interface:** improve text contrast, label sizes, headings, navigation, control spacing and wrapping
+  throughout the app; reduce visual borders and adapt panels to narrower windows.
+- **Casting:** clearer batch controls and a dedicated filter row. Add automatic discovery of local test
+  scripts and a Generate button for the selected test, with refresh, actual exit status, bounded logs,
+  timeout reporting and duplicate/concurrent request protection.
+- **Gallery, characters and models:** correct virtual-grid spacing and column overflow; improve character
+  sheets, revision rows, default avatars, LoRA/checkpoint inspectors, references and import layouts.
+- **Generation and workshop:** clarify workflow/preparation labels, saved preparations and pass/node cards;
+  improve workflow/module/pipeline columns, graph toolbars, scene fields, A/B lab, prompt tools, settings,
+  engine/data controls, comparisons and image-editor readability. Preserve graph canvas coordinates.
+- **Languages and release:** update labels in all 14 languages; preserve public presets and Saya Couple
+  2.3.0. Seven Linux package formats are available. Snap remains unavailable because its store interrupted
+  build-tool downloads. Full changes and validation: [release notes](studio/RELEASE_NOTES.md).
 
 ## 2.3.0 — 2026-10-29
 

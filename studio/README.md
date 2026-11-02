@@ -14,6 +14,14 @@ It is the companion app of the **Saya Couple** node pack in this repository, and
 backup of my own setup, published in case it helps someone. It is a beta: expect rough edges, back up your
 data, and use it at your own risk.
 
+## New in beta.2
+
+The interface update covers all screens: clearer text and controls, quieter borders, wrapping toolbars,
+and improved gallery, character, model, generation and workshop layouts. Casting now discovers local
+test scripts and runs the selected test from **Generate**, with real output and error reporting.
+
+See the [complete beta.2 changes and validation](RELEASE_NOTES.md#changes-in-beta2).
+
 ## What it does
 
 - **Generation**: open a ComfyUI workflow (UI format), check its faithful API conversion, edit inputs, submit,
