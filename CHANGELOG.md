@@ -2,6 +2,10 @@
 
 ## Saya Studio 1.0.0-beta.2 — 2026-11-02
 
+- **Windows and macOS:** add a Windows x64 EXE installer and Apple Silicon/Intel DMGs to the same release,
+  with native installation/startup checks, bundled public presets, platform resource/user paths and Python
+  process handling. Windows builds are unsigned; macOS builds are ad-hoc signed, not Apple-notarized.
+
 - **Unified download:** add `install.sh` to install Couple nodes, the Studio app, or both, plus a standalone
   `saya-couple-2.3.0.tar.gz` containing the unchanged public nodes, workflows and existing installer.
 
