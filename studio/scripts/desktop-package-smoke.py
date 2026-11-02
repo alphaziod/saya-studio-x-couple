@@ -13,7 +13,8 @@ import time
 assert os.environ.get("GITHUB_ACTIONS") == "true", "Disposable CI runners only"
 platform = sys.argv[1]
 source = Path.cwd()
-work = Path(tempfile.mkdtemp(prefix="saya desktop smoke "))
+# Tauri rejects executable paths through symlinks on macOS (/var points to /private/var).
+work = Path(tempfile.mkdtemp(prefix="saya desktop smoke ")).resolve()
 artifact = next((source.parent / "dist-release").glob("*.exe" if platform.startswith("windows") else "*.dmg"))
 if platform.startswith("windows"):
     install = work / "installed"
