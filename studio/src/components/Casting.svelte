@@ -1,4 +1,5 @@
 <script module lang="ts">
+  import TestScripts from './TestScripts.svelte';
   let castingPrefsWrite:Promise<void>=Promise.resolve();
 </script>
 <script lang="ts">
@@ -493,7 +494,7 @@
   const fermerMenu=(e:Event)=>(e.currentTarget as HTMLElement).closest('details')?.removeAttribute('open');
 </script>
 <svelte:window onkeydown={stepKeys}/>
-<section class="wb casting-wb" data-casting-panel style="--wb-left:280px;--wb-right:340px">
+<section class="wb casting-wb" data-casting-panel style="--wb-left:300px;--wb-right:340px">
   <aside class="wb-panel left">
     <div class="wb-head"><h2>{$t("Nouveau lot")}</h2></div>
     <div class="wb-scroll">
@@ -529,6 +530,7 @@
       <details class="sec"><summary><span class="sec-title">{$t("Brouillons · tester de nouvelles actions")}</span></summary>
         <ActionDrafts disabled={busy||preparing||!session||castingEnVol} onlaunch={(ids,n)=>lancerCasting({ids,n})}/>
       </details>
+      <TestScripts bind:busy disabled={preparing||castingEnVol||scriptEnVol}/>
       <details class="sec" title={$t("Modes réels de la fonction fish generez — le moteur gère sa soumission GPU lui-même ; aucun mode test factice.")}><summary><span class="sec-title">{$t("Scripts · modes réels du moteur")}</span></summary>
         <div class="sec-body" data-casting-scripts>
           <select data-casting-script aria-label={$t("Scripts (modes réels)")} bind:value={scriptChoisi} disabled={busy||scriptEnVol}><option value="">{$t("— choisir un script —")}</option>{#each fishScripts as s}<option value={s.script}>{$t(s.label)}</option>{/each}</select>
@@ -561,16 +563,7 @@
       {#if selLot}<span class="muted num">{selLot.done}/{selLot.rows.length} {$t("images générées")}</span>{/if}
       {#if selLot?.retry}{@const lot=selLot}<button data-casting-retry disabled={busy||activeRows.some(r=>batchKey(r)!==lot.id&&Object.values(r.phases??{}).some((p:any)=>phaseActive(p.state)))} onclick={()=>actionRun('resume',lot.retry)}>{$t("Terminer le lot")} — {lot.remaining} {$t("restantes")}</button>{/if}
       <span class="grow"></span>
-      {#if castingRows.length}
-      <div class="filters" data-casting-filtres>
-        <select aria-label={$t("Résultats du lot")} title={$t("Résultats du lot")} bind:value={resultFilter}><option value="images">{$t("Images obtenues")}</option><option value="all">{$t("Tous les essais")}</option><option value="pending">{$t("En attente")}</option><option value="cancelled">{$t("Annulés")}</option></select>
-        <select data-casting-filtre-famille aria-label={$t("Filtre · famille")} title={$t("Filtre · famille")} bind:value={grilleFamille} disabled={busy||preparing||castingEnVol}><option value="">{$t("Toutes")}</option>{#each gridFamilies as f}<option value={f}>{f}</option>{/each}</select>
-        <select data-casting-filtre-model aria-label={$t("Filtre · checkpoint")} title={$t("Filtre · checkpoint")} bind:value={grilleModel} disabled={busy||preparing||castingEnVol}><option value="">{$t("Tous")}</option>{#each gridModels as m}<option value={m}>{m}</option>{/each}</select>
-        <select data-casting-filtre-lora aria-label={$t("Filtre · LoRA")} title={$t("Filtre · LoRA")} bind:value={grilleLora} disabled={busy||preparing||castingEnVol}><option value="">{$t("Toutes")}</option>{#each gridLoras as l}<option value={l}>{l}</option>{/each}</select>
-        <select data-casting-tri aria-label={$t("Tri")} title={$t("Tri")} bind:value={grilleTri} disabled={busy||preparing||castingEnVol}><option value="recents">{$t("Plus récents d'abord")}</option><option value="anciens">{$t("Plus anciens d'abord")}</option></select>
-        <span class="muted num small" data-casting-filtre-note>{$tn("{n} affiché sur {total}","{n} affichés sur {total}",grilleAffichees.length,{total:castingRows.length})}</span>
-      </div>
-      {/if}
+
       <input class="size" type="range" min="110" max="360" step="10" bind:value={tile} aria-label={$t("Taille des vignettes")} title={$t("Taille des vignettes")}/>
       <details class="menu">
         <summary class="icon-btn" title={$t("Actions du lot")} aria-label={$t("Actions du lot")}><Icon name="more"/></summary>
@@ -581,6 +574,16 @@
         </div>
       </details>
     </div>
+      {#if castingRows.length}
+      <div class="filters" data-casting-filtres>
+        <label><span>{$t("Résultats du lot")}</span><select aria-label={$t("Résultats du lot")} title={$t("Résultats du lot")} bind:value={resultFilter}><option value="images">{$t("Images obtenues")}</option><option value="all">{$t("Tous les essais")}</option><option value="pending">{$t("En attente")}</option><option value="cancelled">{$t("Annulés")}</option></select></label>
+        <label><span>{$t("Famille")}</span><select data-casting-filtre-famille aria-label={$t("Filtre · famille")} title={$t("Filtre · famille")} bind:value={grilleFamille} disabled={busy||preparing||castingEnVol}><option value="">{$t("Toutes")}</option>{#each gridFamilies as f}<option value={f}>{f}</option>{/each}</select></label>
+        <label><span>{$t("Modèle")}</span><select data-casting-filtre-model aria-label={$t("Filtre · checkpoint")} title={$t("Filtre · checkpoint")} bind:value={grilleModel} disabled={busy||preparing||castingEnVol}><option value="">{$t("Tous")}</option>{#each gridModels as m}<option value={m}>{m}</option>{/each}</select></label>
+        <label><span>{$t("LoRA")}</span><select data-casting-filtre-lora aria-label={$t("Filtre · LoRA")} title={$t("Filtre · LoRA")} bind:value={grilleLora} disabled={busy||preparing||castingEnVol}><option value="">{$t("Toutes")}</option>{#each gridLoras as l}<option value={l}>{l}</option>{/each}</select></label>
+        <label><span>{$t("Tri")}</span><select data-casting-tri aria-label={$t("Tri")} title={$t("Tri")} bind:value={grilleTri} disabled={busy||preparing||castingEnVol}><option value="recents">{$t("Plus récents d'abord")}</option><option value="anciens">{$t("Plus anciens d'abord")}</option></select></label>
+        <span class="muted num small" data-casting-filtre-note>{$tn("{n} affiché sur {total}","{n} affichés sur {total}",grilleAffichees.length,{total:castingRows.length})}</span>
+      </div>
+      {/if}
     {#if preparing}
     <div class="strip" data-casting-preparation role="status" aria-live="polite" aria-busy="true">
       <b>{preparation.stage==='prepare'?$t("Préparation"):preparation.stage==='start'?$t("Lancement"):preparation.stage==='catalogue'?$t("ComfyUI · catalogue"):preparation.stage==='characters'?$t("Personnages"):$t("Casting · tirage")}</b>
@@ -773,38 +776,46 @@
   </div>
 </aside></div></dialog>{/if}
 <style>
+  .casting-wb{font-size:13px}
+  .casting-wb .wb-head h2{font-size:14px}
+  .casting-wb .sec>summary{padding:10px 12px}
+  .casting-wb .sec-title{font-size:13px;letter-spacing:0;text-transform:none;color:var(--text);line-height:1.5}
+  .casting-wb .wb-bar{padding:8px 16px;gap:8px}
+  .casting-wb .wb-actions{gap:10px}
+  .casting-wb .wb-actions button,.casting-wb .wb-actions input{min-height:32px}
+
   .casting-wb{height:100%;min-height:0}
   .casting-wb details{margin:0}
   .grow{flex:1}
-  .small{font-size:11.5px}
+  .small{font-size:12px}
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   /* Left panel: new batch + batches */
   .new-lot{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;padding:10px 12px 12px;border-bottom:1px solid var(--line)}
   .new-lot .field-row{display:grid;grid-template-columns:84px minmax(0,1fr);margin:0;flex-direction:row;font-size:inherit;color:inherit}
-  .new-lot .field-row.top{align-items:start}.new-lot .field-row.top>span:first-child{padding-top:5px}
+  .new-lot .field-row.top{grid-template-columns:minmax(0,1fr);gap:4px}.new-lot .field-row.top>span:first-child{padding-top:4px}
   .new-lot input,.new-lot select{width:100%}
-  .targets{display:grid;gap:2px;justify-items:start;min-width:0}
-  .targets>button{min-height:24px;padding:0 6px;font-size:12px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .target-chip{display:inline-flex;align-items:center;gap:2px;font-size:11.5px;color:var(--text);border:1px solid var(--line-strong);border-radius:3px;padding:0 0 0 6px;margin:0 0 4px 6px}
+  .targets{display:grid;gap:2px;min-width:0}
+  .targets>button{min-height:30px;padding:4px 8px;font-size:13px;max-width:100%;white-space:normal;text-align:start;color:var(--text)}
+  .target-chip{display:inline-flex;align-items:center;gap:2px;font-size:12px;color:var(--text);border:1px solid var(--line-strong);border-radius:3px;padding:0 0 0 6px;margin:0 0 4px 6px}
   .target-chip.exclusion{color:var(--danger)}
   .target-chip .icon-btn{min-height:20px;width:20px}
   .launch{height:32px;margin-top:2px}
-  .casting-note{margin:0;font-size:11.5px;color:var(--muted);overflow-wrap:anywhere}.casting-note:empty{display:none}
-  .source{display:flex;align-items:center;gap:4px;margin:0;font-size:11.5px;color:var(--muted)}
-  .source>span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .casting-note{margin:0;font-size:12px;color:var(--muted);overflow-wrap:anywhere}.casting-note:empty{display:none}
+  .source{display:flex;align-items:center;gap:4px;margin:0;font-size:12px;color:var(--muted)}
+  .source>span{flex:1;min-width:0;overflow-wrap:anywhere}
   .source .icon-btn{min-height:22px;width:22px}
   .sec-body .inline{display:flex;gap:6px}.sec-body .n{width:56px;flex:none}.sec-body .inline button{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .sec-body input,.sec-body select{width:100%}
   .sec-body p{margin:0}
-  .script-out{max-height:220px;overflow:auto;background:var(--canvas);border:1px solid var(--line);border-radius:var(--radius);padding:8px;font-size:11px;color:var(--muted);white-space:pre-wrap;margin:0}
+  .script-out{max-height:220px;overflow:auto;background:var(--canvas);border:1px solid var(--line);border-radius:var(--radius);padding:8px;font-size:12px;color:var(--muted);white-space:pre-wrap;margin:0}
   .lots-head{display:flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;border-bottom:1px solid var(--line)}
   .lots-head h2{flex:1;margin:0;font-size:13px;font-weight:600}
-  .lots-head select{min-height:24px;font-size:11.5px}.lots-head .icon-btn{min-height:24px;width:24px}
+  .lots-head select{min-height:24px;font-size:12px}.lots-head .icon-btn{min-height:24px;width:24px}
   .lot{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;width:100%;min-height:0;padding:9px 12px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;text-align:start}
   .lot:hover:not(:disabled){background:var(--raised)}
   .lot.on{background:var(--raised);box-shadow:inset 2px 0 var(--accent-warm)}
-  .lot b{font-weight:500}.lot .count{font-size:11.5px;color:var(--muted)}
-  .lot small{grid-column:1/-1;color:var(--muted);font-size:11px}
+  .lot b{font-weight:500}.lot .count{font-size:12px;color:var(--muted)}
+  .lot small{grid-column:1/-1;color:var(--muted);font-size:12px}
   .bar{grid-column:1/-1;display:block;height:3px;background:var(--line-strong);border-radius:2px;overflow:hidden}
   .bar i{display:block;height:100%;background:var(--muted)}
   .lot[data-lot-state=active] .bar i{background-color:var(--accent)}.lot[data-lot-state=active] .count{color:var(--accent-light)}
@@ -812,9 +823,11 @@
   .lot[data-lot-state=completed] .bar i{background:var(--ok)}.lot[data-lot-state=completed] .count{color:var(--ok)}
   .lot[data-lot-state=incomplete] .bar i{background:var(--warning)}.lot[data-lot-state=incomplete] .count{color:var(--warning)}
   /* Center: batch bar, banners, contact sheet */
-  .lot-title{font-weight:600;white-space:nowrap}
-  .filters{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
-  .filters select{max-width:150px}
+  .lot-title{font-weight:600;overflow-wrap:anywhere}
+  .filters{display:flex;align-items:end;gap:10px 16px;flex-wrap:wrap;margin:0;padding:10px 16px;background:var(--bg);flex:none}
+  .filters label{flex:1 1 115px;min-width:0;max-width:220px;gap:4px;font-size:12px}
+  .filters select{width:100%;max-width:100%;font-size:13px;min-height:32px}
+  .filters [data-casting-filtre-note]{align-self:center;font-size:12px}
   .size{width:100px;min-height:0;padding:0;background:none;border:0;accent-color:var(--accent)}
   .menu{position:relative}
   .menu>summary{list-style:none;display:inline-grid;place-items:center;min-height:26px;width:28px;border-radius:var(--radius);color:var(--muted);cursor:pointer}
@@ -832,39 +845,39 @@
   .paused{color:var(--warning)}
   .hint{display:inline-grid;place-items:center;color:var(--faint);cursor:help}
   .runbar :global(.run-progress){display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 14px;margin:0}
-  .runbar :global(.run-progress label){color:var(--muted);font-size:11.5px}
+  .runbar :global(.run-progress label){color:var(--muted);font-size:12px}
   .runbar :global(.run-progress span),.runbar :global(.run-progress small){color:var(--muted)}
   .runbar :global(.run-progress progress){height:3px;accent-color:var(--accent)}
   .runbar :global(.run-progress small){grid-column:1/-1}
   .strip-details{padding:6px 16px;border-bottom:1px solid var(--line);background:var(--bg);flex:none}
   .strip-details summary{color:var(--warning);font-size:12px}.strip-details p{margin:6px 0 0}
-  .selbar .muted{font-size:11.5px}
+  .selbar .muted{font-size:12px}
   .sheet{flex:1;min-height:0;overflow:auto;padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--tile,170px),1fr));gap:14px 12px;align-content:start}
   .tile{position:relative;min-width:0}
   .frame{position:relative}
   .tile-img{display:block;width:100%;min-height:0;padding:0;border:0;border-radius:var(--r-img);background:var(--panel);overflow:hidden;aspect-ratio:832/1216;cursor:pointer}
   .tile-img:hover:not(:disabled){background:var(--panel)}
-  .tile-img :global(img),.tile-img :global(.image-placeholder){width:100%;height:100%;object-fit:cover;display:block;min-height:0;border-radius:var(--r-img);background:var(--panel);color:var(--faint);font-size:11px}
+  .tile-img :global(img),.tile-img :global(.image-placeholder){width:100%;height:100%;object-fit:cover;display:block;min-height:0;border-radius:var(--r-img);background:var(--panel);color:var(--faint);font-size:12px}
   .tile-img:focus-visible{outline:none}
   .tile.focus .tile-img{outline:2px solid var(--sel);outline-offset:2px}
-  .tile-img.ph{display:grid;place-items:center;background:transparent;border:1px dashed var(--line-strong);color:var(--faint);font-size:11px;padding:8px;text-align:center;cursor:default}
+  .tile-img.ph{display:grid;place-items:center;background:transparent;border:1px dashed var(--line-strong);color:var(--faint);font-size:12px;padding:8px;text-align:center;cursor:default}
   .tile.focus .tile-img.ph{border-color:var(--sel)}
   .pick{position:absolute;top:6px;inset-inline-start:6px;width:18px;height:18px;min-height:0;margin:0;padding:0;accent-color:var(--accent);cursor:pointer}
   .kept{position:absolute;top:6px;inset-inline-end:6px;font-size:10.5px;background:rgba(12,13,16,.85);border-radius:3px;padding:1px 6px;color:var(--accent-warm)}
   .open{position:absolute;bottom:6px;inset-inline-end:6px;min-height:24px;width:24px;background:rgba(12,13,16,.8);border-color:transparent;color:var(--text);opacity:0}
   .tile:hover .open,.tile.focus .open,.open:focus-visible{opacity:1}
   .tile.sel .tile-img{outline:2px solid var(--accent);outline-offset:2px}
-  .meta{display:flex;justify-content:space-between;gap:6px;margin-top:5px;font-size:11.5px;color:var(--muted);min-width:0}
-  .meta h2{margin:0;font-size:11.5px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .meta{display:flex;justify-content:space-between;gap:6px;margin-top:5px;font-size:12px;color:var(--muted);min-width:0}
+  .meta h2{margin:0;font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .meta span{flex:none}
-  .tile-progress{margin:2px 0 0;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tile-progress{margin:2px 0 0;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .tile-progress.error{color:var(--danger)}
   .empty-prompts{grid-column:1/-1;margin:40px auto;max-width:460px;text-align:center;color:var(--muted)}
   /* Inspector */
   .insp-img{display:block;width:100%;min-height:0;padding:0;border:0;background:var(--canvas);border-radius:var(--r-img);cursor:zoom-in;overflow:hidden}
   .insp-img:hover:not(:disabled){background:var(--canvas)}
   .insp-img :global(img){width:100%;max-height:60vh;object-fit:contain;display:block}
-  .insp-ph{aspect-ratio:832/1216;max-height:60vh;display:grid;place-items:center;border:1px dashed var(--line-strong);border-radius:var(--r-img);color:var(--faint);font-size:11.5px}
+  .insp-ph{aspect-ratio:832/1216;max-height:60vh;display:grid;place-items:center;color:var(--muted);font-size:12px}
   .insp-kv{padding:12px;border-bottom:1px solid var(--line)}
   .insp-kv .error{margin:8px 0 0}
   .save-row{display:grid;gap:6px}.save-row input,.save-row button{width:100%}
@@ -884,7 +897,7 @@
   .step-image{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;padding:16px;overflow:hidden}
   .step-image :global(img){max-width:100%;max-height:100%;object-fit:contain;border-radius:6px}
   .step-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid var(--line);background:var(--panel)}
-  .step-bar kbd{font-size:11px;opacity:.7;margin-inline-start:4px}
+  .step-bar kbd{font-size:12px;opacity:.7;margin-inline-start:4px}
   .casting-large-image{display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-height:0;padding:0;border:0;border-radius:0;background:var(--canvas);overflow:auto;cursor:zoom-in}
   .casting-large-image:hover:not(:disabled){background:var(--canvas)}
   .casting-large-image :global(img){display:block;width:100%;height:100%;object-fit:contain}
@@ -900,9 +913,9 @@
   .cibler-fenetre header{display:flex;gap:8px;align-items:center}
   .cibler-fenetre header>div{flex:1;min-width:0}
   .cibler-fenetre h2{margin:0;font-size:14px;font-weight:600}
-  .cibler-fenetre header small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+  .cibler-fenetre header small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
   .cibler-fenetre header input{width:220px}
-  .cibler-filtre{display:flex;flex-direction:row;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);white-space:nowrap}
+  .cibler-filtre{display:flex;flex-direction:row;align-items:center;gap:6px;font-size:12px;color:var(--muted);white-space:nowrap}
   .cibler-filtre select{width:140px}
   .cibler-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;overflow:auto;min-height:200px;flex:1;padding:2px;background:var(--canvas);border-radius:var(--radius)}
   .cibler-tuile{display:flex;flex-direction:column;gap:3px;padding:6px;min-height:0;border:1px solid transparent;border-radius:var(--radius);background:transparent;min-width:0;text-align:start}
@@ -913,7 +926,7 @@
   .action-tuile[data-selectionne="oui"]{border-color:var(--accent);background:var(--raised)}
   .cibler-portrait{display:block;aspect-ratio:832/1216;border-radius:var(--r-img);overflow:hidden;background:var(--panel)}
   .cibler-portrait :global(img){width:100%;height:100%;object-fit:cover}
-  .cibler-sans-portrait{display:grid;place-items:center;height:100%;color:var(--faint);font-size:11px}
+  .cibler-sans-portrait{display:grid;place-items:center;height:100%;color:var(--faint);font-size:12px}
   .cibler-fenetre footer{display:flex;gap:10px;align-items:center}
   .cibler-fenetre footer span{flex:1;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .cibler-fenetre footer button{white-space:nowrap}

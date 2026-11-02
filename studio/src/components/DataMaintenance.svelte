@@ -67,19 +67,19 @@
 <style>
  .data-page{max-width:760px;display:grid}
  .data-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding-bottom:8px;border-bottom:1px solid var(--line)}
- .data-head .hash{font-size:11.5px;min-width:0}
+ .data-head .hash{font-size:12px;min-width:0}
  p{margin:0}
  .notice{background:none;border:0;padding:6px 0;color:var(--ok)}
  .error{padding:6px 0}
- .dsec{border:0;border-bottom:1px solid var(--line);margin:0;padding:12px 0;display:grid;gap:8px;min-width:0}
- .dtitle{float:left;width:100%;padding:0;margin:0 0 4px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+ .dsec{border:0;border-bottom:1px solid var(--line);margin:0;padding:20px 0;display:grid;gap:12px;min-width:0}
+ .dtitle{float:left;width:100%;padding:0;margin:0 0 4px;font-size:14px;font-weight:600;letter-spacing:normal;text-transform:none;color:var(--muted)}
  .dtitle+*{clear:both}
  .frow{display:grid;grid-template-columns:200px minmax(0,1fr);align-items:center;gap:12px;flex-direction:row;color:var(--text);font-size:12.5px;margin:0}
  .frow>span{color:var(--muted)}
  .frow input{width:100%}
  .frow.static code{color:var(--text);font-size:12px}
  .opt{margin-inline-start:212px;color:var(--text);font-size:12.5px}
- .actions{display:flex;gap:8px;margin-inline-start:212px}
+ .actions{display:flex;flex-wrap:wrap;gap:8px;margin-inline-start:212px}
  .estimate{margin-inline-start:212px;display:grid;gap:2px;font-size:12px}
  .estimate details{margin:0}.estimate ul{margin:4px 0;padding-inline-start:18px;max-height:200px;overflow:auto}
  .out{margin:0}

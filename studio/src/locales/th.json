@@ -1578,7 +1578,7 @@
   "Scène sans nom": "ฉากไม่มีชื่อ",
   "Scène supprimée.": "ลบฉากแล้ว",
   "Scènes": "ฉาก",
-  "Scènes Importer importées": "นำเข้าฉากแล้ว",
+  "Scènes importées": "ฉากที่นำเข้า",
   "Se règle dans LoRA.": "ตั้งค่าได้ในหน้า LoRA",
   "Se règle dans la Galerie.": "ตั้งค่าได้ในแกลเลอรี",
   "Section": "เซกชัน",
@@ -2256,5 +2256,10 @@
   "−1 seed": "−1 seed",
   "■ Arrêter ici": "■ หยุดที่นี่",
   "■ Arrêter la génération": "■ หยุดการสร้างภาพ",
-  "Note sur l’anatomie": "หมายเหตุเกี่ยวกับกายวิภาค"
+  "Note sur l’anatomie": "หมายเหตุเกี่ยวกับกายวิภาค",
+  "Scripts de test": "สคริปต์ทดสอบ",
+  "Choisir un script de test…": "เลือกสคริปต์ทดสอบ…",
+  "Aucun script de test trouvé.": "ไม่พบสคริปต์ทดสอบ",
+  "Test interrompu : délai dépassé.": "หยุดการทดสอบ: เกินเวลาที่กำหนด",
+  "Échec du test (code {code}).": "การทดสอบล้มเหลว (รหัส {code})"
 }

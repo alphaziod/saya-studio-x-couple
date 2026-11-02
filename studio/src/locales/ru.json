@@ -1600,7 +1600,7 @@
   "Scène sans nom": "Сцена без названия",
   "Scène supprimée.": "Сцена удалена.",
   "Scènes": "Сцены",
-  "Scènes Importer importées": "Сцены Импорт импортированы",
+  "Scènes importées": "Импортированные сцены",
   "Se règle dans LoRA.": "Настраивается в разделе LoRA.",
   "Se règle dans la Galerie.": "Настраивается в Галерее.",
   "Section": "Секция",
@@ -2372,5 +2372,10 @@
   "−1 seed": "−1 сид",
   "■ Arrêter ici": "■ Остановить здесь",
   "■ Arrêter la génération": "■ Остановить генерацию",
-  "Note sur l’anatomie": "Примечание об анатомии"
+  "Note sur l’anatomie": "Примечание об анатомии",
+  "Scripts de test": "Тестовые скрипты",
+  "Choisir un script de test…": "Выберите тестовый скрипт…",
+  "Aucun script de test trouvé.": "Тестовые скрипты не найдены.",
+  "Test interrompu : délai dépassé.": "Тест остановлен: превышено время ожидания.",
+  "Échec du test (code {code}).": "Ошибка теста (код {code})."
 }

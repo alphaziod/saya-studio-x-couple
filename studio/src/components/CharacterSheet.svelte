@@ -96,10 +96,10 @@
   .error,.hash{margin:0}
   .choices{display:grid;gap:6px;padding:8px;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel)}
   .choice-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:4px;max-height:300px;overflow:auto}
-  .choice{display:block;width:100%;aspect-ratio:3/4;padding:0;border:0;border-radius:var(--r-img);overflow:hidden;background:var(--raised);font-size:10px;color:var(--muted)}
+  .choice{display:block;width:100%;aspect-ratio:3/4;padding:0;border:0;border-radius:var(--r-img);overflow:hidden;background:var(--raised);font-size:12px;color:var(--muted)}
   .choice :global(img),.choice :global(.image-placeholder){width:100%;height:100%;min-height:0;object-fit:cover;object-position:top}
   .choices button.quiet{min-height:24px}
-  h2{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:14px 0 4px}
+  h2{font-size:12px;font-weight:600;letter-spacing:normal;text-transform:none;color:var(--muted);margin:14px 0 4px}
   .sheet-identity h2:first-of-type{margin-top:10px}
   .sheet-body h2:first-child{margin-top:0}
   h3{font-size:12px;font-weight:500;margin:10px 0 6px;color:var(--text)}
@@ -116,7 +116,7 @@
   .tile:hover .cover{outline:2px solid var(--sel);outline-offset:2px}
   .cover.primary{outline:2px solid var(--accent);outline-offset:2px}
   .cover :global(img),.cover :global(.image-placeholder){width:100%;height:100%;min-height:0;max-height:none;object-fit:cover;object-position:top}
-  .tile small{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tile small.warn{color:var(--warning)}
+  .tile small{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tile small.warn{color:var(--warning)}
   @media(max-width:1100px){.sheet .sheet-layout{grid-template-columns:220px minmax(0,1fr)}}
   @media(max-width:760px){.sheet .sheet-layout{grid-template-columns:1fr}}
 </style>

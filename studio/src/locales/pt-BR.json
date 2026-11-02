@@ -1578,7 +1578,7 @@
   "Scène sans nom": "Cena sem nome",
   "Scène supprimée.": "Cena excluída.",
   "Scènes": "Cenas",
-  "Scènes Importer importées": "Cenas do Importer importadas",
+  "Scènes importées": "Cenas importadas",
   "Se règle dans LoRA.": "Configure em LoRA.",
   "Se règle dans la Galerie.": "Configure na Galeria.",
   "Section": "Seção",
@@ -2256,5 +2256,10 @@
   "−1 seed": "−1 seed",
   "■ Arrêter ici": "■ Parar aqui",
   "■ Arrêter la génération": "■ Parar a geração",
-  "Note sur l’anatomie": "Nota sobre a anatomia"
+  "Note sur l’anatomie": "Nota sobre a anatomia",
+  "Scripts de test": "Scripts de teste",
+  "Choisir un script de test…": "Escolha um script de teste…",
+  "Aucun script de test trouvé.": "Nenhum script de teste encontrado.",
+  "Test interrompu : délai dépassé.": "Teste interrompido: tempo limite excedido.",
+  "Échec du test (code {code}).": "Falha no teste (código {code})."
 }

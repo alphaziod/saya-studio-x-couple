@@ -20,13 +20,13 @@
 {#if job.preview}<img class="live-preview" src={job.preview} alt={$t("Aperçu intermédiaire de cette génération")} />{/if}
 {/if}
 <style>
-.status{display:flex;align-items:center;gap:6px;margin:0;font-size:11.5px;color:var(--muted)}
+.status{display:flex;align-items:center;gap:6px;margin:0;font-size:12px;color:var(--muted)}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none}.dot.off{background:var(--faint)}
-.note{color:var(--muted);margin:0;font-size:11.5px;overflow-wrap:anywhere}
-.error{color:var(--danger);margin:0;font-size:11.5px;overflow-wrap:anywhere}
+.note{color:var(--muted);margin:0;font-size:12px;overflow-wrap:anywhere}
+.error{color:var(--danger);margin:0;font-size:12px;overflow-wrap:anywhere}
 pre.error{background:var(--canvas);border:1px solid var(--line);border-radius:var(--radius);padding:6px 8px;white-space:pre-wrap;max-height:200px;overflow:auto}
-.progress{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--muted)}
+.progress{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
 progress{width:100%;height:4px;accent-color:var(--accent)}
-details{margin:0}summary{color:var(--muted);font-size:11.5px;cursor:pointer}
+details{margin:0}summary{color:var(--muted);font-size:12px;cursor:pointer}
 .live-preview{max-width:100%;max-height:360px;object-fit:contain;display:block;border-radius:var(--r-img);background:var(--canvas)}
 </style>

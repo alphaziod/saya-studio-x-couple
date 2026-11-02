@@ -59,8 +59,8 @@
  .gen-result p{margin:0}.expl{font-size:12.5px}.warn{color:var(--warning)}
  .comparison{overflow:auto}
  table{width:100%;text-align:start;border-collapse:collapse;font-size:12px}
- th,td{padding:4px 8px;border-bottom:1px solid var(--line);text-align:start}thead th{color:var(--muted);font-weight:500;font-size:11px}tbody th{font-weight:500}
- pre{font-size:11.5px;max-height:240px;margin:0;padding:8px;background:var(--canvas);border:1px solid var(--line);border-radius:var(--radius)}
- h4{margin:4px 0 0;font-size:11px;font-weight:600;color:var(--muted)}
+ th,td{padding:4px 8px;border-bottom:1px solid var(--line);text-align:start}thead th{color:var(--muted);font-weight:500;font-size:12px}tbody th{font-weight:500}
+ pre{font-size:12px;max-height:240px;margin:0;padding:8px;background:var(--canvas);border:1px solid var(--line);border-radius:var(--radius)}
+ h4{margin:4px 0 0;font-size:12px;font-weight:600;color:var(--muted)}
  @media(max-width:1000px){.gen-fields{grid-template-columns:1fr}}
 </style>

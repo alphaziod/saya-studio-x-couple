@@ -296,13 +296,13 @@
   .pl.embedded{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;height:auto;background:transparent}
   .pl-left .wb-head h2{font-size:13px}
   .pl-list{list-style:none;margin:0;padding:4px 0;border-bottom:1px solid var(--line)}
-  .pl-item{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:30px;padding:0 12px;border:0;border-radius:0;background:transparent;text-align:start;color:var(--text)}
+  .pl-item{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:38px;padding:4px 14px;border:0;border-radius:0;background:transparent;text-align:start;color:var(--text)}
   .pl-item span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .pl-item small{color:var(--muted);font-size:11px;white-space:nowrap;flex:none}
+  .pl-item small{color:var(--muted);font-size:12px;white-space:nowrap;flex:none}
   .pl-item:hover:not(:disabled){background:var(--raised)}
   .pl-item.on{background:var(--hover);box-shadow:inset 2px 0 0 var(--accent)}
   .pl-empty{padding:8px 12px}
-  .pl-runs{display:grid;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  .pl-runs{display:grid;border:0;border-radius:0;overflow:hidden}
   .pl-runs .pl-item{min-height:26px;padding:0 8px;border-bottom:1px solid var(--line)}
   .pl-runs .pl-item:last-child{border-bottom:0}
   .pl-main{position:relative;display:flex;flex-direction:column;min-width:0;min-height:0}
@@ -320,14 +320,14 @@
   .pass-review-image :global(img){display:block;width:100%;max-height:240px;object-fit:contain}
   .pl-actions{display:flex;flex-wrap:wrap;gap:6px}
   .pl-actions button{min-height:26px;font-size:12px}
-  .pl-summary{margin:0;font-size:11.5px}
+  .pl-summary{margin:0;font-size:12px}
   .pl-steps{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
   .pl-steps li{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);min-width:0}
-  .pl-pos{width:14px;flex:none;font-size:11px}
+  .pl-pos{width:14px;flex:none;font-size:12px}
   .pl-step-main{display:grid;gap:1px;flex:1;min-width:0}
   .pl-step-head{display:flex;align-items:center;gap:6px;min-width:0}
   .pl-step-head strong{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .pl-step-main small{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pl-step-main small{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .pl-msg{color:var(--text)}
   .pl-thumb{width:40px;height:40px;flex:none;border-radius:var(--r-img);overflow:hidden;background:var(--canvas)}
   .pl-thumb :global(img){width:40px;height:40px;object-fit:contain;display:block}
@@ -339,11 +339,11 @@
   .pl .notice{margin:0;font-size:12px}
   .pl-mem :global(details){margin:0;font-size:12px}
   .pl-mem :global(summary){color:var(--muted)}
-  .pl-events{margin:0;padding:0;list-style:none;max-height:300px;overflow:auto;font-size:11px;color:var(--muted);overflow-wrap:anywhere}
+  .pl-events{margin:0;padding:0;list-style:none;max-height:300px;overflow:auto;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
   .pl-events li{padding:3px 0;border-bottom:1px solid var(--line)}
-  .pl-pre{margin:0;max-height:320px;overflow:auto;font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere}
+  .pl-pre{margin:0;max-height:320px;overflow:auto;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}
   .pipeline-graph{display:flex;flex-wrap:wrap;gap:4px}
-  .pipeline-node{display:grid;gap:1px;padding:4px 8px;border:1px solid var(--line-strong);border-radius:var(--radius);font-size:11.5px;min-width:0;max-width:100%}
+  .pipeline-node{display:grid;gap:1px;padding:4px 8px;border:1px solid var(--line-strong);border-radius:var(--radius);font-size:12px;min-width:0;max-width:100%}
   .pipeline-node small{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .pl-stepform{display:grid;gap:6px;padding-top:8px;border-top:1px solid var(--line)}
   .pl-stepform label{gap:3px;color:var(--muted);font-size:12px}

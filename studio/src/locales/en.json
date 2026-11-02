@@ -1578,7 +1578,7 @@
   "Scène sans nom": "Untitled scene",
   "Scène supprimée.": "Scene deleted.",
   "Scènes": "Scenes",
-  "Scènes Importer importées": "Scenes Importer imported",
+  "Scènes importées": "Imported scenes",
   "Se règle dans LoRA.": "Set it in LoRA.",
   "Se règle dans la Galerie.": "Set it in the Gallery.",
   "Section": "Section",
@@ -2256,5 +2256,10 @@
   "−1 seed": "−1 seed",
   "■ Arrêter ici": "■ Stop here",
   "■ Arrêter la génération": "■ Stop the generation",
-  "Note sur l’anatomie": "Anatomy note"
+  "Note sur l’anatomie": "Anatomy note",
+  "Scripts de test": "Test scripts",
+  "Choisir un script de test…": "Choose a test script…",
+  "Aucun script de test trouvé.": "No test scripts found.",
+  "Test interrompu : délai dépassé.": "Test stopped: time limit exceeded.",
+  "Échec du test (code {code}).": "Test failed (code {code})."
 }

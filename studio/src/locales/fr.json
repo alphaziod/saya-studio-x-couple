@@ -1578,7 +1578,7 @@
   "Scène sans nom": "Scène sans nom",
   "Scène supprimée.": "Scène supprimée.",
   "Scènes": "Scènes",
-  "Scènes Importer importées": "Scènes Importer importées",
+  "Scènes importées": "Scènes importées",
   "Se règle dans LoRA.": "Se règle dans LoRA.",
   "Se règle dans la Galerie.": "Se règle dans la Galerie.",
   "Section": "Section",
@@ -2256,5 +2256,10 @@
   "−1 seed": "−1 seed",
   "■ Arrêter ici": "■ Arrêter ici",
   "■ Arrêter la génération": "■ Arrêter la génération",
-  "Note sur l’anatomie": "Note sur l’anatomie"
+  "Note sur l’anatomie": "Note sur l’anatomie",
+  "Scripts de test": "Scripts de test",
+  "Choisir un script de test…": "Choisir un script de test…",
+  "Aucun script de test trouvé.": "Aucun script de test trouvé.",
+  "Test interrompu : délai dépassé.": "Test interrompu : délai dépassé.",
+  "Échec du test (code {code}).": "Échec du test (code {code})."
 }

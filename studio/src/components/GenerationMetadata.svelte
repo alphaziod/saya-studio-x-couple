@@ -47,9 +47,9 @@
 <style>
  section{display:grid;gap:8px;min-width:0}
  p{margin:0}
- .mode{font-size:11.5px}
+ .mode{font-size:12px}
  .prompts-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:4px 0 0}
- .prompts-head button{min-height:22px;padding:0 6px;font-size:11.5px}
+ .prompts-head button{min-height:22px;padding:0 6px;font-size:12px}
  .prompts-list{display:flex;flex-direction:column;gap:10px;margin:0}
  .prompt-entry{margin:0;display:grid;grid-template-columns:72px minmax(0,1fr);gap:2px 10px;align-items:start}
  .prompt-entry h4{margin:0;font-size:12px;font-weight:400;color:var(--muted);line-height:1.5}

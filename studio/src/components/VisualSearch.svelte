@@ -127,11 +127,11 @@
   .image-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:0}
   .image-card{display:flex;flex-direction:column;background:transparent;border:0;padding:0;min-width:0;cursor:default}
   .image-card :global(img),.image-card :global(.image-placeholder){width:100%;aspect-ratio:4/5;height:auto;max-height:none;object-fit:contain;background:var(--canvas);border-radius:var(--r-img)}
-  .image-card span{padding:4px 2px 0;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .image-card small{padding:0 2px;font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .image-card span{padding:4px 2px 0;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .image-card small{padding:0 2px;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .visual-index{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   section{display:grid;gap:8px;border-top:1px solid var(--line);padding-top:12px}
-  h3{margin:0;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+  h3{margin:0;font-size:12px;font-weight:600;letter-spacing:normal;text-transform:none;color:var(--muted)}
   .row{display:flex;gap:6px;flex-wrap:wrap}
   .empty-state{padding:30px 10px;text-align:center;color:var(--muted)}
 </style>

@@ -1578,7 +1578,7 @@
   "Scène sans nom": "Adegan tanpa nama",
   "Scène supprimée.": "Adegan dihapus.",
   "Scènes": "Scene",
-  "Scènes Importer importées": "Scene Impor terimpor",
+  "Scènes importées": "Adegan yang diimpor",
   "Se règle dans LoRA.": "Diatur di LoRA.",
   "Se règle dans la Galerie.": "Diatur di Galeri.",
   "Section": "Section",
@@ -2256,5 +2256,10 @@
   "−1 seed": "−1 seed",
   "■ Arrêter ici": "■ Hentikan di sini",
   "■ Arrêter la génération": "■ Hentikan generasi",
-  "Note sur l’anatomie": "Catatan anatomi"
+  "Note sur l’anatomie": "Catatan anatomi",
+  "Scripts de test": "Skrip pengujian",
+  "Choisir un script de test…": "Pilih skrip pengujian…",
+  "Aucun script de test trouvé.": "Tidak ada skrip pengujian ditemukan.",
+  "Test interrompu : délai dépassé.": "Pengujian dihentikan: batas waktu terlampaui.",
+  "Échec du test (code {code}).": "Pengujian gagal (kode {code})."
 }

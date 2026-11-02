@@ -202,24 +202,25 @@
 </div>
 <style>
   .stream{position:relative;display:flex;flex-direction:column;flex:1;min-height:0;height:100%}
-  .stream-status{position:absolute;z-index:2;inset-inline-end:14px;bottom:10px;margin:0;font-size:11px;color:var(--muted);pointer-events:none}
+  .stream-status{position:absolute;z-index:2;inset-inline-end:14px;bottom:10px;margin:0;font-size:12px;color:var(--muted);pointer-events:none}
   .stream-status:empty{display:none}
   .stream-error{margin:0;padding:6px 12px;border-bottom:1px solid var(--line);background:var(--bg)}
-  .stream-viewport{flex:1;height:auto;min-height:0;margin:0;border:0;border-radius:0;background:var(--canvas);overflow:auto;padding:12px 12px 0}
+  /* Virtual rows measure clientWidth, so gutters must stay outside that viewport. */
+  .stream-viewport{flex:1;height:auto;min-height:0;margin:12px 12px 0;border:0;border-radius:0;background:var(--canvas);overflow:auto;padding:0}
   .stream-row{padding:0}
   .stream-card{display:flex;flex-direction:column;gap:0;padding:0;min-height:0;border:0;border-radius:var(--r-img);background:transparent;overflow:visible;text-align:start}
   .stream-card:hover:not(:disabled){background:transparent}
   .stream-thumb{width:100%;border-radius:var(--r-img);overflow:hidden;background:var(--canvas)}
   .stream-thumb :global(img){width:100%;height:100%;object-fit:contain;display:block}
-  .stream-thumb :global(.image-placeholder){height:100%;min-height:0;font-size:11px;color:var(--faint)}
-  .stream-card.current .stream-thumb{outline:1px solid var(--sel);outline-offset:2px}
-  .stream-card.selected .stream-thumb{outline:2px solid var(--accent);outline-offset:2px}
+  .stream-thumb :global(.image-placeholder){height:100%;min-height:0;font-size:12px;color:var(--faint)}
+  .stream-card.current .stream-thumb{outline:1px solid var(--sel);outline-offset:-2px}
+  .stream-card.selected .stream-thumb{outline:2px solid var(--accent);outline-offset:-2px}
   .stream-card.selected{outline:0}
-  .stream-card:focus-visible{outline:1px solid var(--sel);outline-offset:2px}
-  .caption{display:flex;align-items:baseline;gap:6px;height:22px;padding:4px 2px 0;min-width:0;color:var(--muted);font-size:11px;line-height:16px}
-  .caption span{flex:1;min-width:0;padding:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;line-height:16px}
+  .stream-card:focus-visible{outline:1px solid var(--sel);outline-offset:-2px}
+  .caption{display:flex;align-items:baseline;gap:6px;height:22px;padding:4px 2px 0;min-width:0;color:var(--muted);font-size:12px;line-height:16px}
+  .caption span{flex:1;min-width:0;padding:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;line-height:16px}
   /* Details take no room at rest, so a long "· sans métadonnées" never squeezes the name. */
-  .caption small{display:none;flex:0 1 auto;max-width:60%;min-width:0;padding:0;font-size:10.5px;line-height:16px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .caption small{display:none;flex:0 1 auto;max-width:60%;min-width:0;padding:0;font-size:12px;line-height:16px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .stream-card:hover .caption{color:var(--text)}
   .stream-card:hover .caption small,.stream-card:focus-visible .caption small{display:block}
   .stream-placeholder{border:0;border-radius:var(--r-img);background:var(--panel);opacity:.5}

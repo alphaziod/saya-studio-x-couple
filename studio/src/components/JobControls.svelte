@@ -15,11 +15,11 @@
 {#if details}<details open><summary>{$t("Requête exacte conservée")}</summary><pre>{details.requestJson}</pre></details><details><summary>{$t("Journal · 100 derniers événements")}</summary><pre>{JSON.stringify(details.events,null,2)}</pre></details>{/if}
 <style>
 .jc{display:flex;flex-wrap:wrap;gap:2px;margin-inline-start:-8px}
-.jc button{min-height:24px;font-size:11.5px;padding:0 8px}
+.jc button{min-height:24px;font-size:12px;padding:0 8px}
 .confirm{display:grid;gap:6px;border-inline-start:2px solid var(--line-strong);padding-inline-start:8px}
-.confirm p{margin:0;color:var(--muted);font-size:11.5px}
+.confirm p{margin:0;color:var(--muted);font-size:12px}
 .check{display:flex;flex-direction:row;align-items:center;gap:8px;font-size:12px;color:var(--text)}
-.error{color:var(--danger);margin:0;font-size:11.5px;overflow-wrap:anywhere}.note{color:var(--muted);margin:0;font-size:11.5px}
-details{margin:0}summary{color:var(--muted);font-size:11.5px;cursor:pointer}
-pre{font-size:11px;background:var(--canvas);border:1px solid var(--line);border-radius:var(--radius);padding:6px 8px;margin:4px 0 0;max-height:220px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
+.error{color:var(--danger);margin:0;font-size:12px;overflow-wrap:anywhere}.note{color:var(--muted);margin:0;font-size:12px}
+details{margin:0}summary{color:var(--muted);font-size:12px;cursor:pointer}
+pre{font-size:12px;background:var(--canvas);border:1px solid var(--line);border-radius:var(--radius);padding:6px 8px;margin:4px 0 0;max-height:220px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
 </style>

@@ -403,10 +403,10 @@
 <style>
   .pe{display:grid;grid-template-columns:minmax(0,1fr) 320px;height:100%;min-height:0}
   .pe-main{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--canvas)}
-  .pe-bar{gap:4px}
+  .pe-bar{gap:8px}
   .pe-bar select{width:180px;min-width:110px}
   .pe-sep{width:1px;height:18px;background:var(--line-strong);margin:0 4px;flex:none}
-  .pe-zoom{min-width:40px;text-align:center;font-size:11.5px}
+  .pe-zoom{min-width:40px;text-align:center;font-size:12px}
   .grow{flex:1}
   /* Canvas: block coordinates stay physical (left/top) on purpose. */
   .pe-canvas{position:relative;flex:1;min-height:0;overflow:hidden;background-color:var(--canvas);background-image:radial-gradient(var(--line) 1px,transparent 1px);background-size:24px 24px;touch-action:none;cursor:grab}
@@ -424,9 +424,9 @@
   .pe-edge-sel path:last-child{stroke:var(--accent)}
   .pe-foot{flex:none;display:grid;border-top:1px solid var(--line);background:var(--bg)}
   .pe-note{margin:0;padding:4px 12px;font-size:12px;color:var(--text);border-bottom:1px solid var(--line)}
-  .pe-status{min-height:26px;line-height:26px;padding:0 12px;font-size:11.5px;color:var(--muted)}
-  .pe-props h2{font-size:13px}
-  .pe-sel-body{display:grid;gap:8px;padding:10px 12px 12px;border-bottom:1px solid var(--line)}
+  .pe-status{min-height:26px;line-height:26px;padding:0 12px;font-size:12px;color:var(--muted)}
+  .pe-props h2{font-size:14px}
+  .pe-sel-body{display:grid;gap:12px;padding:14px;border-bottom:1px solid var(--line)}
   .pe-sel-body label{gap:3px;color:var(--muted);font-size:12px}
   .pe-sel-body input,.pe-sel-body select,.pe-sel-body textarea{color:var(--text);width:100%}
   .pe-hint{margin:0;color:var(--muted);font-size:12px}

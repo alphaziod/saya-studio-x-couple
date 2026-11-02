@@ -33,7 +33,7 @@
  .grok-dialog::backdrop{background:#000a}
  .grok-head{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 8px 0 14px;border-bottom:1px solid var(--line);flex:none}.grok-head strong{font-size:13px;font-weight:600}
  .grok-body{flex:1;min-height:0;overflow:auto;padding:12px 14px;display:grid;gap:8px;align-content:start}
- .grok-foot{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid var(--line);flex:none}.foot-note{flex:1;font-size:11.5px}
+ .grok-foot{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid var(--line);flex:none}.foot-note{flex:1;font-size:12px}
  .grow{flex:1}
  .row{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
  label{display:flex;flex-direction:column;gap:4px;margin:0;color:var(--muted);font-size:12px}
@@ -44,9 +44,9 @@
  .entries{border-top:1px solid var(--line)}
  .grok-entry{padding:6px 0;border-bottom:1px solid var(--line);display:grid;gap:2px}
  .entry-line{display:flex;align-items:center;gap:10px}.entry-line label{flex:1}.entry-line select{width:240px;flex:none}
- .path{font-size:11px;color:var(--faint);overflow-wrap:anywhere}
+ .path{font-size:12px;color:var(--faint);overflow-wrap:anywhere}
  details{margin:0}.sub>summary{color:var(--muted);font-size:12px}
- strong{font-size:11px;font-weight:600;color:var(--muted)}
- pre{font-size:11.5px;max-height:none;margin:2px 0 6px;padding:6px 8px;background:var(--canvas);border:1px solid var(--line);border-radius:var(--radius)}
+ strong{font-size:12px;font-weight:600;color:var(--muted)}
+ pre{font-size:12px;max-height:none;margin:2px 0 6px;padding:6px 8px;background:var(--canvas);border:1px solid var(--line);border-radius:var(--radius)}
  .pager{justify-content:center}
 </style>

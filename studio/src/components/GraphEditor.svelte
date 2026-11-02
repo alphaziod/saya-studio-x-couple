@@ -758,7 +758,7 @@
 
 <style>
   .ge{display:grid;grid-template-rows:auto minmax(0,1fr);height:100%;min-height:0;background:var(--bg)}
-  .ge-top{gap:4px;flex-wrap:wrap;padding-block:4px}
+  .ge-top{gap:8px;flex-wrap:wrap;padding-block:8px}
   .ge-wf{width:220px;min-width:120px;flex:0 1 220px}
   .ge-sep{width:1px;height:18px;background:var(--line-strong);margin:0 4px;flex:none}
   .ge-flip{display:inline-grid;transform:scaleX(-1)}
@@ -774,11 +774,11 @@
   .ge-pop>summary{list-style:none}
   .ge-pop>summary::-webkit-details-marker{display:none}
   .ge-pop-btn{display:inline-flex;align-items:center;gap:6px;min-height:26px;padding:0 10px;border:1px solid var(--line-strong);border-radius:var(--radius);background:var(--raised);font-size:12px;white-space:nowrap;cursor:pointer}
-  .ge-pop-btn::after{content:"▾";color:var(--faint);font-size:10px}
+  .ge-pop-btn::after{content:"▾";color:var(--faint);font-size:12px}
   .ge-pop-icon{width:28px;padding:0;justify-content:center;background:transparent;border-color:transparent;color:var(--muted)}
   .ge-pop-icon::after{content:none}
   .ge-pop[open]>.ge-pop-btn{background:var(--hover);color:var(--text)}
-  .ge-pop-body{position:absolute;z-index:50;top:calc(100% + 4px);inset-inline-start:0;width:340px;display:grid;gap:8px;padding:10px;background:var(--panel);border:1px solid var(--line-strong);border-radius:6px;box-shadow:0 8px 24px #0008}
+  .ge-pop-body{position:absolute;z-index:50;top:calc(100% + 4px);inset-inline-start:0;width:min(340px,calc(100vw - 100px));display:grid;gap:8px;padding:10px;background:var(--panel);border:1px solid var(--line-strong);border-radius:6px;box-shadow:0 8px 24px #0008}
   .ge-pop-body select,.ge-pop-body input{width:100%}
 
   .ge-body{display:grid;grid-template-columns:minmax(0,1fr);min-height:0}
@@ -792,34 +792,34 @@
   .node-catalog-tools input,.node-catalog-tools select{width:100%}
   .node-catalog-fav{padding:8px 12px 4px;display:grid;gap:4px}
   .node-catalog-fav div{display:flex;flex-wrap:wrap;gap:4px}
-  .node-catalog-fav button{min-height:22px;font-size:11px;padding:0 6px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .node-catalog-fav button{min-height:22px;font-size:12px;padding:0 6px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .node-catalog-results{display:grid;padding:4px 0 8px}
   .node-catalog-item{display:flex;align-items:center;gap:6px;padding:4px 6px 4px 12px;border-bottom:1px solid var(--line);cursor:grab;min-width:0}
   .node-catalog-item:hover{background:var(--raised)}
   .nci-text{display:grid;min-width:0;flex:1}
   .nci-text strong{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .nci-text small{color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nci-text small{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .node-catalog-item .icon-btn{min-height:24px;width:24px;flex:none}
   .node-catalog-item .fav{color:var(--accent-warm)}
   .nci-empty{padding:12px}
 
   /* Center: canvas + floating tools + status strip. */
   .ge-center{position:relative;display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--canvas)}
-  .ge-tools{position:absolute;z-index:20;top:8px;left:8px;right:8px;display:flex;align-items:center;flex-wrap:wrap;gap:4px;pointer-events:none}
+  .ge-tools{position:relative;z-index:20;display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:8px 12px;flex:none;border-bottom:1px solid var(--line);background:var(--bg)}
   .ge-tools>*{pointer-events:auto}
-  .ge-tools button,.ge-tools input{min-height:26px;font-size:12px}
+  .ge-tools button,.ge-tools input{min-height:32px;font-size:12px}
   .ge-tools>button:not(.quiet),.ge-tools>input,.ge-search input{background:var(--panel)}
   .ge-tools>.quiet,.ge-zoom,.ge-wires{background:var(--panel)}
   .ge-tools button.on{background:var(--hover);color:var(--text);border-color:var(--sel)}
   .ge-add{width:150px}
-  .ge-zoom{min-width:44px;text-align:center;line-height:26px;border-radius:var(--radius);font-size:11.5px}
+  .ge-zoom{min-width:44px;text-align:center;line-height:26px;border-radius:var(--radius);font-size:12px}
   .ge-wires{flex-direction:row;align-items:center;gap:6px;min-height:26px;padding:0 8px;border-radius:var(--radius);font-size:12px;color:var(--muted)}
   .ge-search{position:relative}
   .ge-search input{width:180px}
   .graph-matches{position:absolute;top:calc(100% + 4px);inset-inline-start:0;min-width:220px;display:grid;padding:4px;background:var(--panel);border:1px solid var(--line-strong);border-radius:6px;box-shadow:0 8px 24px #0008}
   .graph-matches button{justify-content:flex-start;text-align:start;min-height:24px;font-size:12px}
   .graph-matches small{padding:2px 8px}
-  .ge-scope{position:absolute;z-index:20;top:44px;left:8px;display:flex;align-items:center;gap:6px;padding:4px 6px;background:var(--panel);border:1px solid var(--line-strong);border-radius:var(--radius);font-size:12px}
+  .ge-scope{position:relative;z-index:19;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px 12px;flex:none;background:var(--panel);border-bottom:1px solid var(--line);font-size:12px}
   .graph-scope{color:var(--accent);font-weight:600;padding:0 4px}
   .ge-scope button{min-height:24px;font-size:12px}
   .ge-empty{flex:1;display:grid;place-content:center;justify-items:center;gap:10px;color:var(--muted);padding:24px;text-align:center}
@@ -828,7 +828,7 @@
   .ge-foot:empty{display:none}
   .ge-foot p{margin:0;padding:4px 12px;font-size:12px;border-bottom:1px solid var(--line);overflow-wrap:anywhere;white-space:pre-wrap;background:transparent}
   .ge-foot .notice{color:var(--text)}
-  .ge-status{display:flex;align-items:center;gap:8px;min-height:26px;padding:0 12px;font-size:11.5px;color:var(--muted);min-width:0}
+  .ge-status{display:flex;align-items:center;gap:8px;min-height:26px;padding:0 12px;font-size:12px;color:var(--muted);min-width:0}
   .graph-status{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   .graph-bad{color:var(--warning)}
 
@@ -872,7 +872,7 @@
   .graph-ports{list-style:none;padding:0;margin:0;font-size:12px;display:grid;gap:3px}
   .graph-ports li{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
   .graph-ports small{color:var(--muted)}
-  .graph-ports button{min-height:22px;font-size:11px;padding:0 6px}
+  .graph-ports button{min-height:22px;font-size:12px;padding:0 6px}
   .graph-api{display:grid;gap:8px;font-size:12px}
   .graph-api p{margin:0;overflow-wrap:anywhere}
   .graph-api .checkbox{flex-direction:row;align-items:flex-start;color:var(--text);font-size:12px}
@@ -881,7 +881,7 @@
   .ge-sub ul,.ge-list{margin:4px 0 0;padding-inline-start:16px;font-size:12px;overflow-wrap:anywhere}
   .ge-sub{margin:0}
   .ge-result p{margin:0 0 4px;font-size:12px;overflow-wrap:anywhere}
-  .ge-pre{max-height:300px;margin:0;font-size:11px}
+  .ge-pre{max-height:300px;margin:0;font-size:12px}
   .graph-props .sec-body>label:not(.field-row){gap:3px;color:var(--muted);font-size:12px}
   @media(max-width:1100px){
     .ge-body.insp{grid-template-columns:minmax(0,1fr) 260px}

@@ -9,6 +9,6 @@
 </script>
 <span class="avatar" style="width:{size}px;height:{size}px;--hue:{hue}" aria-hidden="true">{#if src}<img {src} alt="" />{:else}{initials}{/if}</span>
 <style>
-  .avatar{flex:none;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;overflow:hidden;font-size:14px;font-weight:600;color:var(--text);background:hsl(var(--hue) 28% 28%);border:1px solid hsl(var(--hue) 30% 42%)}
+  .avatar{flex:none;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;overflow:hidden;font-size:14px;font-weight:600;color:var(--text);background:var(--raised);border:0}
   img{width:100%;height:100%;object-fit:cover;object-position:top}
 </style>

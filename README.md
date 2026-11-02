@@ -7,7 +7,7 @@ This repository holds two things, both local and built around ComfyUI:
 | | What it is | Version |
 |---|---|---|
 | **Saya Couple** | The ComfyUI custom node pack described on this page. | **2.3.0** |
-| **[Saya Studio](#saya-studio-desktop-app-linux-beta)** | A Linux desktop app that drives ComfyUI and these nodes: casting, six-pass workflow, gallery, characters, LoRA manager. | **1.0.0-beta.1** |
+| **[Saya Studio](#saya-studio-desktop-app-linux-beta)** | A Linux desktop app that drives ComfyUI and these nodes: casting, six-pass workflow, gallery, characters, LoRA manager. | **1.0.0-beta.2** |
 
 Saya Couple is a ComfyUI custom node pack. One generation gets separate prompts that actually work together:
 
@@ -479,7 +479,7 @@ Full story: [docs/DEVELOPMENT_HISTORY.md](docs/DEVELOPMENT_HISTORY.md).
 
 ## Saya Studio (desktop app, Linux beta)
 
-**Saya Studio 1.0.0-beta.1** is a local desktop app (Tauri 2, Rust, Svelte, SQLite) that drives ComfyUI and the
+**Saya Studio 1.0.0-beta.2** is a local desktop app (Tauri 2, Rust, Svelte, SQLite) that drives ComfyUI and the
 Saya Couple nodes. ComfyUI renders, Saya Studio organizes; nothing runs in the cloud.
 
 ![Saya Studio: the six-pass generation, with the session on the right](docs/images/studio-generation.webp)
@@ -498,14 +498,14 @@ Saya Couple nodes. ComfyUI renders, Saya Studio organizes; nothing runs in the c
 - **Characters, LoRA manager, graph editor, pipelines, A/B lab, scenes**; 14 interface languages.
 
 It needs a running ComfyUI with the **Saya Couple nodes 2.3.0+**. Packages are attached to the
-[`studio-v1.0.0-beta.1` release](https://github.com/alphaziod/saya-studio-x-couple/releases):
+[`studio-v1.0.0-beta.2` release](https://github.com/alphaziod/saya-studio-x-couple/releases):
 
 | Distribution | Install |
 |---|---|
-| Debian, Ubuntu | `sudo apt install ./saya-studio_1.0.0-beta.1_amd64.deb` |
-| Fedora | `sudo dnf install ./saya-studio-1.0.0-beta.1.fedora.x86_64.rpm` |
-| openSUSE | `sudo zypper install ./saya-studio-1.0.0-beta.1.opensuse.x86_64.rpm` |
-| Arch, EndeavourOS | `sudo pacman -U ./saya-studio-1.0.0-beta.1-x86_64.pkg.tar.zst` |
+| Debian, Ubuntu | `sudo apt install ./saya-studio_1.0.0-beta.2_amd64.deb` |
+| Fedora | `sudo dnf install ./saya-studio-1.0.0-beta.2.fedora.x86_64.rpm` |
+| openSUSE | `sudo zypper install ./saya-studio-1.0.0-beta.2.opensuse.x86_64.rpm` |
+| Arch, EndeavourOS | `sudo pacman -U ./saya-studio-1.0.0-beta.2-x86_64.pkg.tar.zst` |
 | Nix | `nix run github:alphaziod/saya-studio-x-couple?dir=studio` |
 | Any distribution | AppImage, Flatpak or Snap from the release |
 

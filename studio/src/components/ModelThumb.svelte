@@ -28,6 +28,6 @@
 </script>
 <div class="model-thumb" use:observe>{#if src}<img {src} {alt} />{:else}<span>{!load || failed ? (label ?? $t("Aucun aperçu")) : ''}</span>{/if}</div>
 <style>
-  .model-thumb{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--raised);color:var(--faint);font-size:11.5px}
+  .model-thumb{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--raised);color:var(--faint);font-size:12px}
   img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
 </style>

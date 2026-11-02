@@ -42,11 +42,11 @@
  .source-row.off .path{color:var(--muted)}
  .source-line{display:flex;align-items:center;gap:4px;min-width:0}
  .path{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
- .source-line small{flex:1;font-size:11px}
+ .source-line small{flex:1;font-size:12px}
  .icon-btn{min-height:24px;width:24px}
- button.small{min-height:22px;padding:0 6px;font-size:11.5px}
+ button.small{min-height:22px;padding:0 6px;font-size:12px}
  details.inner{margin:0}
- details.inner>summary{font-size:11.5px;padding:2px 0;cursor:pointer}
+ details.inner>summary{font-size:12px;padding:2px 0;cursor:pointer}
  .root-field{display:grid;gap:4px;margin:6px 0;font-size:12px}
  .root-field input{width:100%}
  p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}

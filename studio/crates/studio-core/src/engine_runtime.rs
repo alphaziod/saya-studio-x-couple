@@ -549,7 +549,7 @@ pub const SCRIPT_TIMEOUT_SECS: u64 = 3600;
 
 /// Log of a real engine script: exact argv, exit code, captured outputs.
 /// A script failure is a valid log (never turned into a success).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct ScriptOutcome {
     pub script: String,
     pub argv: Vec<String>,
@@ -559,6 +559,136 @@ pub struct ScriptOutcome {
     pub timeout: bool,
     pub stdout: String,
     pub stderr: String,
+}
+
+/// Test entry points discovered without executing or importing them.
+#[derive(Debug, serde::Serialize)]
+pub struct TestScript {
+    pub id: String,
+    pub label: String,
+    pub path: PathBuf,
+    #[serde(skip)]
+    gpu_flag: bool,
+}
+
+fn discover_test_scripts(
+    root: &Path,
+    dir: &Path,
+    prefix: &str,
+    depth: usize,
+    scripts: &mut Vec<TestScript>,
+) -> Result<()> {
+    let metadata = match std::fs::symlink_metadata(dir) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(e) => return Err(e.into()),
+        Ok(metadata) => metadata,
+    };
+    if !metadata.file_type().is_dir() {
+        return Ok(());
+    }
+    for entry in std::fs::read_dir(dir)? {
+        let entry = entry?;
+        let name = entry.file_name();
+        let Some(name) = name.to_str() else { continue };
+        let kind = entry.file_type()?;
+        if kind.is_dir() {
+            let lower = name.to_ascii_lowercase();
+            if depth < 5
+                && !name.starts_with('.')
+                && ![
+                    "tests",
+                    "test",
+                    "__pycache__",
+                    "node_modules",
+                    "scripts-tests",
+                    "target",
+                    "data",
+                    "sortie",
+                    "output",
+                    "outputs",
+                    "context",
+                ]
+                .contains(&lower.as_str())
+                && !["archive", "backup", "sauvegarde", "preuve", "orig_tmp"]
+                    .iter()
+                    .any(|part| lower.contains(part))
+            {
+                discover_test_scripts(root, &entry.path(), prefix, depth + 1, scripts)?;
+            }
+            continue;
+        }
+        if !kind.is_file()
+            || !(name == "tester.py" || (name.starts_with("test_") && name.ends_with(".py")))
+            || name == "test_solo.py"
+        {
+            continue;
+        }
+        // Test runners are small source files; never follow a symlink or import Python to inspect flags.
+        if entry.metadata()?.len() > 2_000_000 {
+            continue;
+        }
+        let source = std::fs::read_to_string(entry.path())?;
+        let relative = entry
+            .path()
+            .strip_prefix(root)?
+            .to_string_lossy()
+            .into_owned();
+        scripts.push(TestScript {
+            id: format!("{prefix}{relative}"),
+            label: relative.clone(),
+            path: entry.path(),
+            gpu_flag: source.contains("\"--gpu\"") || source.contains("'--gpu'"),
+        });
+    }
+    Ok(())
+}
+
+pub fn list_test_scripts(engine: &Path, directory: &Path) -> Result<Vec<TestScript>> {
+    let mut scripts = Vec::new();
+    if let Some(root) = engine.parent() {
+        discover_test_scripts(root, root, "engine/", 0, &mut scripts)?;
+        let path = engine.join("lancer_test_solo.bash");
+        if path.is_file() {
+            scripts.push(TestScript {
+                id: "lcs".into(),
+                label: "LCS".into(),
+                path,
+                gpu_flag: false,
+            });
+        }
+    }
+    discover_test_scripts(directory, directory, "local/", 0, &mut scripts)?;
+    scripts.sort_by(|a, b| a.id.cmp(&b.id));
+    scripts.dedup_by(|a, b| a.path == b.path);
+    Ok(scripts)
+}
+
+pub fn run_test_script(
+    engine: &Path,
+    directory: &Path,
+    id: &str,
+    timeout: Duration,
+) -> Result<ScriptOutcome> {
+    static RUNNING: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    let _running = RUNNING
+        .try_lock()
+        .map_err(|_| "Un script de test est déjà en cours")?;
+    let selected = list_test_scripts(engine, directory)?
+        .into_iter()
+        .find(|s| s.id == id)
+        .ok_or("Script de test introuvable ou non autorisé")?;
+    if id == "lcs" {
+        return run_engine_script(engine, id, None, timeout);
+    }
+    let cwd = selected
+        .path
+        .parent()
+        .ok_or("Script de test sans dossier")?;
+    let mut args = vec![selected.path.to_string_lossy().into_owned()];
+    if selected.gpu_flag {
+        args.push("--gpu".into());
+    }
+    execute_script(cwd, id, "python3".into(), args, vec![], timeout)
 }
 
 /// Runs ONE of the five real scripts from the engine directory `dir`, without a shell:
@@ -677,6 +807,17 @@ pub fn run_engine_script(
         )
         .into());
     }
+    execute_script(dir, script, programme, args, envs, timeout)
+}
+
+fn execute_script(
+    dir: &Path,
+    script: &str,
+    programme: String,
+    args: Vec<String>,
+    envs: Vec<(&str, String)>,
+    timeout: Duration,
+) -> Result<ScriptOutcome> {
     let mut commande = Command::new(&programme);
     commande
         .args(&args)

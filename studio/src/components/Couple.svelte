@@ -106,14 +106,14 @@
 
 <style>
 h3{font-size:12.5px;font-weight:600;margin:0}
-h4{font-size:11px;font-weight:600;color:var(--muted);margin:0 0 4px;text-transform:uppercase;letter-spacing:.04em}
+h4{font-size:12px;font-weight:600;color:var(--muted);margin:0 0 4px;text-transform:none;letter-spacing:normal}
 label{color:var(--muted);font-size:12px}
 .stack{display:flex;flex-direction:column;gap:4px}
 .check{display:flex;flex-direction:row;align-items:center;gap:8px;color:var(--text)}
 .field-row{display:grid;grid-template-columns:110px minmax(0,1fr);align-items:center;gap:8px}
 .field-row>*{min-width:0}
 .error{color:var(--danger);margin:0;overflow-wrap:anywhere}.note{color:var(--muted);margin:0;overflow-wrap:anywhere}
-pre{font-size:11.5px;background:var(--canvas);border:1px solid var(--line);border-radius:var(--radius);padding:6px 8px;margin:0;max-height:240px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
+pre{font-size:12px;background:var(--canvas);border:1px solid var(--line);border-radius:var(--radius);padding:6px 8px;margin:0;max-height:240px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
 details.inline{margin:0}details.inline>summary{color:var(--muted);font-size:12px;cursor:pointer}
 fieldset.plain{border:0;margin:0;padding:0;min-width:0;display:grid;gap:10px}
 .row{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.row.end{justify-content:flex-end}
