@@ -34,6 +34,24 @@ pub fn checked_capture_root(text: &str) -> Result<PathBuf> {
     Ok(path.to_path_buf())
 }
 
+// Windows canonicalization adds a verbatim prefix and expands short names. Those are not
+// symbolic links: inspect each ancestor for reparse points (including junctions) instead.
+fn is_indirect_path(path: &Path, real: &Path) -> bool {
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        let _ = real;
+        path.components().any(|c| matches!(c, std::path::Component::ParentDir))
+            || path.ancestors().any(|parent| {
+                std::fs::symlink_metadata(parent)
+                    .map(|m| m.file_attributes() & 0x400 != 0)
+                    .unwrap_or(true)
+            })
+    }
+    #[cfg(not(windows))]
+    { real != path.components().collect::<PathBuf>() }
+}
+
 pub fn checked_directory(path: &Path) -> Result<PathBuf> {
     if !path.is_absolute() {
         return Err("Un chemin absolu est requis".into());
@@ -41,7 +59,7 @@ pub fn checked_directory(path: &Path) -> Result<PathBuf> {
     let real = path.canonicalize()?;
     // A source reached through a symbolic link would index (and trash) files under a
     // second path: the user picks the real folder instead.
-    if real != path.components().collect::<PathBuf>() {
+    if is_indirect_path(path, &real) {
         return Err(format!("Lien symbolique refusé : choisis le dossier réel {}", real.display()).into());
     }
     let path = real;
@@ -140,7 +158,7 @@ impl Database {
         let mut count = 0;
         for (id, root) in roots {
             let path = Path::new(&root);
-            if matches!(path.canonicalize(), Ok(real) if real != path.components().collect::<PathBuf>()) {
+            if matches!(path.canonicalize(), Ok(real) if is_indirect_path(path, &real)) {
                 count += self
                     .connection
                     .execute("UPDATE libraries SET enabled=0 WHERE id=?1", [&id])?;

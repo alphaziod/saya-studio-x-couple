@@ -43,6 +43,7 @@ jobs:
         with:
           workspaces: studio
           key: ${{ matrix.artifact }}
+          cache-on-failure: true
       - run: npm ci
       - name: Python bridge process safety
         run: python scripts/desktop-process.test.py
@@ -65,8 +66,6 @@ jobs:
           dest.mkdir(exist_ok=True)
           shutil.copy2(files[0], dest / f'saya-studio-{version}-{platform}.{suffix}')
           PYCODE
-      - name: Install and start the native package
-        run: python scripts/desktop-package-smoke.py "${{ matrix.artifact }}"
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
@@ -74,6 +73,8 @@ jobs:
             dist-release/*.exe
             dist-release/*.dmg
           if-no-files-found: error
+      - name: Install and start the native package
+        run: python scripts/desktop-package-smoke.py "${{ matrix.artifact }}"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

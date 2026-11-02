@@ -113,6 +113,19 @@ mod platform_tests {
         assert!(home.is_dir());
     }
     #[test]
+    fn native_library_folder_stays_enabled_after_reopen() {
+        let root = std::env::temp_dir().canonicalize().unwrap();
+        #[cfg(windows)]
+        let root = std::path::PathBuf::from(root.to_str().unwrap().trim_start_matches(r"\\?\"));
+        let dir = root.join(format!("saya library {}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let db = crate::Database::in_memory().unwrap();
+        let id = db.add_library_source(&dir).unwrap();
+        assert_eq!(db.disable_symlinked_sources().unwrap(), 0);
+        assert!(db.library_sources().unwrap().iter().any(|s| s["id"] == id && s["enabled"] == true));
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+    #[test]
     fn database_opens_in_a_native_path_with_spaces() {
         let dir = std::env::temp_dir().join(format!("saya platform {}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();

@@ -23,7 +23,8 @@ if platform.startswith("windows"):
     resources = install
 else:
     mount = work / "mount"
-    subprocess.run(["hdiutil", "attach", str(artifact), "-nobrowse", "-mountpoint", str(mount)], check=True)
+    # The DMG includes our GPL license; hdiutil requires acceptance on stdin in CI.
+    subprocess.run(["hdiutil", "attach", str(artifact), "-nobrowse", "-mountpoint", str(mount)], input=b"Y\n", check=True, timeout=120)
     try:
         bundle = next(mount.glob("*.app"))
         installed = work / bundle.name
