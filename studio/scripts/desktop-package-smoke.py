@@ -50,9 +50,7 @@ env.update(SAYA_CONFIG_DIR=str(work / "config"), SAYA_COMFYUI_DIR=str(work / "no
 if platform.startswith("windows"):
     # Exercise ordinary Windows startup, where HOME is not defined.
     env.pop("HOME", None)
-    env["USERPROFILE"] = str(work)
-    env["APPDATA"] = str(work / "AppData/Roaming")
-    env["LOCALAPPDATA"] = str(work / "AppData/Local")
+    # Keep the disposable runner account: Windows Known Folders are account-backed.
     data = Path(os.environ["APPDATA"]) / "studio.saya.desktop"
 else:
     # Cocoa resolves the runner account's home independently of HOME. This runner is disposable.

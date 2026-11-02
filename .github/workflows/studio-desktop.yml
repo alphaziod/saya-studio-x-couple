@@ -3,9 +3,16 @@ name: Saya Studio Windows and macOS
 on:
   workflow_call:
   workflow_dispatch:
+    inputs:
+      build_run:
+        description: 'Optional existing run ID: retest its exact installers without rebuilding'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   desktop:
@@ -30,7 +37,8 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - if: ${{ !inputs.build_run }}
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
@@ -38,20 +46,26 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - if: ${{ !inputs.build_run }}
+        uses: dtolnay/rust-toolchain@stable
+      - if: ${{ !inputs.build_run }}
+        uses: Swatinem/rust-cache@v2
         with:
           workspaces: studio
           key: ${{ matrix.artifact }}
           cache-on-failure: true
-      - run: npm ci
+      - if: ${{ !inputs.build_run }}
+        run: npm ci
       - name: Python bridge process safety
         run: python scripts/desktop-process.test.py
       - name: Native core checks
+        if: ${{ !inputs.build_run }}
         run: cargo test -p studio-core --locked --lib platform_tests
       - name: Build native installer
+        if: ${{ !inputs.build_run }}
         run: npx tauri build
       - name: Collect installer
+        if: ${{ !inputs.build_run }}
         env:
           PLATFORM: ${{ matrix.artifact }}
         run: |
@@ -67,12 +81,21 @@ jobs:
           shutil.copy2(files[0], dest / f'saya-studio-{version}-{platform}.{suffix}')
           PYCODE
       - uses: actions/upload-artifact@v4
+        if: ${{ !inputs.build_run }}
         with:
           name: ${{ matrix.artifact }}
           path: |
             dist-release/*.exe
             dist-release/*.dmg
           if-no-files-found: error
+      - name: Retrieve exact installers for a smoke-only rerun
+        if: ${{ inputs.build_run }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist-release
+          run-id: ${{ inputs.build_run }}
+          github-token: ${{ github.token }}
       - name: Install and start the native package
         run: python scripts/desktop-package-smoke.py "${{ matrix.artifact }}"
       - uses: actions/upload-artifact@v4
