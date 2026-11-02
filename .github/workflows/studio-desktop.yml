@@ -1,0 +1,83 @@
+name: Saya Studio Windows and macOS
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  desktop:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows x64 EXE
+            os: windows-latest
+            artifact: windows-x64
+          - name: macOS Apple Silicon DMG
+            os: macos-15
+            artifact: macos-arm64
+          - name: macOS Intel DMG
+            os: macos-15-intel
+            artifact: macos-x64
+    defaults:
+      run:
+        working-directory: studio
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: studio/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: studio
+          key: ${{ matrix.artifact }}
+      - run: npm ci
+      - name: Generate platform icons from the existing app icon
+        run: npx tauri icon src-tauri/icons/icon.png --output src-tauri/icons
+      - name: Native core checks
+        run: cargo test -p studio-core --locked --lib platform_tests
+      - name: Build native installer
+        run: npx tauri build
+      - name: Collect installer
+        env:
+          PLATFORM: ${{ matrix.artifact }}
+        run: |
+          python - <<'PYCODE'
+          import os, pathlib, shutil, json
+          version = json.loads(pathlib.Path('package.json').read_text())['version']
+          platform = os.environ['PLATFORM']
+          suffix = 'exe' if platform.startswith('windows') else 'dmg'
+          files = list(pathlib.Path('target/release/bundle').glob(f'**/*.{suffix}'))
+          assert len(files) == 1, files
+          dest = pathlib.Path('../dist-release')
+          dest.mkdir(exist_ok=True)
+          shutil.copy2(files[0], dest / f'saya-studio-{version}-{platform}.{suffix}')
+          PYCODE
+      - name: Install and start the native package
+        run: python scripts/desktop-package-smoke.py "${{ matrix.artifact }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            dist-release/*.exe
+            dist-release/*.dmg
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ matrix.artifact }}-smoke
+          path: |
+            dist-release/*-smoke.json
+            dist-release/*-startup.log

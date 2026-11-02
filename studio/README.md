@@ -6,7 +6,7 @@
 |:---:|:---:|
 | ![Casting grid](../docs/images/studio-casting.webp) | ![Gallery](../docs/images/studio-gallery.webp) |
 
-**1.0.0-beta.2 — Linux beta.** A local desktop app (Tauri 2, Rust, Svelte 5, SQLite) that drives
+**1.0.0-beta.2 — Desktop beta.** A local desktop app (Tauri 2, Rust, Svelte 5, SQLite) that drives
 [ComfyUI](https://github.com/comfyanonymous/ComfyUI) for anime-style character images. Nothing runs in the
 cloud: Saya Studio is the interface, ComfyUI is the render engine.
 
@@ -41,6 +41,7 @@ See the [complete beta.2 changes and validation](RELEASE_NOTES.md#changes-in-bet
 
 - Linux x86_64 with WebKitGTK 4.1 (Debian 12+, Ubuntu 22.04+, Fedora 39+, openSUSE Tumbleweed / Leap 15.6,
   Arch / EndeavourOS, NixOS).
+- Windows 10/11 x64 with WebView2, or macOS 11+ (Apple Silicon or Intel).
 - A running ComfyUI (default `~/AI/ComfyUI`, listening on `127.0.0.1:8188`) with the **Saya Couple** nodes
   2.3.0 or newer from this repository, and the models your workflow needs.
 - Python 3 (sidecars). Optional: `ffmpeg` for LoRA video previews.
@@ -53,6 +54,9 @@ Snap is not attached to beta.2 because CI could not reach the Snapcraft store. I
 
 | Distribution | File / command |
 |---|---|
+| Windows 10/11 x64 | `saya-studio-1.0.0-beta.2-windows-x64.exe` |
+| macOS Apple Silicon | `saya-studio-1.0.0-beta.2-macos-arm64.dmg` |
+| macOS Intel | `saya-studio-1.0.0-beta.2-macos-x64.dmg` |
 | Debian, Ubuntu | `sudo apt install ./saya-studio_1.0.0-beta.2_amd64.deb` |
 | Fedora | `sudo dnf install ./saya-studio-1.0.0-beta.2.fedora.x86_64.rpm` |
 | openSUSE | `sudo zypper install ./saya-studio-1.0.0-beta.2.opensuse.x86_64.rpm` |
@@ -78,7 +82,7 @@ Tests: `cargo test -p studio-core`, `node --test scripts/*.test.mjs`, `npx svelt
 
 ## Your data
 
-- App data: `~/.local/share/studio.saya.desktop/` (SQLite database, thumbnails, run manifests).
+- App data: `~/.local/share/studio.saya.desktop/` on Linux, `%APPDATA%/studio.saya.desktop/` on Windows, `~/Library/Application Support/studio.saya.desktop/` on macOS (SQLite database, thumbnails, run manifests).
 - Lasting settings and your own presets: `~/Documents/saya studio config/` (copy it to move your setup).
 - Delivered images: `~/Images/saya studio/` (changeable in Settings).
 - Backups: `saya-studio-maintenance backup|verify|restore` ([docs/SAUVEGARDES.md](docs/SAUVEGARDES.md)).
@@ -87,8 +91,9 @@ The app never deletes your originals; temporary previews are cleaned by rule.
 
 ## Known limitations (beta)
 
-- Linux only. Tested day to day on Arch (Wayland/Niri) with an AMD GPU; the other packages are built by CI and
-  have not all been run by hand.
+- Tested day to day on Arch (Wayland/Niri) with an AMD GPU. Windows and macOS packages have CI installation/startup checks, not a full manual UI or GPU validation.
+- Windows packages are unsigned; macOS packages use ad-hoc signing and are not Apple-notarized. OS security checks can block the first launch.
+- Browser Native Messaging registration and the gallery system-trash action currently require Linux. On Windows/macOS, failed trash operations leave originals intact. Legacy `.bash` engine launchers require Bash; Python test scripts use `python` on Windows and `python3` elsewhere (`SAYA_PYTHON` overrides this).
 - AppImage: presets and helpers are found next to the binary (`../share/saya-studio`); not run by hand yet.
 - Flatpak and Snap run sandboxed: access to ComfyUI and your folders goes through the permissions listed in
   their manifests; the browser extension bridge may not work there.

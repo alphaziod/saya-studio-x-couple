@@ -60,7 +60,7 @@ pub fn parse_scenes(path: &Path) -> Result<(Vec<SceneEntry>, Vec<String>)> {
     let mut warnings = Vec::new();
     match path.extension().and_then(|s| s.to_str()) {
         Some("py") => {
-            let mut child = Command::new("python3")
+            let mut child = Command::new(crate::paths::python_program())
                 .args([
                     "-I",
                     "-S",

@@ -37,7 +37,7 @@ fn script() -> Option<PathBuf> {
     if let Some(path) = configured("SAYA_SEMANTIC_SCRIPT") {
         return Some(path);
     }
-    let mut candidates = Vec::new();
+    let mut candidates = vec![crate::paths::share_dir().join("sidecars/f09-semantic-embed.py")];
     if let Ok(exe) = std::env::current_exe() {
         if let Some(dir) = exe.parent() {
             candidates.push(dir.join("sidecars/f09-semantic-embed.py"));

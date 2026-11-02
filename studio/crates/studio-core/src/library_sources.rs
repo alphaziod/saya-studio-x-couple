@@ -81,6 +81,7 @@ mod root_tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn symlinked_sources_are_refused_and_turned_off() {
         let dir = std::env::temp_dir().join(format!("symlinked-source-{}", uuid::Uuid::new_v4()));
         let real = dir.join("real");

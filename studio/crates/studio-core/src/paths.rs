@@ -1,4 +1,4 @@
-//! Per-user default locations (no personal path is hard-coded; everything derives from `$HOME`).
+//! Per-user locations and packaged resources for Linux, Windows and macOS.
 
 use std::path::PathBuf;
 
@@ -8,9 +8,14 @@ fn env_path(name: &str) -> Option<PathBuf> {
         .map(PathBuf::from)
 }
 
-/// Home directory of the current user (`$HOME`); an error when it is unset or empty.
+/// Home directory; Windows uses USERPROFILE when HOME is absent.
 pub fn home_dir() -> Result<PathBuf, String> {
-    env_path("HOME").ok_or_else(|| "Variable d'environnement HOME absente".to_string())
+    env_path("HOME").or_else(|| {
+        #[cfg(windows)]
+        { env_path("USERPROFILE") }
+        #[cfg(not(windows))]
+        { None }
+    }).ok_or_else(|| "Variable d'environnement HOME absente".to_string())
 }
 
 /// ComfyUI installation: `SAYA_COMFYUI_DIR`, otherwise `$HOME/AI/ComfyUI`.
@@ -50,6 +55,9 @@ pub fn engine_dir() -> PathBuf {
 /// Packaged data (presets, helpers): `/usr/share/saya-studio` for system packages, otherwise
 /// `<binary>/../share/saya-studio` (AppImage, Nix store, Flatpak `/app`, Snap).
 pub fn share_dir() -> PathBuf {
+    if let Some(dir) = RESOURCE_DIR.get() {
+        return dir.clone();
+    }
     let system = PathBuf::from("/usr/share/saya-studio");
     if system.is_dir() {
         return system;
@@ -82,4 +90,35 @@ pub fn pictures_dir() -> Result<PathBuf, String> {
     let home = home_dir()?;
     let images = home.join("Images");
     Ok(if images.is_dir() { images } else { home.join("Pictures") })
+}
+
+// The shell supplies Tauri's platform-specific resource directory before startup tasks.
+static RESOURCE_DIR: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+pub fn set_resource_dir(dir: PathBuf) {
+    let _ = RESOURCE_DIR.set(dir);
+}
+
+/// Python must be installed by the user; an explicit interpreter also supports virtualenvs.
+pub fn python_program() -> String {
+    std::env::var("SAYA_PYTHON").ok().filter(|s| !s.trim().is_empty())
+        .unwrap_or_else(|| if cfg!(windows) { "python" } else { "python3" }.into())
+}
+
+#[cfg(test)]
+mod platform_tests {
+    #[test]
+    fn home_is_an_absolute_existing_directory() {
+        let home = super::home_dir().unwrap();
+        assert!(home.is_absolute());
+        assert!(home.is_dir());
+    }
+    #[test]
+    fn database_opens_in_a_native_path_with_spaces() {
+        let dir = std::env::temp_dir().join(format!("saya platform {}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let db = crate::Database::open(&dir.join("studio.sqlite3")).unwrap();
+        assert!(db.preferences().is_ok());
+        drop(db);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
 }

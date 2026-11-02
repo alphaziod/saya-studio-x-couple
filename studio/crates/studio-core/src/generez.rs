@@ -135,7 +135,7 @@ impl Drop for TempDir {
 /// `SOLO_DATA_DIR` only for the sandbox steps, never inherited for the
 /// steps on live data.
 fn run_cli(cli: &Path, cwd: &Path, sandbox_data: Option<&Path>, args: &[&str]) -> Result<Value> {
-    let mut command = Command::new("python3");
+    let mut command = Command::new(crate::paths::python_program());
     command.arg("-B").arg(cli).args(args).arg("--json");
     command.current_dir(cwd);
     command.env("PYTHONHASHSEED", "0");

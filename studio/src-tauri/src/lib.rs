@@ -4250,7 +4250,9 @@ fn side_database(s: &AppState) -> Result<Database> {
 
 /// Open a folder in the file manager without waiting for it; the child is reaped off-thread.
 fn open_detached(path: &std::path::Path) -> Result<()> {
-    let mut child = std::process::Command::new("xdg-open")
+    let opener = if cfg!(target_os = "windows") { "explorer.exe" }
+        else if cfg!(target_os = "macos") { "open" } else { "xdg-open" };
+    let mut child = std::process::Command::new(opener)
         .arg(path)
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::null())
@@ -4267,7 +4269,7 @@ fn open_detached(path: &std::path::Path) -> Result<()> {
 /// `civitaiDownloadRoot` preference, `SAYA_CIVITAI_DOWNLOAD_ROOT`, the XDG download directory
 /// ($XDG_DOWNLOAD_DIR, then user-dirs.dirs, then ~/Downloads) and the app's own folder.
 fn civitai_download_roots(s: &AppState) -> Vec<std::path::PathBuf> {
-    let home = std::env::var_os("HOME").map(std::path::PathBuf::from);
+    let home = studio_core::paths::home_dir().ok();
     let mut candidates: Vec<std::path::PathBuf> = Vec::new();
     let prefs = s.db.lock().ok().and_then(|db| db.preferences().ok());
     if let Some(root) = prefs
@@ -4321,7 +4323,7 @@ pub fn spawn_civitai_bridge(
         .or_else(|| dev.is_file().then_some(dev))
         .or_else(|| installed.is_file().then_some(installed.to_path_buf()))?;
     let token = directory.join("civitai-token");
-    let mut command = std::process::Command::new("python3");
+    let mut command = std::process::Command::new(studio_core::paths::python_program());
     command
         .arg(script)
         .arg("--port")
@@ -4346,6 +4348,8 @@ pub fn run() {
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
+            #[cfg(any(target_os = "windows", target_os = "macos"))]
+            studio_core::paths::set_resource_dir(app.path().resource_dir()?);
             let directory = app.path().app_data_dir()?;
             // Smoke builds run with an isolated XDG_DATA_HOME: its parent becomes the
             // mandatory sandbox. Release builds only honour an explicit SAYA_STUDIO_SANDBOX,
@@ -4364,6 +4368,7 @@ pub fn run() {
                 return Err("Smoke test sans dossier isolé (XDG_DATA_HOME ou SAYA_STUDIO_SANDBOX) : refus de toucher les données réelles".into());
             }
             std::fs::create_dir_all(&directory)?;
+            #[cfg(target_os = "linux")]
             ensure_native_host_manifests();
             let db = Database::open(&directory.join("studio.sqlite3"))
                 .map_err(|e| -> Box<dyn std::error::Error> { e })?;
@@ -4492,7 +4497,7 @@ pub fn run() {
                                 .map(|p| p.to_string_lossy().into_owned())
                                 .unwrap_or_default();
                             let comfy_dir = std::env::var("SAYA_COMFYUI_DIR").unwrap_or_else(|_| {
-                                format!("{}/AI/ComfyUI", std::env::var("HOME").unwrap_or_default())
+                                studio_core::paths::comfyui_dir().unwrap_or_default().to_string_lossy().into_owned()
                             });
                             let script = script
                                 .replace("__SMOKE_REPO_ROOT__", &repo_root)

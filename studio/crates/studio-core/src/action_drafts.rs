@@ -122,7 +122,7 @@ fn solo(engine: &Path, args: &[&str]) -> Result<Value> {
     if !script.is_file() {
         return Err(format!("CLI moteur introuvable : {}", script.display()).into());
     }
-    let mut child = Command::new("python3")
+    let mut child = Command::new(crate::paths::python_program())
         .arg("solo_cli.py")
         .args(args)
         .arg("--json")

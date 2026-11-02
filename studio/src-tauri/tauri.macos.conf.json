@@ -1,0 +1,19 @@
+{
+  "bundle": {
+    "targets": [
+      "dmg"
+    ],
+    "icon": [
+      "icons/icon.icns"
+    ],
+    "resources": {
+      "../presets/": "presets/",
+      "../scripts/civitai_bridge.py": "civitai_bridge.py",
+      "../extension/": "extension/"
+    },
+    "macOS": {
+      "minimumSystemVersion": "11.0",
+      "signingIdentity": "-"
+    }
+  }
+}

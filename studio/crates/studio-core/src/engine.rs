@@ -27,7 +27,7 @@ pub fn call(root: &Path, tool: &str, args: &Value) -> Result<Value> {
     if input.len() > LIMIT {
         return Err("Requête supérieure à 16 Mo".into());
     }
-    let mut child = Command::new("python3")
+    let mut child = Command::new(crate::paths::python_program())
         .arg("-I")
         .arg("-c")
         .arg(format!(

@@ -7,7 +7,22 @@ Nothing runs in the cloud.
 This is a **beta**. It is the companion app of the Saya Couple node pack and, like the pack, first a backup of my
 own setup. Back up your data and your ComfyUI folder before trying it.
 
-## One installer: Couple nodes, Studio app, or both
+## Windows and macOS downloads
+
+- **Windows 10/11 x64:** `saya-studio-1.0.0-beta.2-windows-x64.exe`. Run the installer; WebView2 is required (the installer handles it).
+- **Mac with Apple Silicon:** `saya-studio-1.0.0-beta.2-macos-arm64.dmg`.
+- **Mac with Intel:** `saya-studio-1.0.0-beta.2-macos-x64.dmg`.
+
+On macOS 11 or newer, open the DMG and drag Saya Studio into Applications. Windows builds are unsigned;
+Mac builds use ad-hoc signing and are not Apple-notarized, so the OS may block first launch.
+Python 3 and a working ComfyUI installation remain separate requirements. The private draw engine is not included.
+These packages include the same public presets as Linux. Native package installation, startup and preset checks
+run in CI; a complete manual UI/GPU workflow has not been validated on these platforms.
+Browser Native Messaging registration and the gallery's system-trash action currently require Linux.
+The nodes remain available in `saya-couple-2.3.0.tar.gz`; extract it and run `python installer/saya.py install`
+(or `python3` on macOS) from that folder. `install.sh` selects Linux app packages only.
+
+## Linux installer: Couple nodes, Studio app, or both
 
 Download **[install.sh](https://github.com/alphaziod/saya-studio-x-couple/releases/download/studio-v1.0.0-beta.2/install.sh)**
 from this release, then run it in a terminal:

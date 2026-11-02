@@ -77,7 +77,7 @@ fn casting_bridge(
     shots: Option<&[serde_json::Value]>,
 ) -> Result<serde_json::Value> {
     use std::io::Write;
-    let mut command = Command::new("python3");
+    let mut command = Command::new(crate::paths::python_program());
     command
         .args(["-B", "-c", include_str!("casting_bridge.py")])
         .arg(dir)
@@ -688,7 +688,7 @@ pub fn run_test_script(
     if selected.gpu_flag {
         args.push("--gpu".into());
     }
-    execute_script(cwd, id, "python3".into(), args, vec![], timeout)
+    execute_script(cwd, id, crate::paths::python_program(), args, vec![], timeout)
 }
 
 /// Runs ONE of the five real scripts from the engine directory `dir`, without a shell:
@@ -717,7 +717,7 @@ pub fn run_engine_script(
         .join("solo_x7");
     let (programme, args, envs): (String, Vec<String>, Vec<(&'static str, String)>) = match script {
         "attente" => (
-            "python3".into(),
+            crate::paths::python_program(),
             vec![
                 solo_x7
                     .join("attente_solo")
@@ -771,7 +771,7 @@ pub fn run_engine_script(
                 return Err("Script duo : id_perso ne s'applique qu'au script poses".into());
             }
             (
-                "python3".into(),
+                crate::paths::python_program(),
                 vec![
                     dir.join("outils")
                         .join("lot_duo.py")
@@ -787,7 +787,7 @@ pub fn run_engine_script(
                 return Err("Script bny20 : id_perso ne s'applique qu'au script poses".into());
             }
             (
-                "python3".into(),
+                crate::paths::python_program(),
                 vec![
                     solo_x7.join("test_bny20.py").to_string_lossy().into_owned(),
                     "--gpu".into(),
@@ -1017,7 +1017,7 @@ fn run_engine_selected(
         .into());
     }
     let catalogue = dir.join(catalogue_rel);
-    let mut command = Command::new("python3");
+    let mut command = Command::new(crate::paths::python_program());
     if let Some(bridge) = bridge {
         command
             .args(["-B", "-c", include_str!("casting_bridge.py")])
