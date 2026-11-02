@@ -25,7 +25,6 @@ own setup. Back up your data and your ComfyUI folder before trying it.
 | Arch, EndeavourOS | `saya-studio-1.0.0-beta.2-x86_64.pkg.tar.zst` | `sudo pacman -U ./saya-studio-1.0.0-beta.2-x86_64.pkg.tar.zst` |
 | Any distribution | `saya-studio_1.0.0-beta.2_amd64.AppImage` | `chmod +x` it, then run it |
 | Flatpak | `saya-studio-1.0.0-beta.2-x86_64.flatpak` | `flatpak install --user ./saya-studio-1.0.0-beta.2-x86_64.flatpak` |
-| Snap | `saya-studio_1.0.0-beta.2_amd64.snap` | `sudo snap install --dangerous ./saya-studio_1.0.0-beta.2_amd64.snap` |
 | Nix | flake in `studio/` | `nix run github:alphaziod/saya-studio-x-couple?dir=studio` |
 
 Check your download: `sha256sum -c SHA256SUMS --ignore-missing`.
@@ -43,10 +42,13 @@ Check your download: `sha256sum -c SHA256SUMS --ignore-missing`.
 
 ## Known limitations
 
+- **Snap is not attached to beta.2.** Three CI attempts could not reach the Snapcraft store while
+  installing its build prerequisites. The Snap recipe remains available in `packaging/snap/snapcraft.yaml`.
+
 - **Beta.** Used day to day on Arch (Wayland) with an AMD GPU. The other packages are built and checked by CI but
   have not all been run by hand yet: please report what breaks.
 - **Casting needs a draw engine**, which is not distributed; without one, Casting says so and stays unavailable.
-- **Flatpak and Snap** run sandboxed: ComfyUI on `127.0.0.1` and your home folder are allowed, but the browser
+- **Flatpak** runs sandboxed: ComfyUI on `127.0.0.1` and your home folder are allowed, but the browser
   extension bridge may not work there.
 - The bundled preset ships with **neutral example prompts and empty LoRA stacks**: fill in your own. Its model
   settings are mine; keep the ones that work on your machine.

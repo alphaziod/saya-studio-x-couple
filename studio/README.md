@@ -41,6 +41,8 @@ data, and use it at your own risk.
 
 Packages are attached to the GitHub release `studio-v1.0.0-beta.2`:
 
+Snap is not attached to beta.2 because CI could not reach the Snapcraft store. Its build recipe remains available in `packaging/snap/snapcraft.yaml`.
+
 | Distribution | File / command |
 |---|---|
 | Debian, Ubuntu | `sudo apt install ./saya-studio_1.0.0-beta.2_amd64.deb` |
@@ -48,7 +50,7 @@ Packages are attached to the GitHub release `studio-v1.0.0-beta.2`:
 | openSUSE | `sudo zypper install ./saya-studio-1.0.0-beta.2.opensuse.x86_64.rpm` |
 | Arch, EndeavourOS | `sudo pacman -U ./saya-studio-1.0.0-beta.2-x86_64.pkg.tar.zst`, or AUR `saya-studio-bin` |
 | NixOS / Nix | `nix run github:alphaziod/saya-studio-x-couple?dir=studio` |
-| Any distribution | `saya-studio_1.0.0-beta.2_amd64.AppImage`, `saya-studio-1.0.0-beta.2-x86_64.flatpak`, `saya-studio_1.0.0-beta.2_amd64.snap` |
+| Any distribution | `saya-studio_1.0.0-beta.2_amd64.AppImage`, `saya-studio-1.0.0-beta.2-x86_64.flatpak` |
 
 Release notes: [RELEASE_NOTES.md](RELEASE_NOTES.md). Build steps and per-distribution dependencies: [docs/PACKAGING.md](docs/PACKAGING.md).
 French install guide for Arch: [docs/INSTALLATION-ARCH.md](docs/INSTALLATION-ARCH.md).
