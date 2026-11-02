@@ -419,11 +419,11 @@
 {/snippet}
 
 <style>
-  .ab { display: grid; grid-template-columns: 320px minmax(0, 1fr); height: 100%; min-height: 520px; border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; }
+  .ab { display: grid; grid-template-columns: 320px minmax(0, 1fr); height: 100%; min-height: 0; border: 0; border-radius: 0; overflow: hidden; }
   .ab-main { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--bg); }
   h2 { font-size: 13px; font-weight: 600; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   h3 { font-size: 12px; font-weight: 600; margin: 0; }
-  h4 { font-size: 11px; font-weight: 600; color: var(--muted); margin: 0 0 4px; text-transform: uppercase; letter-spacing: .04em; }
+  h4 { font-size:14px; font-weight: 600; color: var(--muted); margin: 0 0 4px; text-transform:none; letter-spacing:normal; }
   label { display: flex; flex-direction: column; gap: 4px; color: var(--muted); font-size: 12px; min-width: 0; }
   .check { flex-direction: row; align-items: center; gap: 6px; color: var(--text); }
   .inline-label { flex-direction: row; align-items: center; gap: 6px; white-space: nowrap; }
@@ -436,22 +436,22 @@
   .grow { flex: 1; }
   .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .row.end { justify-content: flex-end; }
-  .hash { overflow-wrap: anywhere; font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
+  .hash { overflow-wrap: anywhere; font-size:12px; color: var(--faint); font-variant-numeric: tabular-nums; }
   details { margin: 0; }
   details.inline > summary { color: var(--muted); font-size: 12px; cursor: pointer; }
-  .small { min-height: 24px; font-size: 11.5px; padding: 0 8px; }
+  .small { min-height: 24px; font-size:12px; padding: 0 8px; }
   .ab-campaign { display: grid; gap: 2px; width: 100%; text-align: start; padding: 7px 12px; min-height: 0; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; }
   .ab-campaign:hover:not(:disabled) { background: var(--hover); }
   .ab-campaign.on { background: var(--raised); box-shadow: inset 2px 0 0 var(--accent); }
   .ab-campaign strong { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .ab-campaign small { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ab-campaign small { color: var(--muted); font-size:12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .ab-params { list-style: none; margin: 0; padding: 0; }
   .ab-params li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 6px; padding: 5px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
   .ab-params li strong { font-weight: 600; }
-  .ab-params li .note { flex-basis: 100%; font-size: 11.5px; }
+  .ab-params li .note { flex-basis: 100%; font-size:12px; }
   .form-grid { display: grid; gap: 8px; padding-top: 8px; }
   .form-grid button { justify-self: start; }
-  .create { display: grid; gap: 12px; padding: 16px; max-width: 980px; }
+  .create { display: grid; gap: 20px; padding: 24px; max-width: 1040px; }
   .cols2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; }
   .cols5 { display: grid; grid-template-columns: 2fr repeat(4, minmax(0, 1fr)); gap: 12px; align-items: end; }
   .run { flex: none; }
@@ -467,11 +467,11 @@
   .media figure :global(img) { width: 100%; aspect-ratio: 1 / 1; object-fit: contain; display: block; background: var(--bg); border-radius: var(--r-img); }
   .ab-cell.favorite .media :global(img) { outline: 1px solid var(--line-strong); }
   .ab-cell.best .media :global(img) { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .media figcaption { font-size: 10px; color: var(--faint); margin-top: 2px; }
+  .media figcaption { font-size:12px; color: var(--faint); margin-top: 2px; }
   .placeholder { margin: 0; aspect-ratio: 1 / 1; display: grid; place-items: center; background: var(--bg); border: 1px dashed var(--line-strong); border-radius: var(--r-img); color: var(--faint); font-size: 12px; }
   .ab-cell header { display: flex; align-items: center; gap: 6px; }
   .cname { font-weight: 600; flex: 1; }
-  .ab-badge { font-size: 10.5px; color: var(--muted); border: 1px solid var(--line-strong); border-radius: 3px; padding: 0 5px; line-height: 16px; }
+  .ab-badge { font-size:12px; color: var(--muted); border: 1px solid var(--line-strong); border-radius: 3px; padding: 0 5px; line-height: 16px; }
   .ab-badge.win { color: var(--accent-text); background: var(--accent); border-color: var(--accent); }
   .ab-variants { display: flex; flex-wrap: wrap; gap: 2px 12px; margin: 0; font-size: 12px; }
   .ab-variants dt { display: inline; color: var(--muted); }
@@ -484,12 +484,12 @@
   .win-row { display: flex; gap: 4px; }
   .win-row input { flex: 1; min-width: 0; min-height: 24px; }
   .ab-plan-cell { display: grid; gap: 4px; padding-top: 4px; border-top: 1px solid var(--line); font-size: 12px; }
-  pre { font-size: 11px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 8px; margin: 4px 0 0; max-height: 220px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+  pre { font-size:12px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 8px; margin: 4px 0 0; max-height: 220px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
   .diff-sec { padding: 12px 16px 24px; border-top: 1px solid var(--line); display: grid; gap: 8px; }
   .diff-row h3 { margin-inline-end: 8px; }
   .ab-diff { border-collapse: collapse; width: 100%; font-size: 12px; }
   .ab-diff th, .ab-diff td { border-bottom: 1px solid var(--line); padding: 5px 8px; text-align: start; overflow-wrap: anywhere; vertical-align: top; }
-  .ab-diff thead th { font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--faint); font-weight: 600; }
+  .ab-diff thead th { font-size:12px; text-transform:none; letter-spacing:normal; color: var(--faint); font-weight: 600; }
   .ab-diff tbody th { color: var(--muted); font-weight: 500; }
   .ab-diff tr.differs td { background: var(--raised); font-weight: 600; }
   .ab-a { border-inline-start: 2px solid var(--sel); }

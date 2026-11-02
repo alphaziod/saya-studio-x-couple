@@ -79,3 +79,11 @@ Les tentatives de reprise et d'annulation devront ajouter leurs transitions test
 Configurer indépendamment executable/argv/env autorisés ; pas de dépendance à la configuration Grok. Initialiser la session MCP, négocier version, découvrir tools/list et appeler tools/call. Stdio réservé au protocole, stderr borné pour diagnostics. Interdire commandes shell composées, téléchargement implicite et transmission externe. Fermer stdin/process à la sortie, timeout/annulation explicites.
 
 Le MCP existant possède sa propre mémoire SQLite ; ne pas écrire directement dans ses tables. Référencer ses IDs d'expériences via une réponse documentée. Les règles de conservation des tags/blocs restent des invariants à retester lors de chaque proposition ; une optimisation n'est jamais validée sur simple réponse du modèle.
+
+
+## Casting test scripts (implemented, 2026-11-01)
+
+- `engine_test_scripts` returns `{directory, scripts:[{id,label,path}]}`. It reads source files but does not import or execute them. Discovery searches the parent of `SAYA_ENGINE_DIR` (normally `<config>/GROK BUILD`) and `<config>/scripts-tests`. It recognizes `test_*.py` and `tester.py`, plus the existing LCS launcher. It skips `test_solo.py`, unit-test directories, data/output folders, archives, symlinks, sources over 2 MB and nesting deeper than five levels.
+- `engine_test_script` takes `{script: id}` from that list. It rechecks existence/eligibility, refuses concurrent test requests, and returns the real exit code, timeout and bounded stdout/stderr through the existing runtime. Python runs from the script's folder, without a shell. A script mentioning the quoted `--gpu` option receives that argument; other Python scripts receive no arguments. LCS retains its existing environment and resume contract. No script runs automatically.
+- Casting refreshes discovery on mount, on opening the section and via Actualiser. Générer acts only on the selected test; normal casting controls are blocked during execution. Existing engine modes are preserved.
+- Discovery and execution are covered by synthetic-script tests (`crates/studio-core/tests/test_scripts.rs`).

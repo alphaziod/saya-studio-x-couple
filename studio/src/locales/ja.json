@@ -1578,7 +1578,7 @@
   "Scène sans nom": "名称未設定のシーン",
   "Scène supprimée.": "シーンを削除しました。",
   "Scènes": "シーン",
-  "Scènes Importer importées": "シーンのインポート完了",
+  "Scènes importées": "インポートしたシーン",
   "Se règle dans LoRA.": "LoRA で設定します。",
   "Se règle dans la Galerie.": "ギャラリーで設定します。",
   "Section": "セクション",
@@ -2256,5 +2256,10 @@
   "−1 seed": "−1 シード",
   "■ Arrêter ici": "■ ここで停止",
   "■ Arrêter la génération": "■ 生成を停止",
-  "Note sur l’anatomie": "解剖に関するメモ"
+  "Note sur l’anatomie": "解剖に関するメモ",
+  "Scripts de test": "テストスクリプト",
+  "Choisir un script de test…": "テストスクリプトを選択…",
+  "Aucun script de test trouvé.": "テストスクリプトが見つかりません。",
+  "Test interrompu : délai dépassé.": "テストを停止しました：制限時間を超えました。",
+  "Échec du test (code {code}).": "テストに失敗しました（コード {code}）。"
 }

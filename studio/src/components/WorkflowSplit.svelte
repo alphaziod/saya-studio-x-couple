@@ -55,6 +55,6 @@
   .ws-sub .ws-sub{margin-inline-start:10px}
   .ws-plan{display:grid;gap:8px}
   .ws-cuts{margin:0;padding-inline-start:18px;font-size:12px}
-  .ws-cuts button{min-height:22px;font-size:11px}
-  pre{max-height:320px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;margin:4px 0}
+  .ws-cuts button{min-height:22px;font-size:12px}
+  pre{max-height:320px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;margin:4px 0}
 </style>

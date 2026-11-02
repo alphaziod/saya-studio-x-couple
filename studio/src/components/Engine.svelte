@@ -60,19 +60,19 @@
   .live{padding:6px 0;border-bottom:1px solid var(--line);color:var(--muted)}
   .live :global(p){margin:2px 0;font-size:12px;color:var(--muted)}
   .live :global(.notice){background:none;border:0;padding:0}
-  .sys-sec{padding:12px 0;border-bottom:1px solid var(--line)}
-  .sys-title{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+  .sys-sec{padding:20px 0;border-bottom:1px solid var(--line)}
+  .sys-title{font-size:14px;font-weight:600;letter-spacing:normal;text-transform:none;color:var(--muted);margin:0 0 6px}
   .sec-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}.sec-row .sys-title{margin:0}
-  .row{display:grid;grid-template-columns:90px minmax(0,1fr) auto;align-items:center;gap:10px;min-height:30px;border-top:1px solid var(--line)}
+  .row{display:grid;grid-template-columns:90px minmax(0,1fr) auto;align-items:center;gap:10px;min-height:38px;border-top:0}
   .row:first-of-type{border-top:0}
   .row code{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
-  .state{font-size:11px;color:var(--muted)}.state.run{color:var(--accent)}
+  .state{font-size:12px;color:var(--muted)}.state.run{color:var(--accent)}
   .empty{margin:4px 0}
   .filter{width:220px}
   .model-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
   .col-title{font-size:12px;font-weight:600;margin:4px 0}
   .names{max-height:320px;overflow:auto;border-top:1px solid var(--line)}
-  .name{margin:0;padding:3px 0;border-bottom:1px solid var(--line);font-size:12px;overflow-wrap:anywhere}
+  .name{margin:0;padding:6px 0;border-bottom:0;font-size:12px;overflow-wrap:anywhere}
   .error{margin:6px 0}
   .engine-page :global(.mem>summary){padding:0}
   .engine-page :global(.mem .sec-body){padding:2px 0 12px}

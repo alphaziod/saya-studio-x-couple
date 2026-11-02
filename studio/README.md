@@ -6,7 +6,7 @@
 |:---:|:---:|
 | ![Casting grid](../docs/images/studio-casting.webp) | ![Gallery](../docs/images/studio-gallery.webp) |
 
-**1.0.0-beta.1 — Linux beta.** A local desktop app (Tauri 2, Rust, Svelte 5, SQLite) that drives
+**1.0.0-beta.2 — Linux beta.** A local desktop app (Tauri 2, Rust, Svelte 5, SQLite) that drives
 [ComfyUI](https://github.com/comfyanonymous/ComfyUI) for anime-style character images. Nothing runs in the
 cloud: Saya Studio is the interface, ComfyUI is the render engine.
 
@@ -39,16 +39,16 @@ data, and use it at your own risk.
 
 ## Install
 
-Packages are attached to the GitHub release `studio-v1.0.0-beta.1`:
+Packages are attached to the GitHub release `studio-v1.0.0-beta.2`:
 
 | Distribution | File / command |
 |---|---|
-| Debian, Ubuntu | `sudo apt install ./saya-studio_1.0.0-beta.1_amd64.deb` |
-| Fedora | `sudo dnf install ./saya-studio-1.0.0-beta.1.fedora.x86_64.rpm` |
-| openSUSE | `sudo zypper install ./saya-studio-1.0.0-beta.1.opensuse.x86_64.rpm` |
-| Arch, EndeavourOS | `sudo pacman -U ./saya-studio-1.0.0-beta.1-x86_64.pkg.tar.zst`, or AUR `saya-studio-bin` |
+| Debian, Ubuntu | `sudo apt install ./saya-studio_1.0.0-beta.2_amd64.deb` |
+| Fedora | `sudo dnf install ./saya-studio-1.0.0-beta.2.fedora.x86_64.rpm` |
+| openSUSE | `sudo zypper install ./saya-studio-1.0.0-beta.2.opensuse.x86_64.rpm` |
+| Arch, EndeavourOS | `sudo pacman -U ./saya-studio-1.0.0-beta.2-x86_64.pkg.tar.zst`, or AUR `saya-studio-bin` |
 | NixOS / Nix | `nix run github:alphaziod/saya-studio-x-couple?dir=studio` |
-| Any distribution | `saya-studio_1.0.0-beta.1_amd64.AppImage`, `saya-studio-1.0.0-beta.1-x86_64.flatpak`, `saya-studio_1.0.0-beta.1_amd64.snap` |
+| Any distribution | `saya-studio_1.0.0-beta.2_amd64.AppImage`, `saya-studio-1.0.0-beta.2-x86_64.flatpak`, `saya-studio_1.0.0-beta.2_amd64.snap` |
 
 Release notes: [RELEASE_NOTES.md](RELEASE_NOTES.md). Build steps and per-distribution dependencies: [docs/PACKAGING.md](docs/PACKAGING.md).
 French install guide for Arch: [docs/INSTALLATION-ARCH.md](docs/INSTALLATION-ARCH.md).

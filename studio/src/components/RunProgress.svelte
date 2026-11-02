@@ -36,7 +36,7 @@
 </div>
 {/if}
 <style>
-.run-progress{display:grid;gap:6px;margin:8px 0}.run-progress label{display:grid;grid-template-columns:1fr auto;gap:3px;font-size:12px}.run-progress span,.run-progress small{color:var(--muted);font-size:11px}.run-progress progress{height:5px;width:100%;margin:0;grid-column:1/-1}
+.run-progress{display:grid;gap:6px;margin:8px 0}.run-progress label{display:grid;grid-template-columns:1fr auto;gap:3px;font-size:12px}.run-progress span,.run-progress small{color:var(--muted);font-size:12px}.run-progress progress{height:5px;width:100%;margin:0;grid-column:1/-1}
 .run-progress.compact{margin:0;gap:3px;min-width:190px;max-width:260px}.compact small{display:flex;justify-content:space-between;gap:8px;white-space:nowrap;overflow:hidden}.compact small span{overflow:hidden;text-overflow:ellipsis}.compact .hide{display:none}
 progress{appearance:none;-webkit-appearance:none;border:0;height:3px;background:var(--line-strong);border-radius:2px;overflow:hidden}progress::-webkit-progress-bar{background:var(--line-strong)}progress::-webkit-progress-value{background:var(--accent)}progress::-moz-progress-bar{background:var(--accent)}
 </style>

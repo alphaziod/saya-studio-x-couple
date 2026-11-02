@@ -477,11 +477,11 @@
   .btn-row{display:flex;gap:4px}.btn-row button{flex:1;padding:0 6px}
   .checkbox{color:var(--text);font-size:12.5px}
   .file{font-size:12.5px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .perf{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .perf{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   .center-msg{margin:auto;padding:24px;text-align:center}
   .editor-stage{position:relative;flex:1;min-height:0;background:var(--canvas);overflow:hidden;touch-action:none}
   .editor-stage canvas{width:100%;height:100%;display:block;cursor:crosshair}
-  .compare-tag{position:absolute;top:10px;inset-inline-end:12px;padding:2px 8px;border-radius:var(--radius);background:var(--raised);border:1px solid var(--line-strong);color:var(--text);font-size:11.5px;pointer-events:none}
+  .compare-tag{position:absolute;top:10px;inset-inline-end:12px;padding:2px 8px;border-radius:var(--radius);background:var(--raised);border:1px solid var(--line-strong);color:var(--text);font-size:12px;pointer-events:none}
   .history-actions{display:flex;flex-wrap:wrap;gap:4px;padding:10px 12px;border-bottom:1px solid var(--line)}
   .strokes{list-style:none;margin:0;padding:0;max-height:40vh;overflow:auto;border-bottom:1px solid var(--line)}
   .strokes li{display:flex;justify-content:space-between;gap:8px;padding:5px 12px;border-top:1px solid var(--line);font-size:12px}

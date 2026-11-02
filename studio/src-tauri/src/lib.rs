@@ -728,6 +728,11 @@ enum Request {
         #[serde(default)]
         timeout_secs: Option<u64>,
     },
+    /// Discover test entry points in the engine tree and dedicated config directory.
+    EngineTestScripts,
+    EngineTestScript {
+        script: String,
+    },
     /// Generations browser (V5): STRICTLY read-only listing of the three image
     /// sources (generez engine, ComfyUI copies, app results), per folder, each
     /// folder oldest to newest, family read from the `saya_family` chunk /
@@ -3023,6 +3028,23 @@ fn handle_inner(s: &AppState, request: Request) -> Result<Value> {
             let mut db = Database::open(&s.directory.join("studio.sqlite3"))?;
             return Ok(db.casting_resume_batch(&run)?);
         }
+        Request::EngineTestScripts => {
+            let directory = studio_core::paths::config_dir().join("scripts-tests");
+            let scripts = studio_core::engine_runtime::list_test_scripts(
+                &studio_core::engine_runtime::engine_dir(),
+                &directory,
+            )?;
+            return Ok(json!({"directory": directory, "scripts": scripts}));
+        }
+        Request::EngineTestScript { script } => {
+            let outcome = studio_core::engine_runtime::run_test_script(
+                &studio_core::engine_runtime::engine_dir(),
+                &studio_core::paths::config_dir().join("scripts-tests"),
+                &script,
+                std::time::Duration::from_secs(studio_core::engine_runtime::SCRIPT_TIMEOUT_SECS),
+            )?;
+            return Ok(serde_json::to_value(outcome)?);
+        }
         Request::EngineScript {
             script,
             id_perso,
@@ -3856,6 +3878,8 @@ fn handle_inner(s: &AppState, request: Request) -> Result<Value> {
         | Request::CastingResume { .. }
         | Request::CastingNext { .. }
         | Request::EngineScript { .. }
+        | Request::EngineTestScripts
+        | Request::EngineTestScript { .. }
         | Request::CastingLancer { .. }
         | Request::ActionDrafts
         | Request::ActionDraftSave { .. }

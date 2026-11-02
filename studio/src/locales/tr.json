@@ -1578,7 +1578,7 @@
   "Scène sans nom": "Adsız sahne",
   "Scène supprimée.": "Sahne silindi.",
   "Scènes": "Sahneler",
-  "Scènes Importer importées": "Sahne içe aktarıcıyla içe aktarıldı",
+  "Scènes importées": "İçe aktarılan sahneler",
   "Se règle dans LoRA.": "LoRA'dan ayarlanır.",
   "Se règle dans la Galerie.": "Galeri'den ayarlanır.",
   "Section": "Bölüm",
@@ -2256,5 +2256,10 @@
   "−1 seed": "−1 seed",
   "■ Arrêter ici": "■ Burada durdur",
   "■ Arrêter la génération": "■ Üretimi durdur",
-  "Note sur l’anatomie": "Anatomi notu"
+  "Note sur l’anatomie": "Anatomi notu",
+  "Scripts de test": "Test betikleri",
+  "Choisir un script de test…": "Bir test betiği seçin…",
+  "Aucun script de test trouvé.": "Test betiği bulunamadı.",
+  "Test interrompu : délai dépassé.": "Test durduruldu: zaman sınırı aşıldı.",
+  "Échec du test (code {code}).": "Test başarısız (kod {code})."
 }

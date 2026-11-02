@@ -8,7 +8,7 @@
 name: saya-studio
 title: Saya Studio
 base: core24
-version: '1.0.0-beta.1'
+version: '1.0.0-beta.2'
 summary: Local image, character and ComfyUI workflow manager
 description: |
   Saya Studio is a local desktop application for making anime-style character images

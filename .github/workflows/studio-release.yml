@@ -11,13 +11,13 @@ on:
       tag:
         description: 'Release tag for the draft release'
         required: true
-        default: 'studio-v1.0.0-beta.1'
+        default: 'studio-v1.0.0-beta.2'
 
 permissions:
   contents: read
 
 env:
-  VERSION: 1.0.0-beta.1
+  VERSION: 1.0.0-beta.2
 
 jobs:
   # (a) Debian/Ubuntu deb, Fedora rpm, AppImage. Built on ubuntu-22.04 so the glibc / WebKitGTK
@@ -129,7 +129,7 @@ jobs:
             cargo fetch --locked
             stage="$GITHUB_WORKSPACE/arch-stage"
             mkdir -p "$stage"
-            tarname="saya-studio-1.0.0beta1.tar.gz"
+            tarname="saya-studio-1.0.0beta2.tar.gz"
             git config --global --add safe.directory "$GITHUB_WORKSPACE"
             git archive --format=tar --prefix=saya-studio/ HEAD . | gzip -n > "$stage/$tarname"
             cp packaging/arch/PKGBUILD packaging/arch/saya-studio.desktop packaging/arch/saya-studio.install "$stage/"
@@ -242,7 +242,7 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
-          name: Saya Studio 1.0.0-beta.1 (Linux beta)
+          name: Saya Studio 1.0.0-beta.2 (Linux beta)
           body_path: studio/RELEASE_NOTES.md
           draft: true
           prerelease: true

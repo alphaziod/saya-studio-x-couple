@@ -317,8 +317,10 @@
   <div class="prep">
     {#if temporary}<div class="prep-row"><strong class="temp-name" data-temporary-workflow={session} title={sourcePath}>{name}</strong><button data-image-close disabled={busy} onclick={closeImage}>{$t("Fermer")}</button></div>
     {:else}
-      <div class="prep-row"><input class="grow" aria-label={$t("Workflow UI")} title={preset?$t("Preset · maître + 6 passes"):$t("Workflow UI")} data-saya-source bind:value={sourcePath} placeholder={$t("Choisir ton workflow ComfyUI")} disabled={busy}/><button data-workflow-open onclick={()=>openFile(false)} disabled={busy||!sourcePath.trim()}>{$t("Ouvrir")}</button><button class="icon-btn quiet" aria-label={$t("Parcourir…")} title={$t("Parcourir…")} onclick={()=>openFile()} disabled={busy}><Icon name="folder"/></button></div>
-      <div class="prep-row"><input class="grow" aria-label={$t("Préparation")} bind:value={name} disabled={busy}/>{#if saved.length}<select class="saved" aria-label={$t("Préparations enregistrées")} value={session} onchange={e=>resume(e.currentTarget.value)} disabled={busy}><option value="">{$t("Charger une préparation…")}</option>{#each saved as s}<option value={s.session}>{s.name}</option>{/each}</select>{/if}<button class="icon-btn quiet" data-generation-save aria-label={$t("Enregistrer")} title={$t("Enregistrer")} onclick={save} disabled={!view||busy}><Icon name="save"/></button></div>
+      <label class="prep-label" for="generation-workflow-path">{$t("Workflow UI")}</label>
+      <div class="prep-row"><input id="generation-workflow-path" class="grow" aria-label={$t("Workflow UI")} title={preset?$t("Preset · maître + 6 passes"):$t("Workflow UI")} data-saya-source bind:value={sourcePath} placeholder={$t("Choisir ton workflow ComfyUI")} disabled={busy}/><button data-workflow-open onclick={()=>openFile(false)} disabled={busy||!sourcePath.trim()}>{$t("Ouvrir")}</button><button class="icon-btn quiet" aria-label={$t("Parcourir…")} title={$t("Parcourir…")} onclick={()=>openFile()} disabled={busy}><Icon name="folder"/></button></div>
+      <label class="prep-label" for="generation-preparation-name">{$t("Préparation")}</label>
+      <div class="prep-row"><input id="generation-preparation-name" class="grow" aria-label={$t("Préparation")} bind:value={name} disabled={busy}/>{#if saved.length}<select class="saved" aria-label={$t("Préparations enregistrées")} value={session} onchange={e=>resume(e.currentTarget.value)} disabled={busy}><option value="">{$t("Charger une préparation…")}</option>{#each saved as s}<option value={s.session}>{s.name}</option>{/each}</select>{/if}<button class="icon-btn quiet" data-generation-save aria-label={$t("Enregistrer")} title={$t("Enregistrer")} onclick={save} disabled={!view||busy}><Icon name="save"/></button></div>
     {/if}
     <p class="save-note" role="status">{note||$t("Travail sur une copie · original protégé")}</p>
     {#if error}<p class="error" role="alert">{error}</p>{/if}
@@ -420,25 +422,27 @@
 <style>
 .generation-workspace{height:100%;min-height:0}
 .model-dialog{max-width:720px;width:90vw;max-height:85vh;overflow:auto;background:var(--panel);color:var(--text);border:1px solid var(--line-strong);border-radius:6px;padding:16px}.model-dialog::backdrop{background:#000b}.model-dialog h2{font-size:14px;margin:0 0 6px}.model-dialog p{color:var(--muted);margin:0}.model-dialog label{display:grid;gap:4px;margin:12px 0}.model-dialog small{overflow-wrap:anywhere;color:var(--muted)}.dialog-actions{display:flex;justify-content:flex-end;gap:8px}
-.prep{display:grid;gap:6px;padding:8px 12px;border-bottom:1px solid var(--line);flex:none}
+.prep{display:grid;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);flex:none}
 .prep-row{display:flex;gap:6px;align-items:center;min-width:0}
 .prep-row .grow,.inline .grow{flex:1;min-width:0}
-.prep-row .saved{width:118px;min-width:0}
+.prep-row:has(.saved){flex-wrap:wrap}
+.prep-row .saved{flex:1 1 100%;min-width:0;order:3}
+.prep-label{font-size:12px;color:var(--muted);margin-bottom:-6px}
 .temp-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
-.save-note{margin:0;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.save-note{margin:0;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
 .prep .error{margin:0;font-size:12px;overflow-wrap:anywhere}
 .inline{display:flex;gap:6px;align-items:center;min-width:0}.inline input{min-width:0;flex:1}
-.mode{min-height:22px;font-size:11px;padding:0 8px;color:var(--text)}
+.mode{min-height:30px;font-size:12px;padding:0 8px;color:var(--text)}
 .seg button.dim{opacity:.6}
 .prompt-pane{display:grid;gap:8px}.prompt-pane[hidden]{display:none}
 .prompt-node{display:grid;gap:4px;min-width:0}
-.prompt-node header{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--muted)}.prompt-node header small{color:var(--faint);white-space:nowrap}
+.prompt-node header{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted)}.prompt-node header small{color:var(--faint);white-space:nowrap}
 .prompt-node textarea,.sub-text textarea{width:100%;resize:vertical;min-height:0}
 .prompt-node.inactive textarea{opacity:.6}
-.sub-text{display:grid;gap:3px;font-size:11px;color:var(--muted)}
+.sub-text{display:grid;gap:3px;font-size:12px;color:var(--muted)}
 .prompt-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .picker{margin-top:2px}
-.node-option{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--muted);min-width:0}.node-option>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.node-option{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);min-width:0}.node-option>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .node-option input,.node-option select,.node-option textarea{width:100%;min-width:0;margin:0;font-size:12px}
 .node-option:has(.syntax-loras){grid-column:1/-1}
 .bool-field{display:flex;align-items:center;gap:6px;min-height:28px;padding:0 8px;border:1px solid var(--line);border-radius:var(--radius);background:var(--raised);cursor:pointer}.bool-field.on{border-color:var(--line-strong)}.bool-field em{font-style:normal;font-size:12px;color:var(--text)}.node-option .bool-field input[type=checkbox]{width:14px;height:14px;min-height:0;margin:0;padding:0;accent-color:var(--accent)}
@@ -447,26 +451,26 @@
 .model-chip{max-width:150px;overflow:hidden;text-overflow:ellipsis}
 .lora-loaders{display:grid;gap:10px}
 .lora-loader{display:grid;gap:4px;min-width:0}
-.loader-head{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}.loader-head small{color:var(--faint)}
-.lora-row{display:grid;grid-template-columns:16px minmax(0,1fr) 50px 50px 24px;gap:4px;align-items:center}
+.loader-head{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}.loader-head small{color:var(--faint)}
+.lora-row{display:grid;grid-template-columns:16px minmax(0,1fr) 56px 56px 28px;gap:4px;align-items:center}
 .lora-row input{min-width:0;width:100%;padding:0 4px}.lora-row input[type=checkbox]{width:14px;min-height:0;accent-color:var(--accent)}
 .lora-row :global(.lora-picker),.add-lora :global(.lora-picker){min-width:0}
 .add-lora{display:grid;gap:4px}.add-lora button{justify-self:start}
 .syntax-loras{display:grid;gap:4px}.syntax-row{display:grid;grid-template-columns:minmax(0,1fr) 60px 26px;gap:4px}.syntax-row input,.syntax-row button{margin:0;padding:0 6px;font-size:12px}
 .pass-rows{gap:2px}
-.pass-row{display:flex;align-items:center;gap:8px;min-height:26px}.pass-row span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pass-row button{min-height:22px;font-size:12px}
+.pass-row{display:flex;align-items:center;gap:8px;min-height:32px}.pass-row span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pass-row button{min-height:30px;font-size:12px}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--line-strong);flex:none}.dot[data-state=succeeded]{background:var(--ok)}.dot[data-state=running],.dot[data-state=queued],.dot[data-state=submitted],.dot[data-state=submitting]{background:var(--accent)}.dot[data-state=failed]{background:var(--danger)}.dot[data-state=common]{background:transparent;border:1px solid var(--line-strong)}
 .node-workspace{display:flex;flex-direction:column;height:100%;min-height:0}
 .pass-tabs{display:flex;gap:2px;padding:6px 12px;border-bottom:1px solid var(--line);flex:none;flex-wrap:wrap}
-.pass-tabs button{min-height:26px;border:0;background:transparent;color:var(--muted);font-size:12px}.pass-tabs button.chosen{background:var(--raised);color:var(--text)}
+.pass-tabs button{min-height:32px;border:0;background:transparent;color:var(--muted);font-size:12px}.pass-tabs button.chosen{background:var(--raised);color:var(--text)}
 .node-scroll{flex:1;min-height:0;overflow:auto;padding:12px 16px}
-.pass-group{margin:0 0 20px}.pass-group>h2{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
-.node-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px}
-.node-card{border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:10px;min-width:0}.node-card.off{opacity:.6}
-.node-card header{display:flex;align-items:center;gap:8px}.node-card h2{font-size:12.5px;font-weight:600;margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.node-card small{font-size:11px;color:var(--faint)}.node-card header button{min-height:24px;font-size:11.5px}
-.settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}
+.pass-group{margin:0 0 20px}.pass-group>h2{font-size:14px;font-weight:600;letter-spacing:normal;text-transform:none;color:var(--muted);margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.node-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:16px}
+.node-card{border:0;border-radius:0;background:var(--panel);padding:14px;min-width:0}.node-card.off{opacity:.6}
+.node-card header{display:flex;align-items:center;gap:8px}.node-card h2{font-size:14px;font-weight:600;margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.node-card small{font-size:12px;color:var(--faint)}.node-card header button{min-height:24px;font-size:12px}
+.settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
 .empty{padding:8px 0}
-.secondary{padding:16px;display:grid;gap:10px;align-content:start}.secondary header{display:flex;justify-content:space-between;align-items:center;gap:12px}.secondary h2{font-size:13px;font-weight:600;margin:0}.secondary p{margin:0}.secondary pre{margin:0;overflow:auto;font-size:11.5px;background:var(--canvas);border:1px solid var(--line);border-radius:var(--radius);padding:10px;max-height:calc(100vh - 200px)}
+.secondary{padding:16px;display:grid;gap:10px;align-content:start}.secondary header{display:flex;justify-content:space-between;align-items:center;gap:12px}.secondary h2{font-size:13px;font-weight:600;margin:0}.secondary p{margin:0}.secondary pre{margin:0;overflow:auto;font-size:12px;background:var(--canvas);border:1px solid var(--line);border-radius:var(--radius);padding:10px;max-height:calc(100vh - 200px)}
 .secondary .settings-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
 .tools-page{padding:0 0 24px}
 .generation-comparator{display:block}

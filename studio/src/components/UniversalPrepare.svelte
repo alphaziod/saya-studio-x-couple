@@ -258,7 +258,7 @@
     .up-people-grid :global(img){height:92px;object-fit:cover;object-position:top}
     .up-people-grid :global(.image-placeholder){height:92px;min-height:92px}
     .up-people-grid :global(.person-card){min-height:0}
-    .up-people-grid :global(.person-card small){font-size:10px;color:var(--muted)}
+    .up-people-grid :global(.person-card small){font-size:12px;color:var(--muted)}
     .up-people-grid :global(.person-card strong){font-size:12px}
     details.panel>summary{cursor:pointer;font-weight:600;font-size:13px;padding:4px 0}
     details.panel[open]>summary{margin-bottom:10px}

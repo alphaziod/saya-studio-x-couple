@@ -14,7 +14,7 @@
 </section>
 <style>
 .phase-comparisons{min-width:0;container-type:inline-size}
-.phase-comparisons h2{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+.phase-comparisons h2{font-size:12px;font-weight:600;letter-spacing:normal;text-transform:none;color:var(--muted);margin:0 0 12px}
 .phase-comparisons h3{font-size:12px;font-weight:500;margin:0 0 6px;color:var(--text)}
 .comparisons-grid{display:grid;grid-template-columns:1fr;gap:16px}.comparisons-grid article{min-width:0}
 .empty{color:var(--faint);margin:0}

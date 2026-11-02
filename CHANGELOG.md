@@ -1,5 +1,13 @@
 # Changelog
 
+## Saya Studio 1.0.0-beta.2 — 2026-11-02
+
+- Improve readability, spacing and responsive layouts across the desktop interface.
+- Discover local test scripts in Casting and run the selected test with the Generate button; preserve
+  real exit status and bounded logs, and reject unknown or overlapping test requests.
+- Fix gallery grid sizing and editor toolbar placement; update wording across all 14 languages.
+- Preserve the existing public presets and Saya Couple 2.3.0 node package.
+
 ## 2.3.0 — 2026-10-29
 
 ### Saya Studio 1.0 beta, and node updates it relies on

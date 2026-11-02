@@ -1578,7 +1578,7 @@
   "Scène sans nom": "Cảnh chưa đặt tên",
   "Scène supprimée.": "Đã xóa cảnh.",
   "Scènes": "Cảnh",
-  "Scènes Importer importées": "Đã nhập cảnh từ Importer",
+  "Scènes importées": "Cảnh đã nhập",
   "Se règle dans LoRA.": "Thiết lập trong LoRA.",
   "Se règle dans la Galerie.": "Thiết lập trong Thư viện ảnh.",
   "Section": "Section",
@@ -2256,5 +2256,10 @@
   "−1 seed": "−1 seed",
   "■ Arrêter ici": "■ Dừng tại đây",
   "■ Arrêter la génération": "■ Dừng lượt tạo",
-  "Note sur l’anatomie": "Ghi chú giải phẫu"
+  "Note sur l’anatomie": "Ghi chú giải phẫu",
+  "Scripts de test": "Tập lệnh kiểm thử",
+  "Choisir un script de test…": "Chọn tập lệnh kiểm thử…",
+  "Aucun script de test trouvé.": "Không tìm thấy tập lệnh kiểm thử.",
+  "Test interrompu : délai dépassé.": "Đã dừng kiểm thử: quá thời gian cho phép.",
+  "Échec du test (code {code}).": "Kiểm thử thất bại (mã {code})."
 }

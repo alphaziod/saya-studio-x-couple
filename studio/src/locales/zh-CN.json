@@ -1578,7 +1578,7 @@
   "Scène sans nom": "未命名场景",
   "Scène supprimée.": "场景已删除。",
   "Scènes": "场景",
-  "Scènes Importer importées": "场景导入器已导入",
+  "Scènes importées": "已导入的场景",
   "Se règle dans LoRA.": "在 LoRA 页面中设置。",
   "Se règle dans la Galerie.": "在图库中设置。",
   "Section": "部分",
@@ -2256,5 +2256,10 @@
   "−1 seed": "−1 种子",
   "■ Arrêter ici": "■ 在此停止",
   "■ Arrêter la génération": "■ 停止生成",
-  "Note sur l’anatomie": "解剖说明"
+  "Note sur l’anatomie": "解剖说明",
+  "Scripts de test": "测试脚本",
+  "Choisir un script de test…": "选择测试脚本…",
+  "Aucun script de test trouvé.": "未找到测试脚本。",
+  "Test interrompu : délai dépassé.": "测试已停止：超出时间限制。",
+  "Échec du test (code {code}).": "测试失败（代码 {code}）。"
 }

@@ -1,4 +1,4 @@
-# Saya Studio 1.0.0-beta.1 — first Linux beta
+# Saya Studio 1.0.0-beta.2 — interface and Casting update
 
 Saya Studio is a local desktop app that drives **ComfyUI** for anime-style character images. ComfyUI renders,
 Saya Studio organizes: casting, a six-pass workflow, gallery, character sheets, LoRA manager, graph editor.
@@ -19,34 +19,27 @@ own setup. Back up your data and your ComfyUI folder before trying it.
 
 | Distribution | File | Command |
 |---|---|---|
-| Debian, Ubuntu | `saya-studio_1.0.0-beta.1_amd64.deb` | `sudo apt install ./saya-studio_1.0.0-beta.1_amd64.deb` |
-| Fedora | `saya-studio-1.0.0-beta.1.fedora.x86_64.rpm` | `sudo dnf install ./saya-studio-1.0.0-beta.1.fedora.x86_64.rpm` |
-| openSUSE | `saya-studio-1.0.0-beta.1.opensuse.x86_64.rpm` | `sudo zypper install ./saya-studio-1.0.0-beta.1.opensuse.x86_64.rpm` |
-| Arch, EndeavourOS | `saya-studio-1.0.0-beta.1-x86_64.pkg.tar.zst` | `sudo pacman -U ./saya-studio-1.0.0-beta.1-x86_64.pkg.tar.zst` |
-| Any distribution | `saya-studio_1.0.0-beta.1_amd64.AppImage` | `chmod +x` it, then run it |
-| Flatpak | `saya-studio-1.0.0-beta.1-x86_64.flatpak` | `flatpak install --user ./saya-studio-1.0.0-beta.1-x86_64.flatpak` |
-| Snap | `saya-studio_1.0.0-beta.1_amd64.snap` | `sudo snap install --dangerous ./saya-studio_1.0.0-beta.1_amd64.snap` |
+| Debian, Ubuntu | `saya-studio_1.0.0-beta.2_amd64.deb` | `sudo apt install ./saya-studio_1.0.0-beta.2_amd64.deb` |
+| Fedora | `saya-studio-1.0.0-beta.2.fedora.x86_64.rpm` | `sudo dnf install ./saya-studio-1.0.0-beta.2.fedora.x86_64.rpm` |
+| openSUSE | `saya-studio-1.0.0-beta.2.opensuse.x86_64.rpm` | `sudo zypper install ./saya-studio-1.0.0-beta.2.opensuse.x86_64.rpm` |
+| Arch, EndeavourOS | `saya-studio-1.0.0-beta.2-x86_64.pkg.tar.zst` | `sudo pacman -U ./saya-studio-1.0.0-beta.2-x86_64.pkg.tar.zst` |
+| Any distribution | `saya-studio_1.0.0-beta.2_amd64.AppImage` | `chmod +x` it, then run it |
+| Flatpak | `saya-studio-1.0.0-beta.2-x86_64.flatpak` | `flatpak install --user ./saya-studio-1.0.0-beta.2-x86_64.flatpak` |
+| Snap | `saya-studio_1.0.0-beta.2_amd64.snap` | `sudo snap install --dangerous ./saya-studio_1.0.0-beta.2_amd64.snap` |
 | Nix | flake in `studio/` | `nix run github:alphaziod/saya-studio-x-couple?dir=studio` |
 
 Check your download: `sha256sum -c SHA256SUMS --ignore-missing`.
 
-## What's in 1.0
+## Changes in beta.2
 
-- **Generation** — open a ComfyUI workflow (UI format), check its faithful API conversion (refused, never
-  guessed, when something cannot be resolved), edit inputs, submit, follow progress.
-- **Saya preset** — six passes (composition, hires fix, HiDream, post, detailers, final upscale) with memory
-  released between passes, one GPU job at a time.
-- **Casting** — N characters from a draw engine, pass 1 only, keep the good ones and finish them through the six
-  passes; rotations (one character on every action, one action on N characters); action drafts tested in an
-  isolated copy of the engine before they are added for real.
-- **Gallery** — incremental indexing of your folders (SHA-256, ComfyUI PNG metadata), filters by checkpoint, LoRA
-  and character, favourites, review, duplicates; deliveries filed by day and family in `~/Images/saya studio`.
-- **Characters** — sheets (identity prompt + anatomy), variants with backgrounds, reference images, import.
-- **Models** — LoRA manager with send-to-generation, stack and right-click actions.
-- **Workshop** — native ComfyUI graph editor (subgraphs, undo), workflows, pipelines, A/B lab, scenes.
-- **Your data stays yours** — SQLite database in `~/.local/share/studio.saya.desktop/`, lasting settings and
-  presets in `~/Documents/saya studio config/`, backups with `saya-studio-maintenance backup|verify|restore`.
-- 14 interface languages (French by default).
+- Readable controls, labels and toolbars across Casting, Gallery, Characters, Models, Generation,
+  Workflows and Settings; quieter borders and better spacing on smaller windows.
+- Casting discovers existing Python test scripts in the configured engine tree and `scripts-tests`
+  folder. Select a test and use **Generate**; refresh the list after adding a script.
+- Test execution reports the actual exit status and output, rejects unknown selections, and prevents
+  overlapping test requests. Listing never executes a script. The external draw engine is not bundled.
+- Improved grid sizing, wrapped filters and editor toolbars without changing graph canvas coordinates.
+- Updated interface wording in all 14 languages.
 
 ## Known limitations
 
@@ -57,12 +50,10 @@ Check your download: `sha256sum -c SHA256SUMS --ignore-missing`.
   extension bridge may not work there.
 - The bundled preset ships with **neutral example prompts and empty LoRA stacks**: fill in your own. Its model
   settings are mine; keep the ones that work on your machine.
-- The app can be used to make adult images of adult characters; its store metadata says so.
 
 ## Also in this repository
 
-**Saya Couple 2.3.0** (the node pack, `./saya install`): one ownership anchor per aspect of the genital anatomy
-block, Saya Family Save node, `saya_role` PNG chunk on phase images, softer background picker. See
+The **Saya Couple 2.3.0** node pack remains unchanged. See
 [CHANGELOG.md](https://github.com/alphaziod/saya-studio-x-couple/blob/main/CHANGELOG.md).
 
 ## Documentation

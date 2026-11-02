@@ -1622,7 +1622,7 @@
   "Scène sans nom": "مشهد بلا اسم",
   "Scène supprimée.": "تم حذف المشهد.",
   "Scènes": "المشاهد",
-  "Scènes Importer importées": "مشاهد استيراد مستوردة",
+  "Scènes importées": "المشاهد المستوردة",
   "Se règle dans LoRA.": "يُضبط من صفحة LoRA.",
   "Se règle dans la Galerie.": "يُضبط من المعرض.",
   "Section": "القسم",
@@ -2488,5 +2488,10 @@
   "−1 seed": "−1 بذرة",
   "■ Arrêter ici": "■ إيقاف هنا",
   "■ Arrêter la génération": "■ إيقاف التوليد",
-  "Note sur l’anatomie": "ملاحظة حول التشريح"
+  "Note sur l’anatomie": "ملاحظة حول التشريح",
+  "Scripts de test": "نصوص الاختبار",
+  "Choisir un script de test…": "اختر نص اختبار…",
+  "Aucun script de test trouvé.": "لم يتم العثور على نصوص اختبار.",
+  "Test interrompu : délai dépassé.": "تم إيقاف الاختبار: انتهت المهلة.",
+  "Échec du test (code {code}).": "فشل الاختبار (الرمز {code})."
 }

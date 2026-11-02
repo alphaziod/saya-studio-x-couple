@@ -58,7 +58,7 @@
   .people .person-portrait-empty span{font-size:40px;color:var(--faint)}
   .people .person-card strong,.people .person-card small{display:block;padding:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .people .person-card strong{margin-top:6px;font-size:12.5px;font-weight:500}
-  .people .person-card small{font-size:11px;color:var(--muted)}
+  .people .person-card small{font-size:12px;color:var(--muted)}
   .people .person-card small.warn{color:var(--warning)}
   .warn-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--warning);margin-inline-end:5px;vertical-align:middle}
 </style>

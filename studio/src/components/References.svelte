@@ -47,10 +47,10 @@
  .cover :global(img),.cover :global(.image-placeholder),.cand :global(img),.cand :global(.image-placeholder){width:100%;height:100%;min-height:0;max-height:none;object-fit:cover;object-position:top}
  .reference-item.primary .cover{outline:2px solid var(--accent);outline-offset:2px}
  .cand.chosen{outline:2px solid var(--sel);outline-offset:2px}
- .cap{margin:2px 0 0;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
- .ref-acts{display:flex;gap:3px;align-items:center}.ref-acts button{min-height:24px;font-size:11px}.ref-acts button:first-child{flex:1;min-width:0;padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ref-acts .icon-btn{width:24px}
+ .cap{margin:2px 0 0;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .ref-acts{display:flex;gap:3px;align-items:center}.ref-acts button{min-height:24px;font-size:12px}.ref-acts button:first-child{flex:1;min-width:0;padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ref-acts .icon-btn{width:24px}
  .none{margin:0}
  details.sub{margin:0}details.sub>summary{color:var(--muted);font-size:12px;min-height:24px;display:flex;align-items:center}
- .event{padding:6px 0;border-bottom:1px solid var(--line);font-size:12px}.event button{min-height:22px;font-size:11.5px}
- h4{margin:6px 0 4px;font-size:11px;font-weight:600;color:var(--muted)}
+ .event{padding:6px 0;border-bottom:1px solid var(--line);font-size:12px}.event button{min-height:22px;font-size:12px}
+ h4{margin:6px 0 4px;font-size:12px;font-weight:600;color:var(--muted)}
 </style>

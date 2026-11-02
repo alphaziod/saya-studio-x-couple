@@ -284,12 +284,12 @@
 </div>
 
 <style>
-  .md{--wb-left:260px;--wb-right:320px}
+  .md{--wb-left:280px;--wb-right:320px}
   .md .wb-head h2{font-size:13px}
   .md-list{list-style:none;margin:0;padding:4px 0;border-bottom:1px solid var(--line)}
-  .md-item{display:grid;gap:1px;width:100%;min-height:0;padding:6px 12px;border:0;border-radius:0;background:transparent;text-align:start;color:var(--text)}
+  .md-item{display:grid;gap:1px;width:100%;min-height:0;padding:10px 14px;border:0;border-radius:0;background:transparent;text-align:start;color:var(--text)}
   .md-item span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .md-item small{color:var(--muted);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .md-item small{color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .md-item:hover:not(:disabled){background:var(--raised)}
   .md-item.on{background:var(--hover);box-shadow:inset 2px 0 0 var(--accent-warm)}
   .md-empty{padding:8px 12px}
@@ -299,13 +299,13 @@
   .md-msgs p{margin:0;padding:4px 16px;font-size:12px;overflow-wrap:anywhere}
   .md-empty-state{margin:auto;padding:24px;text-align:center}
   .md-detail{display:flex;flex-direction:column;min-height:0;flex:1}
-  .md-head h2{font-size:13px;font-weight:600;margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .md-scroll{flex:1;min-height:0;overflow:auto;padding:12px 16px 24px;display:grid;gap:8px;align-content:start}
+  .md-head h2{font-size:14px;font-weight:600;margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .md-scroll{flex:1;min-height:0;overflow:auto;padding:12px 16px 24px;display:grid;gap:12px;align-content:start}
   .md-scroll h3{margin:10px 0 2px}
   .md-desc{margin:0;color:var(--muted)}
   .md-engine{margin:0;font-size:12px}
   .md-engine.ok{color:var(--ok)}
-  .md-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 24px}
+  .md-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:16px 24px}
   .md-versions{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
   .md-versions li{display:flex;align-items:center;gap:6px;min-height:30px;border-bottom:1px solid var(--line);font-size:12px}
   .md-versions li.on{color:var(--text);box-shadow:inset 2px 0 0 var(--accent-warm);padding-inline-start:8px}
@@ -315,7 +315,7 @@
   .md-inline{gap:3px;color:var(--muted);font-size:12px}
   .md-diff{display:grid;gap:6px}
   .md-diff summary,.md-preview summary{color:var(--muted);font-size:12px;cursor:pointer}
-  pre{margin:4px 0 0;max-height:360px;overflow:auto;font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius);padding:8px}
+  pre{margin:4px 0 0;max-height:360px;overflow:auto;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius);padding:8px}
   .md-right .sec-body label{gap:3px;color:var(--muted);font-size:12px}
   .md-right select,.md-right input{width:100%;color:var(--text)}
   .md-composition,.md-candidates,.md-preview{display:grid;gap:8px}

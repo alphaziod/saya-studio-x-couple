@@ -322,7 +322,7 @@
   </div>
 </dialog>{/if}
 <style>
-  .gallery{--wb-left:240px;--wb-right:320px;height:100%}
+  .gallery{--wb-left:260px;--wb-right:320px;height:100%}
   .vh{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
   p{margin:0}
   details{margin:0}
@@ -332,23 +332,23 @@
   .group{display:grid;gap:6px;padding:10px 12px;border-bottom:1px solid var(--line)}
   .group .sec-title{flex:none}
   .field{display:grid;gap:3px}
-  .field>span{font-size:11.5px;color:var(--muted)}
+  .field>span{font-size:12px;color:var(--muted)}
   .sec-body select,.sec-body input:not([type=checkbox]),.sec-body textarea,.field select,.field input{width:100%}
   .check{display:flex;align-items:center;gap:8px;min-height:22px;cursor:pointer;overflow-wrap:anywhere;line-height:1.3}
   .check input{margin:0;flex:none;accent-color:var(--sel)}
   .list{display:grid;gap:2px;max-height:180px;overflow:auto}
-  .hint{font-size:11.5px;color:var(--muted)}
+  .hint{font-size:12px;color:var(--muted)}
   .reset{width:100%}
-  .run .path,.path{overflow-wrap:anywhere;font-size:11.5px}
+  .run .path,.path{overflow-wrap:anywhere;font-size:12px}
   /* center */
-  .wb-bar{flex-wrap:nowrap;gap:6px;min-width:0}
+  .wb-bar{flex-wrap:wrap;gap:8px;min-width:0}
   .count{white-space:nowrap}
   .count strong{font-weight:600}
-  .active-filters{display:flex;gap:4px;min-width:0;overflow-x:auto;scrollbar-width:none;margin:0;flex-wrap:nowrap;align-items:center}
-  .fchip{min-height:22px;padding:0 7px;font-size:11.5px;border-radius:3px;background:var(--raised);border:1px solid var(--line-strong);color:var(--text);white-space:nowrap}
+  .active-filters{display:flex;gap:4px;min-width:0;margin:0;flex-wrap:wrap;align-items:center}
+  .fchip{min-height:28px;padding:2px 8px;font-size:12px;border-radius:3px;background:var(--raised);border:1px solid var(--line-strong);color:var(--text);white-space:nowrap}
   .fchip span{color:var(--muted);margin-inline-start:2px}
   .fchip.clear{background:transparent;border-style:dashed;color:var(--muted)}
-  .active-filters .muted{font-size:11.5px;white-space:nowrap}
+  .active-filters .muted{font-size:12px;white-space:nowrap}
   .wb-bar select{max-width:170px}
   .size{width:96px;min-height:0;padding:0;border:0;background:none;accent-color:var(--muted)}
   .toggle{display:inline-flex;align-items:center;gap:5px;min-height:26px;padding:0 8px;border-radius:var(--radius);color:var(--muted);font-size:12px;white-space:nowrap;cursor:pointer}
@@ -356,22 +356,22 @@
   .toggle.on{color:var(--text);background:var(--raised)}
   .toggle input{margin:0;accent-color:var(--accent)}
   .index{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
-  .progress-row,.compare-row{display:flex;align-items:center;gap:8px;min-height:32px;padding:0 10px;border-bottom:1px solid var(--line);background:var(--bg);font-size:12px}
+  .progress-row,.compare-row{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-height:40px;padding:6px 12px;border-bottom:1px solid var(--line);background:var(--bg);font-size:12px}
   .progress-row progress{flex:1;max-width:360px;height:3px;accent-color:var(--accent)}
   .progress-row button,.compare-row button{min-height:24px;font-size:12px}
   .msg{padding:6px 10px;border-bottom:1px solid var(--line);background:var(--bg);font-size:12px;white-space:pre-wrap;border-inline:0;border-top:0}
   .grid-area{flex:1;min-height:0;display:flex;flex-direction:column;position:relative}
   .pages{flex:1;min-height:0;overflow:auto;padding:12px}
-  .image-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--thumb,184px),1fr));gap:8px;margin:0}
+  .image-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--thumb,184px),1fr));gap:14px;margin:0}
   .image-card{display:flex;flex-direction:column;padding:0;min-height:0;border:0;background:transparent;text-align:start;overflow:visible;border-radius:var(--r-img)}
   .image-card:hover:not(:disabled){background:transparent}
   .image-card :global(img),.image-card :global(.image-placeholder){width:100%;aspect-ratio:4/5;height:auto;max-height:none;object-fit:contain;background:var(--canvas);border-radius:var(--r-img);display:block}
   .image-card.current :global(img){outline:1px solid var(--sel);outline-offset:2px}
   .image-card.selected{outline:0}
   .image-card.selected :global(img){outline:2px solid var(--accent);outline-offset:2px}
-  .caption{display:flex;align-items:baseline;gap:6px;padding:4px 2px 0;min-width:0;color:var(--muted);font-size:11px;line-height:16px}
-  .caption span{flex:1;min-width:0;padding:0;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .caption small{display:none;flex:0 1 auto;max-width:60%;min-width:0;padding:0;font-size:10.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .caption{display:flex;align-items:baseline;gap:6px;padding:8px 2px 0;min-width:0;color:var(--muted);font-size:12px;line-height:16px}
+  .caption span{flex:1;min-width:0;padding:0;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .caption small{display:none;flex:0 1 auto;max-width:60%;min-width:0;padding:0;font-size:12px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .image-card:hover .caption{color:var(--text)}.image-card:hover .caption small,.image-card:focus-visible .caption small{display:block}
   .empty-state{padding:80px 20px;text-align:center;color:var(--muted)}
   .pagination{display:flex;align-items:center;justify-content:center;gap:12px;min-height:36px;margin:0;border-top:1px solid var(--line);background:var(--bg);font-size:12px}
@@ -382,7 +382,7 @@
   .preview-btn{display:block;width:100%;padding:0;min-height:0;border:0;background:transparent;cursor:zoom-in}
   .preview-btn:hover:not(:disabled){background:transparent}
   .preview-btn :global(img){width:100%;max-height:60vh;object-fit:contain;border-radius:var(--r-img);display:block;background:var(--canvas)}
-  .preview-btn :global(.image-placeholder){min-height:240px;font-size:11px;color:var(--faint)}
+  .preview-btn :global(.image-placeholder){min-height:240px;font-size:12px;color:var(--faint)}
   .details{display:grid;gap:12px;padding:12px;border-bottom:1px solid var(--line)}
   .badge{font-size:12px;color:var(--muted)}.badge strong{color:var(--text);font-weight:600}
   .kv{font-size:12px}
@@ -390,13 +390,13 @@
   .assoc{display:inline-flex;align-items:center;gap:2px;margin-inline-end:6px}
   .link{min-height:0;padding:0;border:0;background:none;color:var(--text);text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:2px}
   .link:hover:not(:disabled){background:none;text-decoration-color:var(--text)}
-  .icon-btn.tiny{width:18px;min-height:18px}
+  .icon-btn.tiny{width:24px;min-height:24px}
   .empty{padding:24px 12px;color:var(--muted);text-align:center}
   /* viewer */
   .viewer{width:100vw;height:100vh;max-width:none;max-height:none;margin:0;padding:0;border:0;border-radius:0;background:var(--canvas);color:var(--text)}
   .viewer[open]{display:flex;flex-direction:column}
   .viewer::backdrop{background:#000}
-  .viewer .dialog-toolbar{display:flex;align-items:center;gap:12px;height:40px;padding:0 10px 0 14px;border-bottom:1px solid var(--line);background:var(--bg);flex:none}
+  .viewer .dialog-toolbar{display:flex;align-items:center;gap:12px;height:48px;padding:0 12px 0 16px;border-bottom:1px solid var(--line);background:var(--bg);flex:none}
   .viewer .dialog-toolbar strong{min-width:0;font-weight:500;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .viewer .dialog-toolbar .num{white-space:nowrap;font-size:12px}
   .viewer .dialog-toolbar .error{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
@@ -410,4 +410,5 @@
   /* Primary maintenance action of the gallery: always readable, never a faint ghost link. */
   .index{display:inline-flex;align-items:center;gap:6px;color:var(--text);border-color:var(--line);background:var(--raised);font-weight:500}
   .index:hover:not(:disabled){border-color:var(--accent)}
+@media(max-width:1200px){.gallery{--wb-left:230px;--wb-right:280px}.size{width:72px}}
 </style>

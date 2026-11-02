@@ -160,15 +160,15 @@
   {/if}
 </div>
 <style>
-  .gen-wb{--wb-left:340px;--wb-right:280px;position:relative}
+  .gen-wb{--wb-left:360px;--wb-right:300px;position:relative}
   .gen-wb.right-closed{grid-template-columns:var(--wb-left) minmax(0,1fr) 0}
   .wb-panel[hidden]{display:none}
   .left{overflow:hidden}
-  .go{display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid var(--line);flex:none}
+  .go{display:flex;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);flex:none}
   .launch{flex:1;min-height:34px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px}
   .run-error{margin:0;padding:6px 12px;border-bottom:1px solid var(--line);font-size:12px;overflow-wrap:anywhere}
   .stack-field{display:grid;gap:4px}.stack-field span{color:var(--muted)}
-  .center-tabs .tab{border:0;background:transparent;color:var(--muted);min-height:26px}
+  .center-tabs .tab{border:0;background:transparent;color:var(--muted);min-height:32px}
   .center-tabs .tab.on{background:var(--raised);color:var(--text)}
   .run-state{font-size:12px;white-space:nowrap}.run-state strong{font-weight:500;color:var(--text)}
   .panes{position:relative;flex:1;min-height:0}
@@ -183,7 +183,7 @@
   .stage-tools{position:absolute;top:14px;inset-inline-end:14px;display:flex;flex-direction:column;gap:4px}
   .stage-tools button{background:var(--panel)}
   .stage-info{position:absolute;top:14px;inset-inline-end:52px;background:var(--panel);border:1px solid var(--line-strong);border-radius:6px;padding:8px 10px;font-size:12px;max-width:300px}
-  .float{position:absolute;left:50%;transform:translateX(-50%);bottom:16px;display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line-strong);border-radius:8px;padding:6px 8px;max-width:calc(100% - 24px)}
+  .float{position:absolute;left:50%;transform:translateX(-50%);bottom:16px;display:flex;align-items:center;gap:10px;background:var(--panel);border:0;border-radius:6px;padding:8px 10px;max-width:calc(100% - 24px)}
   .passes{display:flex;gap:4px}
   .saya-phase{display:contents}
   .pass{width:30px;min-height:30px;padding:0;position:relative;display:grid;place-items:center;color:var(--muted);font-size:12px}
@@ -195,15 +195,16 @@
   .vsep{width:1px;height:22px;background:var(--line-strong);flex:none}
   .right .wb-head h2{flex:1}
   .run-pick{padding:8px 12px;border-bottom:1px solid var(--line)}.run-pick select{width:100%;font-size:12px}
-  .thumbs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:10px}
+  .thumbs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:14px}
   .thumb{padding:0;border:0;min-height:0;background:var(--canvas);border-radius:var(--r-img);aspect-ratio:832/1216;overflow:hidden;outline:1px solid transparent;outline-offset:1px;display:grid;place-items:center}
   .thumb.cur{outline-color:var(--sel)}
   .thumb :global(img){width:100%;height:100%;object-fit:cover;display:block}
-  .thumb :global(.image-placeholder),.thumb-empty{font-size:10.5px;color:var(--faint);padding:4px;text-align:center}
+  .thumb :global(.image-placeholder),.thumb-empty{font-size:12px;color:var(--faint);padding:4px;text-align:center}
   .run-kv{border-top:1px solid var(--line);padding:10px 12px;font-size:12px;flex:none}
   .review-backdrop{position:fixed;inset:0;z-index:50;background:#000c;display:grid;place-items:center;padding:16px}
   .review-popup{width:min(1100px,96vw);max-height:94vh;display:flex;flex-direction:column;gap:12px;background:var(--panel);border:1px solid var(--line-strong);border-radius:6px;padding:14px}
   .review-popup header{display:flex;justify-content:space-between;align-items:baseline;gap:12px}.review-popup h2{margin:0;font-size:14px;font-weight:600}.review-popup header span{color:var(--muted);font-size:12px}
   .review-image{flex:1;min-height:0;display:grid;place-items:center;background:var(--canvas);border-radius:var(--r-img)}.review-image :global(img){max-width:100%;max-height:72vh;object-fit:contain;display:block}
   .review-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+@media(max-width:1200px){.gen-wb{--wb-left:320px;--wb-right:250px}.float{gap:6px;padding:6px}.pass{width:28px}.passes{gap:2px}}
 </style>

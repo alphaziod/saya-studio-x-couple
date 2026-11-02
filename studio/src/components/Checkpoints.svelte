@@ -21,14 +21,14 @@
 </div>
 </details>
 <style>
-details{margin:0}summary{color:var(--muted);font-size:11.5px;cursor:pointer}
+details{margin:0}summary{color:var(--muted);font-size:12px;cursor:pointer}
 .cp-body{display:grid;gap:6px;padding:6px 0 2px}
-.field{display:flex;flex-direction:column;gap:4px;color:var(--muted);font-size:11.5px}
+.field{display:flex;flex-direction:column;gap:4px;color:var(--muted);font-size:12px}
 .row{display:flex;flex-wrap:wrap;gap:2px}
-.row button{min-height:24px;font-size:11.5px;padding:0 8px}
+.row button{min-height:24px;font-size:12px;padding:0 8px}
 .item{display:grid;gap:4px;border-top:1px solid var(--line);padding-top:6px}
 h4{margin:0;font-size:12px;font-weight:600}
-.error{color:var(--danger);margin:0;font-size:11.5px;overflow-wrap:anywhere}.note{color:var(--muted);margin:0;font-size:11.5px;overflow-wrap:anywhere}
-pre{font-size:11px;background:var(--canvas);border:1px solid var(--line);border-radius:var(--radius);padding:6px 8px;margin:4px 0 0;max-height:220px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
+.error{color:var(--danger);margin:0;font-size:12px;overflow-wrap:anywhere}.note{color:var(--muted);margin:0;font-size:12px;overflow-wrap:anywhere}
+pre{font-size:12px;background:var(--canvas);border:1px solid var(--line);border-radius:var(--radius);padding:6px 8px;margin:4px 0 0;max-height:220px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
 .checkpoint-preview{width:100%;max-height:420px;object-fit:contain;background:var(--canvas);border-radius:var(--r-img)}
 </style>

@@ -35,11 +35,11 @@
 <style>
  .ctx{display:grid;gap:4px;min-width:0}
  .ctx details{margin:0}.ctx summary{color:var(--muted);font-size:12px;min-height:26px;display:flex;align-items:center}
- h4{margin:6px 0 2px;font-size:11px;font-weight:600;color:var(--muted)}
- pre{font-size:11.5px;max-height:200px;margin:0;padding:6px 8px;background:var(--canvas);border:1px solid var(--line);border-radius:var(--radius)}
+ h4{margin:6px 0 2px;font-size:12px;font-weight:600;color:var(--muted)}
+ pre{font-size:12px;max-height:200px;margin:0;padding:6px 8px;background:var(--canvas);border:1px solid var(--line);border-radius:var(--radius)}
  .ctx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:6px;margin:4px 0}
  .ctx-grid :global(img),.ctx-grid :global(.image-placeholder){width:100%;aspect-ratio:3/4;height:auto;min-height:0;object-fit:cover;object-position:top;border-radius:var(--r-img);background:var(--raised)}
- .cap{margin:2px 0 0;font-size:10.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .cap{margin:2px 0 0;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
  .job{padding:4px 0;border-bottom:1px solid var(--line)}.job p{margin:0;font-size:12px}
- .ctx button{min-height:24px;font-size:11.5px}
+ .ctx button{min-height:24px;font-size:12px}
 </style>

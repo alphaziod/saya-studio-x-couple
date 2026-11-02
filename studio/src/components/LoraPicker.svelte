@@ -32,6 +32,6 @@
   .lora-picker{position:relative;min-width:0}.lora-picker input{width:100%;min-width:0;margin:0;padding:0 8px;min-height:28px;font-size:12px}.missing{border-color:var(--warning)}
   ul{position:absolute;z-index:20;inset-inline:0;top:100%;margin:2px 0 0;padding:4px;list-style:none;max-height:360px;overflow:auto;background:var(--raised);border:1px solid var(--line-strong);border-radius:var(--radius);box-shadow:0 8px 24px #0008}
   li button{display:flex;flex-direction:column;align-items:stretch;width:100%;min-height:0;text-align:start;padding:4px 8px;margin:0;border:0;border-radius:3px;background:none;min-width:0}
-  li strong,li small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}li strong{font-size:12px;font-weight:500}li small{font-size:11px;color:var(--muted)}
-  li button.active,li button:hover{background:var(--hover)}.none,.count{font-size:11px;color:var(--muted);padding:4px 8px}.count{position:sticky;top:-4px;background:var(--raised)}
+  li strong,li small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}li strong{font-size:12px;font-weight:500}li small{font-size:12px;color:var(--muted)}
+  li button.active,li button:hover{background:var(--hover)}.none,.count{font-size:12px;color:var(--muted);padding:4px 8px}.count{position:sticky;top:-4px;background:var(--raised)}
 </style>

@@ -145,7 +145,7 @@
   .row .n{width:56px;flex:none}
   input,select,textarea{width:100%;min-width:0}
   textarea{resize:vertical;font-family:inherit}
-  .advanced summary{font-size:11.5px;color:var(--muted);cursor:pointer}
+  .advanced summary{font-size:12px;color:var(--muted);cursor:pointer}
   .list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
   .list li{display:flex;flex-direction:column;gap:4px;padding:6px;border:1px solid var(--line);border-radius:4px}
   .list li.current{border-color:var(--accent)}
@@ -157,7 +157,7 @@
   .actions{display:flex;flex-wrap:wrap;gap:4px}
   .actions button{flex:1 1 auto}
   .danger{color:var(--danger)}
-  .small{font-size:11.5px}
+  .small{font-size:12px}
   .muted{color:var(--muted)}
   .error{color:var(--danger)}
 </style>

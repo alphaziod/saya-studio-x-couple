@@ -19,7 +19,7 @@
  onMount(reload);
 </script>
 <section class="grok" data-grok-scenes>
- <header class="ghead"><span class="sec-title">{$t("Scènes Importer importées")}</span><span class="chip num">{library.length}</span><button class="small" data-grok-scenes-open onclick={()=>opened=true}>{$t("Importer des scènes…")}</button></header>
+ <header class="ghead"><span class="sec-title">{$t("Scènes importées")}</span><span class="chip num">{library.length}</span><button class="small" data-grok-scenes-open onclick={()=>opened=true}>{$t("Importer des scènes…")}</button></header>
  <div class="gbody">
  {#if error}<p class="error" role="alert">{error}</p>{/if}
  <label class="stack">{$t("Scène et version source")}<select data-grok-scene-select bind:value={selected} onchange={choose}><option value="">{$t("Choisir…")}</option>{#each library as scene}<option value={scene.id}>{scene.name} · {scene.importedAt}</option>{/each}</select></label>
@@ -44,19 +44,19 @@
 </dialog>{/if}
 <style>
 .grok{border-top:1px solid var(--line)}
-.ghead{display:flex;align-items:center;gap:6px;min-height:36px;padding:0 8px 0 12px}
-.sec-title{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ghead{display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-height:40px;padding:10px 14px}
+.sec-title{font-size:12px;font-weight:600;letter-spacing:normal;text-transform:none;color:var(--muted);flex:1 1 180px;min-width:0;overflow-wrap:anywhere}
 .gbody{display:grid;gap:8px;padding:2px 12px 12px}
-.small{min-height:24px;font-size:11.5px;padding:0 8px}
+.small{min-height:24px;font-size:12px;padding:0 8px}
 label{color:var(--muted);font-size:12px}
 .stack{display:flex;flex-direction:column;gap:4px}
 .check{display:flex;flex-direction:row;align-items:center;gap:8px;color:var(--text)}
-.note{color:var(--muted);margin:0;font-size:11.5px;overflow-wrap:anywhere}.ell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.note{color:var(--muted);margin:0;font-size:12px;overflow-wrap:anywhere}.ell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .error{color:var(--danger);margin:0;overflow-wrap:anywhere}
 details{margin:0}summary{color:var(--muted);font-size:12px;cursor:pointer}
 h3{font-size:12px;font-weight:600;margin:8px 0 4px}
-strong{font-size:11px;color:var(--muted);font-weight:600}
-pre{font-size:11.5px;background:var(--canvas);border:1px solid var(--line);border-radius:var(--radius);padding:6px 8px;margin:2px 0 6px;max-height:none;white-space:pre-wrap;overflow-wrap:anywhere}
+strong{font-size:12px;color:var(--muted);font-weight:600}
+pre{font-size:12px;background:var(--canvas);border:1px solid var(--line);border-radius:var(--radius);padding:6px 8px;margin:2px 0 6px;max-height:none;white-space:pre-wrap;overflow-wrap:anywhere}
 .variants{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
 .row{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.grow{flex:1}
 .grok-scene-dialog{width:min(1000px,95vw);max-height:90vh;padding:0;overflow:auto;background:var(--panel);color:var(--text);border:1px solid var(--line-strong);border-radius:var(--radius-lg)}
