@@ -17,7 +17,8 @@ work = Path(tempfile.mkdtemp(prefix="saya desktop smoke "))
 artifact = next((source.parent / "dist-release").glob("*.exe" if platform.startswith("windows") else "*.dmg"))
 if platform.startswith("windows"):
     install = work / "installed"
-    subprocess.run([str(artifact), "/S", f"/D={install}"], check=True, timeout=120)
+    # NSIS requires /D last and unquoted, including paths containing spaces. No shell is used.
+    subprocess.run(f'"{artifact}" /S /D={install}', check=True, timeout=120)
     executable = install / "saya-studio.exe"
     resources = install
 else:
