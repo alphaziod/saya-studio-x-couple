@@ -1,4 +1,4 @@
-# Saya Studio 1.0.0-beta.2 — interface and Casting update
+# Saya Studio 1.0.0-beta.2 × Saya Couple 2.3.0
 
 Saya Studio is a local desktop app that drives **ComfyUI** for anime-style character images. ComfyUI renders,
 Saya Studio organizes: casting, a six-pass workflow, gallery, character sheets, LoRA manager, graph editor.
@@ -6,6 +6,33 @@ Nothing runs in the cloud.
 
 This is a **beta**. It is the companion app of the Saya Couple node pack and, like the pack, first a backup of my
 own setup. Back up your data and your ComfyUI folder before trying it.
+
+## One installer: Couple nodes, Studio app, or both
+
+Download **[install.sh](https://github.com/alphaziod/saya-studio-x-couple/releases/download/studio-v1.0.0-beta.2/install.sh)**
+from this release, then run it in a terminal:
+
+```sh
+sh install.sh
+```
+
+Choose **1: Couple nodes**, **2: Studio app**, or **3: both**. The installer downloads the public Couple
+bundle, verifies its pinned SHA-256, and opens the existing installer. It detects the Linux app package,
+checks its release checksum, and asks before installation. Existing node backups and restore are preserved.
+
+To choose both and specify ComfyUI explicitly:
+
+```sh
+sh install.sh --what both --comfyui /path/to/ComfyUI
+```
+
+Requires `python3`, `curl`, `tar` and `sha256sum`. The shell launcher must be run as your normal user;
+the app installer requests `sudo` only when the selected system package needs it.
+
+For the **nodes as a separate download**, use
+**[saya-couple-2.3.0.tar.gz](https://github.com/alphaziod/saya-studio-x-couple/releases/download/studio-v1.0.0-beta.2/saya-couple-2.3.0.tar.gz)**.
+It contains the public node files, workflows, installer and licenses. Extract it and run `./saya install`.
+Both downloads are listed in `SHA256SUMS` alongside the app packages.
 
 ## Requirements
 

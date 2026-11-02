@@ -2,6 +2,9 @@
 
 ## Saya Studio 1.0.0-beta.2 — 2026-11-02
 
+- **Unified download:** add `install.sh` to install Couple nodes, the Studio app, or both, plus a standalone
+  `saya-couple-2.3.0.tar.gz` containing the unchanged public nodes, workflows and existing installer.
+
 - **Interface:** improve text contrast, label sizes, headings, navigation, control spacing and wrapping
   throughout the app; reduce visual borders and adapt panels to narrower windows.
 - **Casting:** clearer batch controls and a dedicated filter row. Add automatic discovery of local test

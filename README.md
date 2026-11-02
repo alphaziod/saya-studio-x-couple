@@ -27,7 +27,12 @@ Current version: **2.3.0** ([CHANGELOG.md](CHANGELOG.md)). Tested on ComfyUI `41
 RDNA4 16 GB. It is first and foremost **a backup of my own ComfyUI setup**, made public in case it helps someone
 with the same problem. Take what you need.
 
-> ### 2.0: no ComfyUI core modification any more
+> #Download the **[unified install.sh](https://github.com/alphaziod/saya-studio-x-couple/releases/download/studio-v1.0.0-beta.2/install.sh)**
+and run `sh install.sh`: choose the **Couple nodes**, the **Studio app**, or **both**.
+The **[standalone Couple archive](https://github.com/alphaziod/saya-studio-x-couple/releases/download/studio-v1.0.0-beta.2/saya-couple-2.3.0.tar.gz)**
+is available in the same release as the app packages.
+
+## 2.0: no ComfyUI core modification any more
 > Saya Couple 1.x patched `comfy/ldm/modules/attention.py`. **2.0 does not touch any ComfyUI file.** The couple
 > engine lives in the pack and is attached to the model with ComfyUI's official `ModelPatcher.add_object_patch`
 > API, for the duration of the sampling only. The only core change the installer can still make is the **optional**

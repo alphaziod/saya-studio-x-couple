@@ -217,22 +217,23 @@ jobs:
           path: dist-release/*
 
   release:
-    name: Draft prerelease
+    name: Publish release
     needs: [bundles, opensuse-rpm, arch, nix, flatpak, snap]
     if: ${{ !cancelled() && github.event_name != 'pull_request' && needs.bundles.result == 'success' && needs.opensuse-rpm.result == 'success' && needs.arch.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      # Only for the release notes (studio/RELEASE_NOTES.md).
+      # The unified installer also packages the public Couple nodes and their installer.
       - uses: actions/checkout@v4
-        with:
-          sparse-checkout: studio/RELEASE_NOTES.md
-          sparse-checkout-cone-mode: false
       - uses: actions/download-artifact@v4
         with:
           path: assets
           merge-multiple: true
+      - name: Build unified installer and Couple archive
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+        run: python3 tools/build_release_bundle.py assets --tag "$RELEASE_TAG"
       - name: Checksums
         working-directory: assets
         run: |
@@ -242,8 +243,9 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
-          name: Saya Studio 1.0.0-beta.2 (Linux beta)
+          name: Saya Studio 1.0.0-beta.2 × Saya Couple 2.3.0
           body_path: studio/RELEASE_NOTES.md
-          draft: true
-          prerelease: true
+          draft: false
+          prerelease: false
+          make_latest: true
           files: assets/*
