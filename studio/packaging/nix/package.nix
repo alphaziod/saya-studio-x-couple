@@ -33,7 +33,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
   npmDeps = fetchNpmDeps {
     inherit (finalAttrs) src;
     # From the first CI build; update it whenever package-lock.json changes.
-    hash = "sha256-Dgd7ckDUDto9aLCfoXbwrxyywmQ4Gy+DwrdV391AbjE=";
+    hash = "sha256-JwGb8lxPX+nTGumDhesrnKoD9CW73NExZ4xaP6/+BNM=";
   };
 
   nativeBuildInputs = [
