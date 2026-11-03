@@ -15,7 +15,7 @@ const extensionId = 'hgbfcjoeaddihdpccfhcgeohohfejidm';
 const profile = process.platform === 'darwin'
   ? path.join(os.homedir(), 'Library/Application Support/Chromium')
   : path.join(work, 'browser-profile');
-async function launch(folder, name) {
+async function launch(folder) {
   return chromium.launchPersistentContext(profile, {
     channel: 'chromium', headless: true,
     args: [`--disable-extensions-except=${folder}`, `--load-extension=${folder}`],
@@ -25,7 +25,7 @@ async function worker(context) {
   return context.serviceWorkers()[0] || await context.waitForEvent('serviceworker', {timeout: 30000});
 }
 (async () => {
-  const context = await launch(extension, 'browser-profile');
+  const context = await launch(extension);
   try {
     const sw = await worker(context);
     assert.equal(new URL(sw.url()).host, extensionId);
@@ -35,18 +35,18 @@ async function worker(context) {
       }));
       if (native.error || !native.ok || !native.matched) return {native};
       const jobs = await bridge('/jobs');
-      return {native, bridge: Array.isArray(jobs.jobs), source: tokenSource};
+      return {native, bridge: jobs.jobs !== null && typeof jobs.jobs === 'object' && !Array.isArray(jobs.jobs), source: tokenSource};
     }, {host, expected});
     assert.equal(result.native.error, undefined, JSON.stringify(result));
     assert.equal(result.native.matched, true);
-    assert.equal(result.bridge, true);
+    assert.equal(result.bridge, true, JSON.stringify(result));
     assert.equal(result.source, 'native');
   } finally { await context.close(); }
   const denied = path.join(work, 'untrusted-extension');
   fs.mkdirSync(denied);
   fs.writeFileSync(path.join(denied, 'manifest.json'), JSON.stringify({manifest_version:3,name:'Native host refusal test',version:'1.0',permissions:['nativeMessaging'],background:{service_worker:'background.js'}}));
   fs.writeFileSync(path.join(denied, 'background.js'), 'chrome.runtime.onInstalled.addListener(() => {});');
-  const other = await launch(denied, 'untrusted-profile');
+  const other = await launch(denied);
   try {
     const sw = await worker(other);
     assert.notEqual(new URL(sw.url()).host, extensionId);
