@@ -33,10 +33,15 @@ fn regular_without_symlinks(path: &Path) -> Result<()> {
         return Err("Chemin absolu requis".into());
     }
     for ancestor in path.ancestors() {
-        if std::fs::symlink_metadata(ancestor)?
-            .file_type()
-            .is_symlink()
+        let metadata = std::fs::symlink_metadata(ancestor)?;
+        #[cfg(windows)]
         {
+            use std::os::windows::fs::MetadataExt;
+            if metadata.file_attributes() & 0x400 != 0 {
+                return Err("Lien symbolique refusé pour la corbeille".into());
+            }
+        }
+        if metadata.file_type().is_symlink() {
             return Err("Lien symbolique refusé pour la corbeille".into());
         }
     }
@@ -135,18 +140,7 @@ impl Database {
                 if self.prepare_asset_trash(std::slice::from_ref(&file.id))? != [file.clone()] {
                     return Err("Fichier modifié après confirmation".into());
                 }
-                let output = std::process::Command::new("gio")
-                    .arg("trash")
-                    .arg("--")
-                    .arg(&file.path)
-                    .output()?;
-                if !output.status.success() {
-                    return Err(format!(
-                        "Corbeille indisponible : {}",
-                        String::from_utf8_lossy(&output.stderr)
-                    )
-                    .into());
-                }
+                crate::native_trash::recycle(Path::new(&file.path))?;
                 self.connection.execute(
                     "UPDATE assets SET availability='missing' WHERE absolute_path=?",
                     [&file.path],

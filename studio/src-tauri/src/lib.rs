@@ -4370,6 +4370,11 @@ pub fn run() {
             std::fs::create_dir_all(&directory)?;
             #[cfg(target_os = "linux")]
             ensure_native_host_manifests();
+            #[cfg(any(windows, target_os = "macos"))]
+            if let Err(error) = std::env::current_exe().map_err(|e| -> Box<dyn std::error::Error + Send + Sync> { e.into() })
+                .and_then(|exe| studio_core::browser_host::register(&directory, &exe)) {
+                eprintln!("Native host registration failed: {error}");
+            }
             let db = Database::open(&directory.join("studio.sqlite3"))
                 .map_err(|e| -> Box<dyn std::error::Error> { e })?;
             // Base preset installed with the package (validated characters + multi-pass workflow).

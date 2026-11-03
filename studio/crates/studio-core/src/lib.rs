@@ -104,3 +104,6 @@ pub mod workflow_ui_api;
 
 mod image_cleanup;
 pub mod lineage;
+
+pub mod browser_host;
+mod native_trash;

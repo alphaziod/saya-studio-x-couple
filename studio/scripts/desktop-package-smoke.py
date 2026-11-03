@@ -78,12 +78,20 @@ with log_path.open("w") as log:
             if initialized:
                 time.sleep(5)
                 assert child.poll() is None, "App crashed after database initialization"
+                token_file = data / "civitai-token"
+                token_deadline = time.monotonic() + 15
+                while not token_file.is_file() and time.monotonic() < token_deadline:
+                    time.sleep(0.2)
+                assert token_file.is_file(), "Bridge token was not created"
+                subprocess.run(["node", str(source / "scripts/desktop-browser-smoke.cjs"),
+                                str(resources / "extension"), str(token_file), str(work)],
+                               check=True, timeout=120)
                 break
             time.sleep(1)
         assert initialized, f"Database not initialized at {db_path}"
     finally:
         child.terminate()
         child.wait(timeout=15)
-report = {"platform": platform, "installer": artifact.name, "preset_hashes": "match", "startup": "passed", "database": "initialized", "gpu_run": False}
+report = {"platform": platform, "installer": artifact.name, "preset_hashes": "match", "startup": "passed", "database": "initialized", "gpu_run": False, "native_browser": "passed", "unauthorized_extension": "refused"}
 print(json.dumps(report))
 (source.parent / "dist-release" / f"{platform}-smoke.json").write_text(json.dumps(report, indent=2) + "\n")

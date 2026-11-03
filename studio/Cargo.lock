@@ -3465,7 +3465,9 @@ name = "studio-core"
 version = "1.0.0-beta.2"
 dependencies = [
  "base64 0.22.1",
+ "dirs",
  "image",
+ "objc2-foundation",
  "png 0.18.1",
  "regex",
  "reqwest 0.12.28",
@@ -3475,6 +3477,7 @@ dependencies = [
  "sha2",
  "tungstenite",
  "uuid",
+ "windows",
 ]
 
 [[package]]

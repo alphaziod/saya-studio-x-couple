@@ -37,8 +37,7 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v4
-      - if: ${{ !inputs.build_run }}
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
@@ -61,6 +60,12 @@ jobs:
       - name: Native core checks
         if: ${{ !inputs.build_run }}
         run: cargo test -p studio-core --locked --lib platform_tests
+      - name: Native browser host protocol
+        if: ${{ !inputs.build_run }}
+        run: cargo test -p studio-core --locked --lib browser_host::tests
+      - name: Native recycle bin and restore
+        if: ${{ !inputs.build_run }}
+        run: cargo test -p studio-core --locked --lib native_trash::tests::native_recycle_roundtrip -- --ignored
       - name: Build native installer
         if: ${{ !inputs.build_run }}
         run: npx tauri build
@@ -96,6 +101,10 @@ jobs:
           path: dist-release
           run-id: ${{ inputs.build_run }}
           github-token: ${{ github.token }}
+      - name: Browser test tools (CI only)
+        run: |
+          npm install --prefix "$RUNNER_TEMP/saya-browser-test" --no-audit --no-fund playwright@1.64.1
+          node "$RUNNER_TEMP/saya-browser-test/node_modules/playwright/cli.js" install chromium
       - name: Install and start the native package
         run: python scripts/desktop-package-smoke.py "${{ matrix.artifact }}"
       - uses: actions/upload-artifact@v4

@@ -15,3 +15,12 @@ png = "0.18"
 base64 = "0.22"
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "json"] }
 tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
+
+[target.'cfg(any(windows, target_os = "macos"))'.dependencies]
+dirs = "7"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62.2", features = ["Win32_System_Com", "Win32_UI_Shell", "Win32_Foundation"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSFileManager", "NSString", "NSURL", "NSError"] }
