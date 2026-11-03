@@ -11,6 +11,8 @@ own setup. Back up your data and your ComfyUI folder before trying it.
 
 Native assets use source commit [`5edae80`](https://github.com/alphaziod/saya-studio-x-couple/commit/5edae8051d0d10770dd146f79eafd4c559b70ce1); the existing Linux packages and Couple archive are unchanged.
 
+[Native installation and startup checks](https://github.com/alphaziod/saya-studio-x-couple/actions/runs/41688038845) passed on all three platforms on 2026-11-03, using these exact installers. Preset hashes and initial database setup were verified; no GPU generation was run.
+
 - **Windows 10/11 x64:** `saya-studio-1.0.0-beta.2-windows-x64.exe`. Run the installer; WebView2 is required (the installer handles it).
 - **Mac with Apple Silicon:** `saya-studio-1.0.0-beta.2-macos-arm64.dmg`.
 - **Mac with Intel:** `saya-studio-1.0.0-beta.2-macos-x64.dmg`.
