@@ -2,6 +2,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const os = require('node:os');
 const {chromium} = require(path.join(process.env.RUNNER_TEMP, 'saya-browser-test/node_modules/playwright'));
 assert.equal(process.env.GITHUB_ACTIONS, 'true');
 const [extension, tokenFile, work] = process.argv.slice(2);
@@ -9,8 +10,13 @@ const expected = fs.readFileSync(tokenFile, 'utf8').trim();
 assert.ok(expected);
 const host = 'com.saya.studio';
 const extensionId = 'hgbfcjoeaddihdpccfhcgeohohfejidm';
+// Chromium resolves user-level hosts under its actual user-data directory on macOS.
+// Use the disposable runner's registered directory rather than fabricating a manifest in a test profile.
+const profile = process.platform === 'darwin'
+  ? path.join(os.homedir(), 'Library/Application Support/Chromium')
+  : path.join(work, 'browser-profile');
 async function launch(folder, name) {
-  return chromium.launchPersistentContext(path.join(work, name), {
+  return chromium.launchPersistentContext(profile, {
     channel: 'chromium', headless: true,
     args: [`--disable-extensions-except=${folder}`, `--load-extension=${folder}`],
   });
@@ -45,9 +51,10 @@ async function worker(context) {
     const sw = await worker(other);
     assert.notEqual(new URL(sw.url()).host, extensionId);
     const result = await sw.evaluate(host => new Promise(resolve => chrome.runtime.sendNativeMessage(host, {type:'get_token'}, reply => {
-      resolve({refused:!!chrome.runtime.lastError, leaked:typeof reply?.token === 'string'});
+      resolve({error:chrome.runtime.lastError?.message, refused:!!chrome.runtime.lastError, leaked:typeof reply?.token === 'string'});
     })), host);
     assert.equal(result.refused, true);
+    assert.match(result.error, /forbidden|not allowed|denied/i);
     assert.equal(result.leaked, false);
   } finally { await other.close(); }
   console.log('Native browser integration passed: packaged extension, real host, authenticated bridge, other extension refused');
