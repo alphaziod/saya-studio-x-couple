@@ -570,42 +570,14 @@ impl crate::Database {
         if value["state"] == "completed" {
             return Err("Run casting déjà terminé : rien à arrêter".into());
         }
-        let jobs = self.jobs_by_ids(&crate::saya::phase_jobs(&value))?;
-        let mut controls = Vec::new();
-        for phase in 1..=6 {
-            let Some(job) = value["phases"][phase.to_string()]["job"].as_str() else {
-                continue;
-            };
-            let Some(active) = jobs.iter().find(|j| j["id"] == job) else {
-                continue;
-            };
-            let etat = active["state"].as_str().unwrap_or("");
-            let action = match etat {
-                "queued" | "submission_unknown" => Some("cancel_queue"),
-                "running" => Some("interrupt"),
-                _ => None,
-            };
-            let Some(action) = action else {
-                continue;
-            };
-            match self.control_job(job, action, true, client) {
-                Ok(response) => controls.push(json!({
-                    "job": job, "phase": phase, "action": action, "envoye": true,
-                    "reponse": response,
-                })),
-                Err(erreur) => controls.push(json!({
-                    "job": job, "phase": phase, "action": action, "envoye": false,
-                    "erreur": erreur.to_string(),
-                })),
-            }
-        }
+        let controls = self.stop_phase_jobs(&value, client)?;
         if value["phases"]["1"]["state"] == "waiting" {
             value["phases"]["1"]["state"] = json!("cancelled");
         }
         value["state"] = json!("stopped");
         value["autoAdvance"] = json!(false);
         value["stoppedAt"] = json!(timestamp_now());
-        value["stopPending"] = json!(controls.iter().any(|c| c["envoye"] == false));
+        value["stopPending"] = json!(controls.iter().any(|c| c["sent"] == false));
         crate::saya::write_run(self, run, &value)?;
         Ok(json!({"run": run, "state": value["state"], "controles": controls}))
     }
@@ -739,6 +711,13 @@ impl crate::Database {
                 Some("cancelled" | "failed" | "interrupted")
             );
             if row["runState"] != "stopped" && row["runState"] != "paused" && !retry {
+                continue;
+            }
+            // A decided trial left the batch queue: "non" stopped it on purpose, and a
+            // stopped "oui" finish has no waiting phase to resume. Reviving either would
+            // show it as running forever. A paused decided trial still resumes.
+            let decided = !row["decision"].as_str().unwrap_or_default().is_empty();
+            if decided && row["runState"] == "stopped" {
                 continue;
             }
             let id = row["run"].as_str().ok_or("Run absent")?;
@@ -1160,6 +1139,34 @@ mod controle_tests {
     }
 
     #[test]
+    fn resume_leaves_decided_stopped_trials_stopped() {
+        let (dir, mut db) = base();
+        for (id, decision, state) in [
+            ("kept-run-01", "oui", "stopped"),
+            ("dropped-run-01", "non", "stopped"),
+            ("paused-kept-01", "oui", "paused"),
+            ("open-run-01", "", "stopped"),
+        ] {
+            forced_job(&db, &dir, id, "succeeded", "");
+            let mut value = manifest(id, state, json!({"job":id,"state":"succeeded"}));
+            value["casting"]["decision"] = json!(decision);
+            crate::saya::write_run(&db, id, &value).unwrap();
+        }
+        let result = db.casting_resume_batch("open-run-01").unwrap();
+        let mut resumed: Vec<&str> = result["runs"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|r| r["run"].as_str())
+            .collect();
+        resumed.sort_unstable();
+        assert_eq!(resumed, ["open-run-01", "paused-kept-01"]);
+        for id in ["kept-run-01", "dropped-run-01"] {
+            assert_eq!(crate::saya::read_run(&db, id).unwrap()["state"], "stopped");
+        }
+    }
+
+    #[test]
     fn resume_refuses_unknown_submission_without_creating_jobs() {
         let (dir, mut db) = base();
         forced_job(&db, &dir, "unknown-1", "submission_unknown", "");
@@ -1335,7 +1342,7 @@ mod controle_tests {
         server.join().unwrap();
         // The interruption was sent and reported, the run is durably stopped.
         assert_eq!(value["controles"][0]["action"], "interrupt");
-        assert_eq!(value["controles"][0]["envoye"], json!(true));
+        assert_eq!(value["controles"][0]["sent"], json!(true));
         assert_eq!(value["state"], "stopped");
         assert_eq!(value["manifeste"]["phases"]["1"]["state"], "interrupted");
         drop(db);
@@ -1396,12 +1403,154 @@ mod controle_tests {
         let value = db.casting_stop(id, &client, &dir.join("results")).unwrap();
         server.join().unwrap();
         assert_eq!(value["controles"][0]["action"], "cancel_queue");
-        assert_eq!(value["controles"][0]["envoye"], json!(true));
+        assert_eq!(value["controles"][0]["sent"], json!(true));
         assert_eq!(value["state"], "stopped");
         drop(db);
         let db = Database::open(&dir.join("studio.sqlite3")).unwrap();
         assert_eq!(db.jobs().unwrap()[0]["state"], "cancelled");
         assert_eq!(crate::saya::read_run(&db, id).unwrap()["state"], "stopped");
+    }
+
+    /// Regression: `saya_stop` sent `/interrupt` for a queued phase. ComfyUI only
+    /// interrupts the executing prompt, so `control_job` refused, the error was only
+    /// logged and the queued phase still ran after the run was marked stopped.
+    #[test]
+    fn saya_stop_deletes_a_queued_phase_from_the_queue() {
+        let (dir, mut db) = base();
+        let id = "sayastop-queued-1";
+        let prompt = uuid::Uuid::new_v4().to_string();
+        forced_job(&db, &dir, "job-3", "queued", &prompt);
+        let mut value = manifest(id, "running", json!({"job":"job-0","state":"succeeded"}));
+        value["phases"]["3"] = json!({"job":"job-3","state":"submitted"});
+        crate::saya::write_run(&db, id, &value).unwrap();
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let client = Comfy::loopback(listener.local_addr().unwrap().port()).unwrap();
+        let pending = json!({"queue_running": [], "queue_pending": [[0, prompt.clone(), {}, {}]]});
+        let server = std::thread::spawn(move || {
+            let expected = [
+                ("GET /queue HTTP/1.1", pending.clone()),
+                ("GET /history/", json!({})),
+                ("GET /queue HTTP/1.1", pending),
+                ("POST /queue HTTP/1.1", json!({})),
+                ("GET /queue HTTP/1.1", json!({"queue_running": [], "queue_pending": []})),
+                ("GET /history/", json!({})),
+            ];
+            for (wanted, response) in expected {
+                let (mut stream, _) = listener.accept().unwrap();
+                let (received, body) = request(&mut stream);
+                assert!(received.starts_with(wanted), "{received} ≁ {wanted}");
+                if wanted == "POST /queue HTTP/1.1" {
+                    assert_eq!(body, json!({"delete": [prompt]}));
+                }
+                respond(&mut stream, response);
+            }
+        });
+        let stopped = db.saya_stop(id, &client, &dir.join("results")).unwrap();
+        server.join().unwrap();
+        assert_eq!(stopped["state"], "stopped");
+        assert_eq!(stopped["stopPending"], json!(false));
+        assert_eq!(db.jobs().unwrap()[0]["state"], "cancelled");
+    }
+
+    /// Resume never duplicates a phase ComfyUI still runs.
+    #[test]
+    fn saya_resume_refuses_while_a_phase_runs() {
+        let (dir, mut db) = base();
+        let id = "sayaresume-busy-1";
+        let prompt = uuid::Uuid::new_v4().to_string();
+        forced_job(&db, &dir, "job-0", "succeeded", "");
+        forced_job(&db, &dir, "job-2", "running", &prompt);
+        let mut value = manifest(id, "running", json!({"job":"job-0","state":"succeeded"}));
+        value["phases"]["2"] = json!({"job":"job-2","state":"running"});
+        crate::saya::write_run(&db, id, &value).unwrap();
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let client = Comfy::loopback(listener.local_addr().unwrap().port()).unwrap();
+        let running = json!({"queue_running": [[0, prompt.clone(), {}, {}]], "queue_pending": []});
+        let server = std::thread::spawn(move || {
+            for (wanted, response) in [("GET /queue HTTP/1.1", running), ("GET /history/", json!({}))] {
+                let (mut stream, _) = listener.accept().unwrap();
+                let (received, _) = request(&mut stream);
+                assert!(received.starts_with(wanted), "{received} ≁ {wanted}");
+                respond(&mut stream, response);
+            }
+        });
+        let error = db.saya_resume(id, &client, &dir.join("results")).unwrap_err().to_string();
+        server.join().unwrap();
+        assert!(error.contains("encore en cours"), "{error}");
+        assert_eq!(crate::saya::read_run(&db, id).unwrap()["phases"]["2"]["job"], "job-2");
+    }
+
+    /// ComfyUI restarted mid-pass: the prompt is gone from its queue and history, so the job
+    /// stays `submission_unknown` forever. Resume confirms the loss with a targeted delete
+    /// and an absence check, records the job as cancelled, then rebuilds that phase (here
+    /// the engine refuses `/object_info`, so the run keeps its manifest untouched).
+    #[test]
+    fn saya_resume_confirms_a_phase_lost_by_an_engine_restart() {
+        let (dir, mut db) = base();
+        let id = "sayaresume-lost-1";
+        let prompt = uuid::Uuid::new_v4().to_string();
+        forced_job(&db, &dir, "job-0", "succeeded", "");
+        forced_job(&db, &dir, "job-3", "submission_unknown", &prompt);
+        let mut value = manifest(id, "running", json!({"job":"job-0","state":"succeeded"}));
+        value["phases"]["2"] = json!({"job":"job-0","state":"succeeded"});
+        value["phases"]["3"] = json!({"job":"job-3","state":"submission_unknown"});
+        crate::saya::write_run(&db, id, &value).unwrap();
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let client = Comfy::loopback(listener.local_addr().unwrap().port()).unwrap();
+        let empty = json!({"queue_running": [], "queue_pending": []});
+        let server = std::thread::spawn(move || {
+            let expected = [
+                ("GET /queue HTTP/1.1", empty.clone()),
+                ("GET /history/", json!({})),
+                ("GET /queue HTTP/1.1", empty.clone()),
+                ("POST /queue HTTP/1.1", json!({})),
+                ("GET /queue HTTP/1.1", empty),
+                ("GET /history/", json!({})),
+            ];
+            for (wanted, response) in expected {
+                let (mut stream, _) = listener.accept().unwrap();
+                let (received, body) = request(&mut stream);
+                assert!(received.starts_with(wanted), "{received} ≁ {wanted}");
+                if wanted == "POST /queue HTTP/1.1" {
+                    assert_eq!(body, json!({"delete": [prompt]}), "targeted delete only");
+                }
+                respond(&mut stream, response);
+            }
+            // `/object_info` for the rebuilt phase: the engine went away again.
+            drop(listener);
+        });
+        let error = db.saya_resume(id, &client, &dir.join("results")).unwrap_err();
+        server.join().unwrap();
+        assert!(!error.to_string().is_empty());
+        let jobs = db.jobs().unwrap();
+        let lost = jobs.iter().find(|j| j["id"] == "job-3").unwrap();
+        assert_eq!(lost["state"], "cancelled", "loss confirmed before any new submission");
+        assert_eq!(jobs.len(), 2, "no phase rebuilt without the engine catalogue");
+        assert_eq!(crate::saya::read_run(&db, id).unwrap()["phases"]["3"]["job"], "job-3");
+    }
+
+    /// A restart while a phase is still owned by ComfyUI would run two attempts at once.
+    #[test]
+    fn saya_restart_refuses_while_a_phase_is_in_flight() {
+        let (dir, mut db) = base();
+        let id = "sayarestart-busy-1";
+        let prompt = uuid::Uuid::new_v4().to_string();
+        forced_job(&db, &dir, "job-2", "running", &prompt);
+        let mut value = manifest(id, "running", json!({"job":"job-0","state":"succeeded"}));
+        value["phases"]["2"] = json!({"job":"job-2","state":"running"});
+        crate::saya::write_run(&db, id, &value).unwrap();
+        // Unreachable engine: the pre-restart sync fails (logged) and the guard decides
+        // from the recorded state, before any submission.
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let client = Comfy::loopback(listener.local_addr().unwrap().port()).unwrap();
+        drop(listener);
+        let error = db
+            .saya_restart(id, &client, &dir.join("results"))
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("encore en cours"), "{error}");
+        assert_eq!(db.jobs().unwrap().len(), 1, "no new phase-1 job prepared");
+        assert_eq!(crate::saya::read_run(&db, id).unwrap()["phases"]["2"]["job"], "job-2");
     }
 
     /// Regression (U1 smoke of 2026-10-26, "Source Saya absente"): `casting_tick`

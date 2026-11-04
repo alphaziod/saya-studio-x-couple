@@ -24,7 +24,7 @@
 
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "saya-studio";
-  version = "1.0.0-beta.2";
+  version = "1.0.0";
 
   src = lib.cleanSource ../..; # studio/
 
@@ -33,7 +33,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
   npmDeps = fetchNpmDeps {
     inherit (finalAttrs) src;
     # From the first CI build; update it whenever package-lock.json changes.
-    hash = "sha256-JwGb8lxPX+nTGumDhesrnKoD9CW73NExZ4xaP6/+BNM=";
+    hash = "sha256-Yib5UF67EsdCXWG5xUkngJIRyEesx42MfECRVHpVA9g=";
   };
 
   nativeBuildInputs = [

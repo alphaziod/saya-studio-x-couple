@@ -2261,5 +2261,8 @@
   "Choisir un script de test…": "Chọn tập lệnh kiểm thử…",
   "Aucun script de test trouvé.": "Không tìm thấy tập lệnh kiểm thử.",
   "Test interrompu : délai dépassé.": "Đã dừng kiểm thử: quá thời gian cho phép.",
-  "Échec du test (code {code}).": "Kiểm thử thất bại (mã {code})."
+  "Échec du test (code {code}).": "Kiểm thử thất bại (mã {code}).",
+  "Reprendre depuis la passe {n}": "Tiếp tục từ lượt {n}",
+  "Passe {n} relancée avec la même seed.": "Đã gửi lại lượt {n} với cùng seed.",
+  "Reprise après un plantage, une erreur ou un arrêt : même seed, les passes terminées sont gardées.": "Tiếp tục sau sự cố, lỗi hoặc khi dừng: cùng seed, các lượt đã xong được giữ lại."
 }

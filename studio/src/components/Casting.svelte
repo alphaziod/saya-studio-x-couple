@@ -8,7 +8,7 @@
   import { onMount, onDestroy, tick } from 'svelte';
   import { call, message, imageSource } from '../lib/api';
   import type { GraphView } from '../lib/graph/view';
-  import { randomSeed, resolveSeed } from '../lib/generation-state';
+  import { randomSeed, resolveSeed, runControls } from '../lib/generation-state';
   import Thumbnail from './Thumbnail.svelte';
   import RunProgress from './RunProgress.svelte';
   import Icon from './Icon.svelte';
@@ -278,7 +278,7 @@
   async function actionRun(action:'stop'|'pause'|'resume',runId=runCourantId){await task(async()=>{
     if(!runId)throw Error($t("Aucun run de casting en cours."));
     const result=await call<{runs?:any[];online?:boolean}>(action==='stop'?'casting_stop':action==='pause'?'casting_pause':'casting_resume',{run:runId});
-    const failures=(result.runs??[]).flatMap(r=>(r.controles??[]).filter((c:any)=>c.envoye===false).map((c:any)=>c.erreur));
+    const failures=(result.runs??[]).flatMap(r=>(r.controles??[]).filter((c:any)=>c.sent===false).map((c:any)=>c.error));
 
     castingNote=action==='stop'
       ?$t("Annulation demandée : l’arrêt du calcul ComfyUI est demandé et les essais en attente sont annulés.")
@@ -322,6 +322,15 @@
     if(!row.asset)throw Error($t("Attendre l'image de la passe 1 avant de lancer le workflow complet."));
     const rows=await call<CastRow[]>('casting_decide',{run:row.run,keep:true});
     if(alive){castingRows=rows;preview=null;castingNote=$t("Workflow complet lancé sur {name} · les passes 2 à 6 s'enchaînent sur CE résultat (seed et réglages préservés).",{name:row.name})}
+  })}
+  // A kept trial whose six-pass finish stopped on a ComfyUI crash, an error or a stop resumes
+  // from its unfinished pass with the same seed (core `saya_resume`); finished passes are kept.
+  const finishResume=(row:CastRow)=>row.decision==='oui'&&!!row.phases?.['2']?runControls({state:row.runState,phases:row.phases}):null;
+  async function resumeFinish(row:CastRow){await task(async()=>{
+    const controls=finishResume(row);if(!controls?.resume)return;
+    await call('saya_resume',{run:row.run});
+    const rows=await call<CastRow[]>('casting_history',{sync:false});
+    if(alive){castingRows=rows;castingNote=$t("Passe {n} relancée avec la même seed.",{n:controls.next})}
   })}
   const key=(id:string,input:string)=>`${id}\u0000${input}`;
   async function flush(){
@@ -688,7 +697,7 @@
             <button data-casting-enregistrer disabled={busy||!fiche.asset||!saveName.trim()} onclick={()=>saveCharacter(fiche)}>{$t("Enregistrer comme personnage")}</button>
           </div>
           {#if enregistrerNote}<p class="small muted" data-casting-enregistre-note role="status">{enregistrerNote}</p>{/if}
-          {#if fiche.decision==='oui'}<p class="small muted">{fiche.runState==='completed'?$t("Workflow complet déjà lancé sur cet essai · terminé."):$t("Workflow complet déjà lancé sur cet essai · suivi dans la grille.")}</p>
+          {#if fiche.decision==='oui'}<p class="small muted">{fiche.runState==='completed'?$t("Workflow complet déjà lancé sur cet essai · terminé."):$t("Workflow complet déjà lancé sur cet essai · suivi dans la grille.")}</p>{#if finishResume(fiche)?.resume}<button class="primary" data-casting-resume-finish disabled={busy} title={$t("Reprise après un plantage, une erreur ou un arrêt : même seed, les passes terminées sont gardées.")} onclick={()=>resumeFinish(fiche)}>{$t("Reprendre depuis la passe {n}",{n:finishResume(fiche)?.next})}</button>{/if}
           {:else}<button data-casting-complet disabled={busy||!fiche.asset} onclick={()=>launchFull(fiche)} title={$t("Lance les 6 passes sur CE résultat — seed et réglages préservés, mécanique existante.")}>{$t("Finir les 6 passes")}</button>{/if}
         </div>
       {/if}
@@ -769,7 +778,7 @@
     </div>
     {#if enregistrerNote}<p class="small muted" data-casting-enregistre-note role="status">{enregistrerNote}</p>{/if}
     {#if fiche.decision==='oui'}
-      <p class="small muted" data-casting-complet-etat>{fiche.runState==='completed'?$t("Workflow complet déjà lancé sur cet essai · terminé."):$t("Workflow complet déjà lancé sur cet essai · suivi dans la grille.")}</p>
+      <p class="small muted" data-casting-complet-etat>{fiche.runState==='completed'?$t("Workflow complet déjà lancé sur cet essai · terminé."):$t("Workflow complet déjà lancé sur cet essai · suivi dans la grille.")}</p>{#if finishResume(fiche)?.resume}<button class="primary" data-casting-resume-finish disabled={busy} title={$t("Reprise après un plantage, une erreur ou un arrêt : même seed, les passes terminées sont gardées.")} onclick={()=>resumeFinish(fiche)}>{$t("Reprendre depuis la passe {n}",{n:finishResume(fiche)?.next})}</button>{/if}
     {:else}
       <button data-casting-complet disabled={busy||!fiche.asset} onclick={()=>launchFull(fiche)} title={$t("Lance les 6 passes sur CE résultat — seed et réglages préservés, mécanique existante.")}>{$t("Finir les 6 passes")}</button>
     {/if}

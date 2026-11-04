@@ -1,6 +1,6 @@
 # Packaging
 
-Release: **Saya Studio 1.0.0-beta.2**, tag `studio-v1.0.0-beta.2`, published by
+Release: **Saya Studio 1.0.0**, tag `studio-v1.0.0`, published by
 `.github/workflows/studio-release.yml`. Linux formats: deb, Fedora rpm, openSUSE rpm, Arch, Nix,
 AppImage and Flatpak. Windows and macOS builds live in the reusable `studio-desktop.yml` workflow,
 also dispatchable separately to add native assets to an existing release without rebuilding Linux.
@@ -32,7 +32,7 @@ CI moves and restores a synthetic file through each native trash service. It als
 extension in real Chromium, requests the token through the registered host, authenticates to the
 running bridge, and checks that an unrelated extension is refused.
 
-Snap is not attached to beta.2: CI could not reliably download build prerequisites from the Snapcraft store.
+Snap is attached only when CI can download its build prerequisites from the Snapcraft store.
 The recipe remains available for a later build.
 
 ## Arch Linux
@@ -90,7 +90,7 @@ Then start `/usr/bin/saya-studio` with an isolated `XDG_DATA_HOME`/`XDG_CONFIG_H
 it opens, migrates a fresh database and shows the main screens without touching real data.
 Roll back with `sudo pacman -U` of the previous package from the pacman cache, or `sudo pacman -R saya-studio`.
 
-`pkgver` in `packaging/arch/PKGBUILD` is `1.0.0beta2` (pacman has no hyphen in versions; `1.0.0beta2`
+`pkgver` in `packaging/arch/PKGBUILD` is `1.0.0` (pacman has no hyphen in versions; a beta is written `1.0.0beta2`
 sorts before `1.0.0`). `build-arch*.sh` overwrite it with their dev version, so they are unaffected.
 The Arch package declares the GPL3 license, matching the repository license.
 
@@ -108,7 +108,7 @@ are the only thing `packaging/rpm/tauri.opensuse.conf.json` overrides. Optional:
 (LoRA video previews), a portal backend (`xdg-desktop-portal-gtk`/`-gnome`/`-kde`).
 
 `src-tauri/tauri.conf.json`, `Cargo.toml`, `package.json` and their lockfiles carry
-`1.0.0-beta.2`, matching the CI version and package recipes.
+`1.0.0`, matching the CI version and package recipes.
 
 ## deb / Fedora rpm / openSUSE rpm / AppImage (Tauri bundler)
 
@@ -139,7 +139,7 @@ needs an `AppRun` wrapper or a Rust fallback relative to the executable (not don
 ## AUR (`saya-studio-bin`)
 
 `packaging/aur/PKGBUILD` repackages the release `.deb`
-(`.../releases/download/studio-v1.0.0-beta.2/saya-studio_1.0.0-beta.2_amd64.deb`). Checksums are
+(`.../releases/download/studio-v1.0.0/saya-studio_1.0.0_amd64.deb`). Checksums are
 `SKIP` until the release exists: then run `updpkgsums && makepkg --printsrcinfo > .SRCINFO`, test with
 `makepkg -si`, and push both files to the AUR repository. It conflicts with `saya-studio` (the source package).
 
@@ -203,6 +203,6 @@ the release is produced when bundles, openSUSE rpm and Arch succeed. Only `GITHU
 No bundle was built and no workflow was run for this section. Checked statically only: JSON syntax,
 Tauri config keys against the Tauri 2.12 `config.schema.json`, YAML syntax, AppStream (`appstreamcli
 validate --no-net`), `.desktop` (`desktop-file-validate`), AUR `.SRCINFO` (`makepkg --printsrcinfo`).
-Untested: the Tauri bundles (directory entries in `files`, `1.0.0-beta.2` as an rpm version, two
+Untested: the Tauri bundles (directory entries in `files`, `1.0.0` as an rpm version, two
 `--config` flags), the Arch CI job (offline `npm ci`/cargo from a prefetched cache), Nix (no `nix` installed),
 Flatpak, Snap, the AUR package, and all of the action pins in the workflow.

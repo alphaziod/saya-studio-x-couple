@@ -170,11 +170,9 @@ impl Database {
         if action == "interrupt" {
             // Older engines ignore prompt_id and interrupt globally. Qualify versions explicitly.
             let stats = client.get("/system_stats")?;
-            if stats
-                .pointer("/system/comfyui_version")
-                .and_then(Value::as_str)
-                != Some("0.34.0")
-            {
+            if !targeted_interrupt_supported(
+                stats.pointer("/system/comfyui_version").and_then(Value::as_str),
+            ) {
                 return Err(
                     "Interruption ciblée non qualifiée pour cette version ComfyUI ; action refusée"
                         .into(),
@@ -230,5 +228,48 @@ impl Database {
         Ok(
             json!({"confirmed":false,"message":"Demande transmise ; attendre l'état confirmé par le moteur."}),
         )
+    }
+}
+
+/// First ComfyUI release audited with `POST /interrupt {prompt_id}` interrupting only that
+/// prompt. Older engines ignore the id and interrupt whatever runs.
+const TARGETED_INTERRUPT_SINCE: (u64, u64, u64) = (0, 34, 0);
+
+/// `major.minor.patch` (optional `v` prefix, pre-release suffix ignored) at or above the
+/// audited release. Anything unparsable is refused: a global interrupt could cancel
+/// another client's generation.
+fn targeted_interrupt_supported(version: Option<&str>) -> bool {
+    let Some(version) = version else {
+        return false;
+    };
+    let core = version.trim().trim_start_matches('v');
+    let core = core.split(['-', '+']).next().unwrap_or_default();
+    let parts: Vec<u64> = match core.split('.').map(str::parse).collect() {
+        Ok(parts) => parts,
+        Err(_) => return false,
+    };
+    match parts.as_slice() {
+        [major, minor, patch] => (*major, *minor, *patch) >= TARGETED_INTERRUPT_SINCE,
+        _ => false,
+    }
+}
+
+#[cfg(test)]
+mod interrupt_version_tests {
+    use super::targeted_interrupt_supported;
+
+    #[test]
+    fn audited_and_newer_releases_allow_targeted_interrupt() {
+        for version in ["0.34.0", "v0.34.0", "0.34.1", "0.35.0", "1.0.0", "0.36.2-rc1"] {
+            assert!(targeted_interrupt_supported(Some(version)), "{version}");
+        }
+    }
+
+    #[test]
+    fn older_or_unknown_releases_are_refused() {
+        for version in ["0.33.9", "0.3.68", "old", "mock-0", "", "0.34", "0.34.0.1"] {
+            assert!(!targeted_interrupt_supported(Some(version)), "{version}");
+        }
+        assert!(!targeted_interrupt_supported(None));
     }
 }

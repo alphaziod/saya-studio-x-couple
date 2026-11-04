@@ -2261,5 +2261,8 @@
   "Choisir un script de test…": "テストスクリプトを選択…",
   "Aucun script de test trouvé.": "テストスクリプトが見つかりません。",
   "Test interrompu : délai dépassé.": "テストを停止しました：制限時間を超えました。",
-  "Échec du test (code {code}).": "テストに失敗しました（コード {code}）。"
+  "Échec du test (code {code}).": "テストに失敗しました（コード {code}）。",
+  "Reprendre depuis la passe {n}": "パス {n} から再開",
+  "Passe {n} relancée avec la même seed.": "パス {n} を同じシードで再送信しました。",
+  "Reprise après un plantage, une erreur ou un arrêt : même seed, les passes terminées sont gardées.": "クラッシュ・エラー・停止の後に再開：同じシードで、完了したパスは保持されます。"
 }

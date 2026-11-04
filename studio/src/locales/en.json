@@ -2261,5 +2261,8 @@
   "Choisir un script de test…": "Choose a test script…",
   "Aucun script de test trouvé.": "No test scripts found.",
   "Test interrompu : délai dépassé.": "Test stopped: time limit exceeded.",
-  "Échec du test (code {code}).": "Test failed (code {code})."
+  "Échec du test (code {code}).": "Test failed (code {code}).",
+  "Reprendre depuis la passe {n}": "Resume from pass {n}",
+  "Passe {n} relancée avec la même seed.": "Pass {n} resubmitted with the same seed.",
+  "Reprise après un plantage, une erreur ou un arrêt : même seed, les passes terminées sont gardées.": "Resume after a crash, an error or a stop: same seed, finished passes are kept."
 }

@@ -2261,5 +2261,8 @@
   "Choisir un script de test…": "Bir test betiği seçin…",
   "Aucun script de test trouvé.": "Test betiği bulunamadı.",
   "Test interrompu : délai dépassé.": "Test durduruldu: zaman sınırı aşıldı.",
-  "Échec du test (code {code}).": "Test başarısız (kod {code})."
+  "Échec du test (code {code}).": "Test başarısız (kod {code}).",
+  "Reprendre depuis la passe {n}": "{n}. geçişten devam et",
+  "Passe {n} relancée avec la même seed.": "{n}. geçiş aynı seed ile yeniden gönderildi.",
+  "Reprise après un plantage, une erreur ou un arrêt : même seed, les passes terminées sont gardées.": "Çökme, hata veya durdurmadan sonra devam: aynı seed, tamamlanan geçişler korunur."
 }

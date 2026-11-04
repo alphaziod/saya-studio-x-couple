@@ -4,7 +4,7 @@
 # Prior build: npm run build && cargo build -p saya-studio --features custom-protocol,smoke-test
 set -euo pipefail
 root="$(pwd)"
-: "${SCREENSHOT_IMAGES:?set SCREENSHOT_IMAGES to a folder of SFW PNG renders}"
+: "${SCREENSHOT_IMAGES:?set SCREENSHOT_IMAGES to a folder of SFW PNG renders (README set: test-results/screenshot-images-readme = renders 00-13, then 11 repeated at 14-19 for the second Generation run)}"
 stub="$root/test-results/screenshots/engine-stub"
 mkdir -p "$stub"
 cp "$root/scripts/casting-stub-engine.py" "$stub/test_solo.py"

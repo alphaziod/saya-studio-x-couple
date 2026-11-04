@@ -2377,5 +2377,8 @@
   "Choisir un script de test…": "Выберите тестовый скрипт…",
   "Aucun script de test trouvé.": "Тестовые скрипты не найдены.",
   "Test interrompu : délai dépassé.": "Тест остановлен: превышено время ожидания.",
-  "Échec du test (code {code}).": "Ошибка теста (код {code})."
+  "Échec du test (code {code}).": "Ошибка теста (код {code}).",
+  "Reprendre depuis la passe {n}": "Продолжить с прохода {n}",
+  "Passe {n} relancée avec la même seed.": "Проход {n} отправлен заново с тем же сидом.",
+  "Reprise après un plantage, une erreur ou un arrêt : même seed, les passes terminées sont gardées.": "Продолжение после сбоя, ошибки или остановки: тот же сид, завершённые проходы сохраняются."
 }

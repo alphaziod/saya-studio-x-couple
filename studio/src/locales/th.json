@@ -2261,5 +2261,8 @@
   "Choisir un script de test…": "เลือกสคริปต์ทดสอบ…",
   "Aucun script de test trouvé.": "ไม่พบสคริปต์ทดสอบ",
   "Test interrompu : délai dépassé.": "หยุดการทดสอบ: เกินเวลาที่กำหนด",
-  "Échec du test (code {code}).": "การทดสอบล้มเหลว (รหัส {code})"
+  "Échec du test (code {code}).": "การทดสอบล้มเหลว (รหัส {code})",
+  "Reprendre depuis la passe {n}": "ทำต่อจากรอบที่ {n}",
+  "Passe {n} relancée avec la même seed.": "ส่งรอบที่ {n} ใหม่ด้วย seed เดิมแล้ว",
+  "Reprise après un plantage, une erreur ou un arrêt : même seed, les passes terminées sont gardées.": "ทำต่อหลังการแครช ข้อผิดพลาด หรือการหยุด: seed เดิม และเก็บรอบที่เสร็จแล้วไว้"
 }

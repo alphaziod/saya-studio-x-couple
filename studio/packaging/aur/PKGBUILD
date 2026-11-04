@@ -4,10 +4,10 @@
 #   updpkgsums && makepkg --printsrcinfo > .SRCINFO
 pkgname=saya-studio-bin
 _upstream=saya-studio
-_tag=1.0.0-beta.2
-pkgver=1.0.0beta2
+_tag=1.0.0
+pkgver=1.0.0
 pkgrel=1
-pkgdesc='Local image, character and ComfyUI workflow manager (Linux beta, binary release)'
+pkgdesc='Local image, character and ComfyUI workflow manager (binary release)'
 arch=('x86_64')
 url='https://github.com/alphaziod/saya-studio-x-couple'
 license=('GPL-3.0-or-later')

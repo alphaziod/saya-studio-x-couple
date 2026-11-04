@@ -70,13 +70,13 @@
       previewPhase=0;livePreview=null;if(!temporary)runs=[run,...runs];selectedRun=run.id;await onsubmitted(run);if(!temporary)await call('set_preference',{key:'selectedSayaRun',value:run.id});await refresh();note=$t("Génération lancée.");
     }catch(e){error=message(e)}finally{busy=false}
   }
-  async function advance(action:'continue'|'restart'|'stop'){
+  async function advance(action:'continue'|'restart'|'resume'|'stop'){
     if(!run?.id||busy)return;busy=true;error='';note='';
     try{
       if(action!=='stop'){await refresh();if(error&&!run.autoError)throw Error(error);}
-      const allowed=runControls(run);if(!allowed[action])throw Error($t("Commande indisponible dans cet état."));
+      const allowed=runControls(run);if(!allowed[action])throw Error($t("Commande indisponible dans cet état."));const resumedFrom=allowed.next;
       if(action==='restart'&&!window.confirm($t("Relancer la phase 1 avec une nouvelle seed ? Le suivi courant repartira en phase 1.")))return;
-      if(run.singleJob&&action==='stop'){const state=run.phases['1'].state;await call('control_job',{id:run.id,operation:state==='queued'?'cancel_queue':'interrupt',confirmed:true})}else await call(`saya_${action}`,{run:run.id});if(action!=='stop'){previewPhase=0;livePreview=null;dismissed=''}await refresh();note=action==='stop'?$t("Arrêt demandé ; résultats conservés."):action==='restart'?$t("Phase 1 relancée avec une nouvelle seed ({seed}).",{seed:run.masterSeed}):$t("Phase suivante soumise.");
+      if(run.singleJob&&action==='stop'){const state=run.phases['1'].state;await call('control_job',{id:run.id,operation:state==='queued'?'cancel_queue':'interrupt',confirmed:true})}else await call(`saya_${action}`,{run:run.id});if(action!=='stop'){previewPhase=0;livePreview=null;dismissed=''}await refresh();note=action==='stop'?$t("Arrêt demandé ; résultats conservés."):action==='resume'?$t("Passe {n} relancée avec la même seed.",{n:resumedFrom}):action==='restart'?$t("Phase 1 relancée avec une nouvelle seed ({seed}).",{seed:run.masterSeed}):$t("Phase suivante soumise.");
     }catch(e){error=message(e)}finally{busy=false}
   }
   async function openFolder(){if(!previewAsset)return;try{await call('open_asset_directory',{id:previewAsset})}catch(e){error=message(e)}}
@@ -123,8 +123,9 @@
             </div>
             <span class="vsep"></span>
             <RunProgress {run} compact onpreview={image=>livePreview=image}/>
-            {#if controls.continue||controls.restart||controls.stop}<span class="vsep"></span>{/if}
+            {#if controls.continue||controls.resume||controls.restart||controls.stop}<span class="vsep"></span>{/if}
             {#if controls.continue}<button class="primary" data-saya-continue disabled={busy||syncing} onclick={()=>advance('continue')}>{$t("Continuer · phase {n}",{n:controls.next})}</button>{/if}
+            {#if controls.resume}<button class="primary" data-saya-resume disabled={busy||syncing} title={$t("Reprise après un plantage, une erreur ou un arrêt : même seed, les passes terminées sont gardées.")} onclick={()=>advance('resume')}>{$t("Reprendre depuis la passe {n}",{n:controls.next})}</button>{/if}
             {#if controls.restart}<button data-saya-restart disabled={busy||syncing} title={$t("Restart · nouvelle seed")} onclick={()=>advance('restart')}>{$t("Relancer")}</button>{/if}
             {#if controls.stop}<button class="danger" data-saya-stop disabled={busy||syncing} title={$t("■ Arrêter la génération")} onclick={()=>advance('stop')}>{$t("Arrêter")}</button>{/if}
           </div>

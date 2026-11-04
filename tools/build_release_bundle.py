@@ -1,6 +1,6 @@
 """Build a standalone Couple archive and a checksum-pinned Linux installer for a Studio release.
 
-python3 tools/build_release_bundle.py OUTPUT_DIRECTORY --tag studio-v1.0.0-beta.2
+python3 tools/build_release_bundle.py OUTPUT_DIRECTORY --tag studio-v1.0.0
 Only the public, Git-tracked node/installer payload is included; no local app data or builds.
 """
 import argparse
