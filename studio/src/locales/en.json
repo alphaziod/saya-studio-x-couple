@@ -2308,5 +2308,11 @@
   "Choisir un workflow…": "Choose a workflow…",
   "Complet : tous les nodes sont présents.": "Complete: every node is present.",
   "Nodes manquants : {list}": "Missing nodes: {list}",
-  "Incomplet : voir les entrées non résolues ci-dessous.": "Incomplete: see the unresolved inputs below."
+  "Incomplet : voir les entrées non résolues ci-dessous.": "Incomplete: see the unresolved inputs below.",
+  "Ouvrir le lot": "Open the batch",
+  "Annuler le lot": "Cancel the batch",
+  "Désélectionner": "Deselect",
+  "Ouvrir la fiche": "Open the sheet",
+  "Chemin copié": "Path copied",
+  "Lien Civitai copié": "Civitai link copied"
 }

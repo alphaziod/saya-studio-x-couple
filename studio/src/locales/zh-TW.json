@@ -2308,5 +2308,11 @@
   "Choisir un workflow…": "選擇工作流程…",
   "Complet : tous les nodes sont présents.": "完整：所有節點都存在。",
   "Nodes manquants : {list}": "缺少的節點：{list}",
-  "Incomplet : voir les entrées non résolues ci-dessous.": "不完整：請看下方未解析的輸入。"
+  "Incomplet : voir les entrées non résolues ci-dessous.": "不完整：請看下方未解析的輸入。",
+  "Ouvrir le lot": "開啟批次",
+  "Annuler le lot": "取消批次",
+  "Désélectionner": "取消選取",
+  "Ouvrir la fiche": "開啟資料卡",
+  "Chemin copié": "已複製路徑",
+  "Lien Civitai copié": "已複製 Civitai 連結"
 }

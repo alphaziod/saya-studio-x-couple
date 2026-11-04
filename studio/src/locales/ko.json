@@ -2308,5 +2308,11 @@
   "Choisir un workflow…": "워크플로 선택…",
   "Complet : tous les nodes sont présents.": "완전함: 모든 노드가 있습니다.",
   "Nodes manquants : {list}": "없는 노드: {list}",
-  "Incomplet : voir les entrées non résolues ci-dessous.": "불완전: 아래의 해결되지 않은 입력을 보세요."
+  "Incomplet : voir les entrées non résolues ci-dessous.": "불완전: 아래의 해결되지 않은 입력을 보세요.",
+  "Ouvrir le lot": "배치 열기",
+  "Annuler le lot": "배치 취소",
+  "Désélectionner": "선택 해제",
+  "Ouvrir la fiche": "시트 열기",
+  "Chemin copié": "경로를 복사했습니다",
+  "Lien Civitai copié": "Civitai 링크를 복사했습니다"
 }

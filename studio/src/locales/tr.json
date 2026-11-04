@@ -2308,5 +2308,11 @@
   "Choisir un workflow…": "İş akışı seç…",
   "Complet : tous les nodes sont présents.": "Tam: tüm düğümler mevcut.",
   "Nodes manquants : {list}": "Eksik düğümler: {list}",
-  "Incomplet : voir les entrées non résolues ci-dessous.": "Eksik: aşağıdaki çözümlenmemiş girdilere bakın."
+  "Incomplet : voir les entrées non résolues ci-dessous.": "Eksik: aşağıdaki çözümlenmemiş girdilere bakın.",
+  "Ouvrir le lot": "Grubu aç",
+  "Annuler le lot": "Grubu iptal et",
+  "Désélectionner": "Seçimi kaldır",
+  "Ouvrir la fiche": "Kartı aç",
+  "Chemin copié": "Yol kopyalandı",
+  "Lien Civitai copié": "Civitai bağlantısı kopyalandı"
 }

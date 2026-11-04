@@ -2540,5 +2540,11 @@
   "Choisir un workflow…": "اختيار سير عمل…",
   "Complet : tous les nodes sont présents.": "مكتمل: كل العقد موجودة.",
   "Nodes manquants : {list}": "عقد ناقصة: {list}",
-  "Incomplet : voir les entrées non résolues ci-dessous.": "غير مكتمل: انظر المدخلات غير المحلولة أدناه."
+  "Incomplet : voir les entrées non résolues ci-dessous.": "غير مكتمل: انظر المدخلات غير المحلولة أدناه.",
+  "Ouvrir le lot": "فتح الدفعة",
+  "Annuler le lot": "إلغاء الدفعة",
+  "Désélectionner": "إلغاء التحديد",
+  "Ouvrir la fiche": "فتح البطاقة",
+  "Chemin copié": "نُسخ المسار",
+  "Lien Civitai copié": "نُسخ رابط Civitai"
 }

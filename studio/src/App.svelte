@@ -27,6 +27,7 @@
   import Icon from './components/Icon.svelte';
   import appIcon from './assets/app-icon.png';
   import { parseBootstrap } from './lib/contracts';
+  import { keepsNativeMenu } from './lib/context-menu';
   let selected = $state('gallery'), error = $state(''), appVersion = $state('0.1.0');
   $effect.pre(()=>{bindTranslator($t,$tn)});
   let navigated=false;
@@ -72,6 +73,7 @@
   // transient write error does not stay pinned above every page.
   async function navigate(id: string, contextual=false) { navigated=true; if(id==='dev'&&!devMode)id='settings'; if(!contextual){generationImage=null;characterTarget=null;galleryTarget=null;comparisonTarget=null;} selected = id; if (native) try { await call('set_preference', { key:'selectedTab',value:id }); error=''; } catch(e) { error = message(e); } }
 </script>
+<svelte:window oncontextmenu={event=>{if(!keepsNativeMenu(event.target,String(window.getSelection()??"")))event.preventDefault()}}/>
 <div class="shell v1">
   <nav class="rail" aria-label={$t("Navigation principale")}>
     <button class="rail-logo" title="Saya Studio" onclick={() => navigate('gallery')}><img src={appIcon} alt="Saya Studio"/></button>

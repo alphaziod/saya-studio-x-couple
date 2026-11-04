@@ -2308,5 +2308,11 @@
   "Choisir un workflow…": "Choisir un workflow…",
   "Complet : tous les nodes sont présents.": "Complet : tous les nodes sont présents.",
   "Nodes manquants : {list}": "Nodes manquants : {list}",
-  "Incomplet : voir les entrées non résolues ci-dessous.": "Incomplet : voir les entrées non résolues ci-dessous."
+  "Incomplet : voir les entrées non résolues ci-dessous.": "Incomplet : voir les entrées non résolues ci-dessous.",
+  "Ouvrir le lot": "Ouvrir le lot",
+  "Annuler le lot": "Annuler le lot",
+  "Désélectionner": "Désélectionner",
+  "Ouvrir la fiche": "Ouvrir la fiche",
+  "Chemin copié": "Chemin copié",
+  "Lien Civitai copié": "Lien Civitai copié"
 }

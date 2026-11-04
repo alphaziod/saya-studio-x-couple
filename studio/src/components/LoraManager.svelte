@@ -84,7 +84,7 @@
       note=$t("{n} LoRA envoyée(s) vers {slot}. Elles apparaîtront à l’ouverture de Génération.",{n:1,slot:slots.slots.find(x=>x.id===slotId)?.title??''})}catch(e){error=message(e)}finally{busy=false}}
   // Context menu (right click) on a LoRA, card or detail panel.
   let menu = $state<{m:Model;x:number;y:number}|null>(null), menuEl = $state<HTMLElement|null>(null);
-  function openMenu(e:MouseEvent,m:Model){ if(kind!=='loras') return; e.preventDefault(); e.stopPropagation(); menu={m,x:e.clientX,y:e.clientY}; }
+  function openMenu(e:MouseEvent,m:Model){ e.preventDefault(); e.stopPropagation(); menu={m,x:e.clientX,y:e.clientY}; }
   const closeMenu = () => { menu = null; };
   $effect(() => { if(!menu||!menuEl) return; const r=menuEl.getBoundingClientRect(); const x=Math.max(4,Math.min(menu.x,window.innerWidth-r.width-4)), y=Math.max(4,Math.min(menu.y,window.innerHeight-r.height-4)); menuEl.style.left=`${x}px`; menuEl.style.top=`${y}px`; menuEl.querySelector<HTMLElement>('button:not(:disabled)')?.focus(); });
   function menuKey(e:KeyboardEvent){ if(!menu) return; if(e.key==='Escape'){ e.preventDefault(); closeMenu(); return; }
@@ -331,9 +331,16 @@
 
 <svelte:window onkeydown={menuKey} onpointerdown={menuOutside} onscrollcapture={closeMenu} onresize={closeMenu} onblur={closeMenu}/>
 {#if menu}<div class="ctx-menu" role="menu" tabindex="-1" aria-label={$t("Actions de {name}",{name:menu.m.name})} bind:this={menuEl} oncontextmenu={e=>e.preventDefault()}>
+  <button role="menuitem" onclick={()=>menuRun(()=>openDetail(menu!.m))}>{$t("Ouvrir la fiche")}</button>
+  {#if kind==='loras'}
   <button role="menuitem" disabled={busy} onclick={()=>menuRun(()=>sendLoraToCreate(menu!.m))}>{$t("Envoyer à Créer")}</button>
   <button role="menuitem" onclick={()=>menuRun(()=>add(menu!.m))}>{$t("Ajouter au stack")}</button>
   {#each slots?.slots??[] as x (x.id)}<button role="menuitem" disabled={busy} onclick={()=>menuRun(()=>sendLoraToSlot(menu!.m,x.id))}>{$t("Envoyer vers {slot}",{slot:x.title})}</button>{/each}
+  {/if}
+  <button role="menuitem" onclick={()=>menuRun(()=>toggleFavorite(menu!.m))}>{isFav(menu.m)?$t("Retirer des favoris"):$t("Ajouter aux favoris")}</button>
+  <button role="menuitem" onclick={()=>menuRun(()=>copy(menu!.m.path,$t("Chemin copié")))}>{$t("Copier le chemin")}</button>
+  <button role="menuitem" disabled={busy} onclick={()=>menuRun(()=>fetchOne(menu!.m))}>{$t("Récupérer les métadonnées")}</button>
+  {#if civitaiUrl(menu.m)}<button role="menuitem" onclick={()=>menuRun(()=>copy(civitaiUrl(menu!.m),$t("Lien Civitai copié")))}>{$t("Copier le lien Civitai")}</button>{/if}
 </div>{/if}
 
 <style>

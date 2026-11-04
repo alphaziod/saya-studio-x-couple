@@ -2308,5 +2308,11 @@
   "Choisir un workflow…": "Chọn quy trình…",
   "Complet : tous les nodes sont présents.": "Đầy đủ: có mọi nút.",
   "Nodes manquants : {list}": "Thiếu nút: {list}",
-  "Incomplet : voir les entrées non résolues ci-dessous.": "Chưa đầy đủ: xem các đầu vào chưa giải quyết bên dưới."
+  "Incomplet : voir les entrées non résolues ci-dessous.": "Chưa đầy đủ: xem các đầu vào chưa giải quyết bên dưới.",
+  "Ouvrir le lot": "Mở lô",
+  "Annuler le lot": "Hủy lô",
+  "Désélectionner": "Bỏ chọn",
+  "Ouvrir la fiche": "Mở thẻ",
+  "Chemin copié": "Đã sao chép đường dẫn",
+  "Lien Civitai copié": "Đã sao chép liên kết Civitai"
 }

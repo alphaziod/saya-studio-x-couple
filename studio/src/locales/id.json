@@ -2308,5 +2308,11 @@
   "Choisir un workflow…": "Pilih alur kerja…",
   "Complet : tous les nodes sont présents.": "Lengkap: semua node tersedia.",
   "Nodes manquants : {list}": "Node yang hilang: {list}",
-  "Incomplet : voir les entrées non résolues ci-dessous.": "Tidak lengkap: lihat input yang belum terselesaikan di bawah."
+  "Incomplet : voir les entrées non résolues ci-dessous.": "Tidak lengkap: lihat input yang belum terselesaikan di bawah.",
+  "Ouvrir le lot": "Buka batch",
+  "Annuler le lot": "Batalkan batch",
+  "Désélectionner": "Batalkan pilihan",
+  "Ouvrir la fiche": "Buka lembar",
+  "Chemin copié": "Jalur disalin",
+  "Lien Civitai copié": "Tautan Civitai disalin"
 }

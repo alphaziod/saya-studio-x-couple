@@ -2308,5 +2308,11 @@
   "Choisir un workflow…": "ワークフローを選択…",
   "Complet : tous les nodes sont présents.": "完全：すべてのノードがあります。",
   "Nodes manquants : {list}": "不足しているノード：{list}",
-  "Incomplet : voir les entrées non résolues ci-dessous.": "不完全：下の未解決の入力を参照してください。"
+  "Incomplet : voir les entrées non résolues ci-dessous.": "不完全：下の未解決の入力を参照してください。",
+  "Ouvrir le lot": "バッチを開く",
+  "Annuler le lot": "バッチをキャンセル",
+  "Désélectionner": "選択を解除",
+  "Ouvrir la fiche": "シートを開く",
+  "Chemin copié": "パスをコピーしました",
+  "Lien Civitai copié": "Civitai のリンクをコピーしました"
 }

@@ -12,6 +12,8 @@
   import Thumbnail from './Thumbnail.svelte';
   import RunProgress from './RunProgress.svelte';
   import Icon from './Icon.svelte';
+  import ContextMenu from './ContextMenu.svelte';
+  import type { MenuItem } from '../lib/context-menu';
   import ActionDrafts from './ActionDrafts.svelte';
   let {onconfigure=()=>{},onbrowse=()=>{}}:{onconfigure?:()=>void;onbrowse?:()=>void}=$props();
   // 1-to-1 casting (V0.1): the panel leaves Generation and lives in its own menu.
@@ -334,6 +336,29 @@
     const rows=await call<CastRow[]>('casting_history',{sync:false});
     if(alive){castingRows=rows;castingNote=$t("Passe {n} relancée avec la même seed.",{n:controls.next})}
   })}
+  // Right-click menus: a batch in the list, a trial in the grid.
+  let ctxMenu=$state<{x:number;y:number;label:string;items:MenuItem[]}|null>(null);
+  function lotMenu(event:MouseEvent,lot:{id:string;createdAt:string;rows:CastRow[];done:number;state:string;retry:string}){
+    event.preventDefault();
+    const run=lot.rows[0]?.run;if(!run)return;
+    const active=lot.state==='active';
+    ctxMenu={x:event.clientX,y:event.clientY,label:$t("Actions de {name}",{name:lot.createdAt?castingDate(lot.createdAt):$t("Lot")}),items:[
+      {label:$t("Ouvrir le lot"),icon:'casting',run:()=>{selectedLot=lot.id;resetResultFilters()}},
+      ...(lot.retry?[{label:$t("Terminer le lot"),icon:'play',run:()=>actionRun('resume',lot.retry)}]:[]),
+      ...(active?[{label:$t("Pause"),run:()=>actionRun('pause',run)},{label:$t("Annuler le lot"),icon:'close',run:()=>actionRun('stop',run)}]:[]),
+      {label:$t("Supprimer le lot"),icon:'trash',danger:true,disabled:busy||active,run:()=>supprimerLot(run,lot.done)},
+    ]};
+  }
+  function tileMenu(event:MouseEvent,row:CastRow){
+    event.preventDefault();
+    const resume=finishResume(row);
+    ctxMenu={x:event.clientX,y:event.clientY,label:$t("Actions de {name}",{name:row.name}),items:[
+      {label:$t("Ouvrir la fiche"),icon:'expand',disabled:!row.asset,run:()=>ouvrirApercu(row)},
+      ...(row.asset&&row.decision===''?[{label:$t("Finir les 6 passes"),icon:'play',run:()=>launchFull(row)}]:[]),
+      ...(resume?.resume?[{label:$t("Reprendre depuis la passe {n}",{n:resume.next}),icon:'play',run:()=>resumeFinish(row)}]:[]),
+      ...(row.asset&&!row.published?[{label:$t("Garder dans la galerie"),icon:'gallery',run:()=>publier([row.run])},{label:choix.includes(row.run)?$t("Désélectionner"):$t("Sélectionner"),icon:'check',run:()=>toggleChoice(row.run)}]:[]),
+    ]};
+  }
   const key=(id:string,input:string)=>`${id}\u0000${input}`;
   async function flush(){
     if(!session)return;
@@ -602,7 +627,7 @@
       {#if castingRows.length}
       <div class="lot-list" data-casting-lots>
         {#each visibleLots as lot (lot.id)}
-          <button class="lot" class:on={lot.id===selectedLotId} data-casting-lot={lot.id} data-lot-state={lot.state} onclick={()=>{selectedLot=lot.id;resetResultFilters()}}>
+          <button class="lot" class:on={lot.id===selectedLotId} data-casting-lot={lot.id} data-lot-state={lot.state} onclick={()=>{selectedLot=lot.id;resetResultFilters()}} oncontextmenu={event=>lotMenu(event,lot)}>
             <b class="num">{lot.createdAt?castingDate(lot.createdAt):$t("Lot")}</b>
             <span class="num count">{lot.done}/{lot.rows.length}</span>
             <span class="bar"><i style:width={`${Math.round(100*lot.done/Math.max(1,lot.rows.length))}%`}></i></span>
@@ -718,7 +743,7 @@
     <div class="sheet casting-grid" style:--tile={`${tile}px`} hidden={stepView||portraitView}>
       {#each grilleAffichees as row (row.run+':'+row.stem)}
         {@const k=rowKey(row)}
-        <article class="tile" class:focus={focused&&rowKey(focused)===k} class:sel={choix.includes(row.run)} data-tile-key={k} data-casting-shot={row.stem} data-famille={row.famille} data-model={row.model} data-loras={lorasDuShot(row.shot).join(',')} data-state={row.state} data-decision={row.decision}>
+        <article class="tile" oncontextmenu={event=>tileMenu(event,row)} class:focus={focused&&rowKey(focused)===k} class:sel={choix.includes(row.run)} data-tile-key={k} data-casting-shot={row.stem} data-famille={row.famille} data-model={row.model} data-loras={lorasDuShot(row.shot).join(',')} data-state={row.state} data-decision={row.decision}>
           <div class="frame">
             {#if row.asset}
               <button class="tile-img" onclick={()=>focaliser(row)} ondblclick={()=>ouvrirApercu(row)} onkeydown={e=>tuileClavier(e,row)} aria-label={row.name} title={`${row.name} · ${row.famille} · ${row.model} · seed ${row.seed}`}><Thumbnail id={row.finalAsset||row.asset} alt={row.finalAsset?$t("Finition · {name}",{name:row.name}):$t("Passe 1 · {name}",{name:row.name})}/></button>
@@ -771,6 +796,7 @@
     </div>
   </aside>
 </section>
+{#if ctxMenu}<ContextMenu x={ctxMenu.x} y={ctxMenu.y} label={ctxMenu.label} items={ctxMenu.items} onclose={()=>ctxMenu=null}/>{/if}
 {#if cibler}
 <div class="cibler-backdrop" data-cibler-fenetre role="presentation" onclick={e=>{if(e.target===e.currentTarget)cibler=false}}>
   <div class="cibler-fenetre" role="dialog" aria-modal="true" aria-label={$t("Cibler des personnages")} tabindex="-1" use:focusFenetre onkeydown={e=>{if(e.key==='Escape')cibler=false}}>

@@ -2424,5 +2424,11 @@
   "Choisir un workflow…": "Выбрать процесс…",
   "Complet : tous les nodes sont présents.": "Полный: все узлы есть.",
   "Nodes manquants : {list}": "Нет узлов: {list}",
-  "Incomplet : voir les entrées non résolues ci-dessous.": "Неполный: см. неразрешённые входы ниже."
+  "Incomplet : voir les entrées non résolues ci-dessous.": "Неполный: см. неразрешённые входы ниже.",
+  "Ouvrir le lot": "Открыть пакет",
+  "Annuler le lot": "Отменить пакет",
+  "Désélectionner": "Снять выбор",
+  "Ouvrir la fiche": "Открыть карточку",
+  "Chemin copié": "Путь скопирован",
+  "Lien Civitai copié": "Ссылка Civitai скопирована"
 }

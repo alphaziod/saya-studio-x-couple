@@ -2308,5 +2308,11 @@
   "Choisir un workflow…": "Elegir un flujo…",
   "Complet : tous les nodes sont présents.": "Completo: todos los nodos están presentes.",
   "Nodes manquants : {list}": "Nodos que faltan: {list}",
-  "Incomplet : voir les entrées non résolues ci-dessous.": "Incompleto: ver las entradas sin resolver abajo."
+  "Incomplet : voir les entrées non résolues ci-dessous.": "Incompleto: ver las entradas sin resolver abajo.",
+  "Ouvrir le lot": "Abrir el lote",
+  "Annuler le lot": "Cancelar el lote",
+  "Désélectionner": "Deseleccionar",
+  "Ouvrir la fiche": "Abrir la ficha",
+  "Chemin copié": "Ruta copiada",
+  "Lien Civitai copié": "Enlace de Civitai copiado"
 }

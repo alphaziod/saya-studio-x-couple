@@ -2308,5 +2308,11 @@
   "Choisir un workflow…": "เลือกเวิร์กโฟลว์…",
   "Complet : tous les nodes sont présents.": "ครบ: มีโหนดทั้งหมด",
   "Nodes manquants : {list}": "โหนดที่ขาด: {list}",
-  "Incomplet : voir les entrées non résolues ci-dessous.": "ไม่ครบ: ดูอินพุตที่ยังไม่ได้แก้ด้านล่าง"
+  "Incomplet : voir les entrées non résolues ci-dessous.": "ไม่ครบ: ดูอินพุตที่ยังไม่ได้แก้ด้านล่าง",
+  "Ouvrir le lot": "เปิดชุด",
+  "Annuler le lot": "ยกเลิกชุด",
+  "Désélectionner": "ยกเลิกการเลือก",
+  "Ouvrir la fiche": "เปิดแผ่นข้อมูล",
+  "Chemin copié": "คัดลอกพาธแล้ว",
+  "Lien Civitai copié": "คัดลอกลิงก์ Civitai แล้ว"
 }
