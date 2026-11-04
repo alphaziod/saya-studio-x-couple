@@ -26,7 +26,7 @@
   // (casting_decide keep:true, 6 passes on THIS result, existing mechanism).
   // Cancel / Pause / Resume drive the current run (casting_stop / pause / resume);
   // the pause is honest: it stops at the end of the current attempt (no sampler suspend).
-  type CastRow={stem:string;name:string;famille:string;model:string;seed:string;graine:string;run:string;state:string;asset:string|null;decision:''|'oui'|'non';shot:any;catalogue?:string;runState?:string;finalAsset?:string;phases?:any;error?:string;promptId?:string;createdAt?:string;published?:boolean;step?:boolean;released?:boolean};
+  type CastRow={finishQueued?:boolean;stem:string;name:string;famille:string;model:string;seed:string;graine:string;run:string;state:string;asset:string|null;decision:''|'oui'|'non';shot:any;catalogue?:string;runState?:string;finalAsset?:string;phases?:any;error?:string;promptId?:string;createdAt?:string;published?:boolean;step?:boolean;released?:boolean};
   let castingFamilles=$state<string[]>([]),castingModes=$state<string[]>([]),castingGenre=$state('');
   let castingSubfamilies=$state<Record<string,string[]>>({}),castingSubfamily=$state('');
   let castingN=$state(5),castingFamille=$state(''),castingNote=$state('');
@@ -314,14 +314,16 @@
       const nom=saveName.trim();
       if(!nom){enregistrerNote=$t("Donner un nom à la fiche personnage.");return}
       const r=await call<{characterId:string}>('casting_enregistrer_perso',{run:row.run,stem:row.stem,nom});
-      enregistrerNote=$t("Fiche personnage enregistrée : {nom} ({id}) — réutilisable dans Personnages. Le workflow complet n'est PAS lancé.",{nom,id:r.characterId});
+      // Owner rule: a saved character also gets its six passes, queued after the whole casting.
+      if(row.decision===''){castingRows=await call<CastRow[]>('casting_decide',{run:row.run,keep:true});if(!alive)return}
+      enregistrerNote=$t("Fiche personnage enregistrée : {nom} ({id}) — réutilisable dans Personnages. Ses 6 passes sont en file : elles partent quand toutes les passes 1 sont finies.",{nom,id:r.characterId});
     }catch(e){enregistrerNote=$t("Enregistrement impossible : {detail}",{detail:message(e)})}
     finally{if(alive)busy=false}
   }
   async function launchFull(row:CastRow){await task(async()=>{
     if(!row.asset)throw Error($t("Attendre l'image de la passe 1 avant de lancer le workflow complet."));
     const rows=await call<CastRow[]>('casting_decide',{run:row.run,keep:true});
-    if(alive){castingRows=rows;preview=null;castingNote=$t("Workflow complet lancé sur {name} · les passes 2 à 6 s'enchaînent sur CE résultat (seed et réglages préservés).",{name:row.name})}
+    if(alive){castingRows=rows;preview=null;castingNote=$t("{name} : 6 passes en file sur CE résultat (seed et réglages préservés) · elles partent quand toutes les passes 1 sont finies.",{name:row.name})}
   })}
   // A kept trial whose six-pass finish stopped on a ComfyUI crash, an error or a stop resumes
   // from its unfinished pass with the same seed (core `saya_resume`); finished passes are kept.
@@ -394,7 +396,53 @@
   })}
   async function stepFull(){const row=stepCurrent;if(!row||!row.asset||row.decision==='oui')return;await launchFull(row)}
   async function stepQuit(){const row=stepCurrent??stepLatest;stepView=false;if(row)await actionRun('stop',row.run)}
+  // « Images manquantes »: walks the characters that have no picture yet, one at a time. Each
+  // attempt is a one-trial rotation of that character with a random pose (pass 1 only), so no
+  // batch leftovers stay behind. Oui finishes it (six passes) and keeps it in the gallery, which
+  // makes it the character's picture; Non draws another pose; Passer moves to the next character.
+  let portraitView=$state(false),portraitQueue=$state<string[]>([]),portraitRun=$state('');
+  const portraitRow=$derived(castingRows.find(r=>r.run===portraitRun)??null);
+  const missingPortraits=$derived(displayedTargets.filter(l=>!l.portrait&&!imagesChoix.persos[l.negId]).map(l=>l.negId));
+  async function portraitAttempt(negId:string){
+    if(!session)throw Error($t("Règle ta config dans Generation d'abord : ouvre ton workflow là-bas, puis reviens lancer le casting ici."));
+    await flush();if(!alive)return;
+    const exported=await call<{path:string}>('graph_save_ui',{session,name:`${sourceName||'Casting'} · base passe 1`});
+    if(!alive)return;
+    const r=await call<{shots:{run:string}[]}>('casting_lancer',{graine:randomSeed(),nombre:1,famille:null,source_path:exported.path,perso:negId});
+    if(!alive)return;
+    portraitRun=r.shots[0]?.run??'';
+    castingRows=await call<CastRow[]>('casting_history',{sync:false});
+  }
+  async function portraitNext(queue:string[]){
+    portraitQueue=queue;
+    if(queue.length){await portraitAttempt(queue[0]);return}
+    portraitView=false;portraitRun='';chargerApercus();
+    castingNote=$t("Images manquantes terminées : chaque perso validé a son image.");
+  }
+  async function portraitsStart(){
+    const queue=[...missingPortraits];if(!queue.length)return;
+    cibler=false;stepView=false;portraitView=true;
+    await task(()=>portraitNext(queue));
+  }
+  async function portraitYes(){
+    const row=portraitRow;if(!row?.asset||row.decision==='oui')return;
+    await task(async()=>{
+      castingRows=await call<CastRow[]>('casting_decide',{run:row.run,keep:true});
+      await call('casting_publish',{runs:[row.run]});
+      if(!alive)return;
+      castingNote=$t("{name} validé : image gardée dans la galerie, 6 passes en file.",{name:row.name});
+      await portraitNext(portraitQueue.slice(1));
+    });
+  }
+  async function portraitNo(){if(portraitQueue.length)await task(()=>portraitAttempt(portraitQueue[0]))}
+  async function portraitSkip(){await task(()=>portraitNext(portraitQueue.slice(1)))}
   function stepKeys(e:KeyboardEvent){
+    if(portraitView&&!busy&&!(e.target as HTMLElement)?.closest?.('input,textarea,select')){
+      if(e.key==='o'||e.key==='O'){e.preventDefault();void portraitYes()}
+      else if(e.key==='n'||e.key==='N'){e.preventDefault();void portraitNo()}
+      else if(e.key==='Escape'){portraitView=false}
+      return;
+    }
     if(!stepView||busy||(e.target as HTMLElement)?.closest?.('input,textarea,select'))return;
     if(e.key==='f'||e.key==='F'){e.preventDefault();void stepFull()}
     else if(e.key==='n'||e.key==='N'||e.key==='ArrowRight'){e.preventDefault();void stepNext()}
@@ -630,6 +678,25 @@
       <span class="muted small">{$t("Espace : sélectionner · ← → : naviguer · Entrée : plein écran")}</span>
     </div>
     {/if}
+    {#if portraitView}
+    {@const row=portraitRow}
+    <section class="step-stage" data-casting-portraits>
+      <div class="step-image">
+        {#if row?.asset}<Thumbnail id={row.asset} preview alt={row.name}/>
+        {:else if row?.error}<p class="error">{row.error}</p>
+        {:else}<p class="muted">{$t("Génération de l'image…")}</p>{/if}
+      </div>
+      <div class="step-bar">
+        {#if row}<b>{row.name}</b><span class="muted">{row.famille}</span>{/if}
+        <span class="muted small" data-casting-portraits-state>{$t("Persos sans image restants : {n}",{n:portraitQueue.length})}</span>
+        <span class="grow"></span>
+        <button class="primary" data-portrait-yes disabled={busy||!row?.asset||row?.decision==='oui'} onclick={portraitYes}>{$t("Oui · Full 6 passes")} <kbd>O</kbd></button>
+        <button data-portrait-no disabled={busy||!portraitQueue.length||(!!row&&!row.asset&&!row.error)} onclick={portraitNo}>{$t("Non · autre pose")} <kbd>N</kbd></button>
+        <button class="quiet" data-portrait-skip disabled={busy} onclick={portraitSkip}>{$t("Passer ce perso")}</button>
+        <button class="quiet" data-portrait-quit disabled={busy} onclick={()=>portraitView=false}>{$t("Terminer")}</button>
+      </div>
+    </section>
+    {/if}
     {#if stepView}
     {@const row=stepCurrent}
     <section class="step-stage" data-casting-step>
@@ -640,7 +707,7 @@
       </div>
       <div class="step-bar">
         {#if row}<b>{row.name}</b><span class="muted">{row.famille}</span>{/if}
-        <span class="muted small" data-casting-step-state>{!row||!row.asset?$t("Passe 1 en cours…"):row.decision==='oui'?(passesFaites(row)===6?$t("Full terminé · 6/6 passes"):$t("Full en cours · {done}/6 passes",{done:passesFaites(row)})):$t("Full ou Suivante ?")}</span>
+        <span class="muted small" data-casting-step-state>{!row||!row.asset?$t("Passe 1 en cours…"):row.decision==='oui'&&!row.phases?.['2']?$t("6 passes en file · elles partent quand toutes les passes 1 sont finies"):row.decision==='oui'?(passesFaites(row)===6?$t("Full terminé · 6/6 passes"):$t("Full en cours · {done}/6 passes",{done:passesFaites(row)})):$t("Full ou Suivante ?")}</span>
         <span class="grow"></span>
         <button class="primary" data-casting-step-full disabled={busy||!row?.asset||row?.decision==='oui'} onclick={stepFull}>{$t("Full · 6 passes")} <kbd>F</kbd></button>
         <button data-casting-step-next disabled={busy||(!!row&&!row.asset&&!row.error)} onclick={stepNext}>{$t("Suivante")} <kbd>N</kbd></button>
@@ -648,7 +715,7 @@
       </div>
     </section>
     {/if}
-    <div class="sheet casting-grid" style:--tile={`${tile}px`} hidden={stepView}>
+    <div class="sheet casting-grid" style:--tile={`${tile}px`} hidden={stepView||portraitView}>
       {#each grilleAffichees as row (row.run+':'+row.stem)}
         {@const k=rowKey(row)}
         <article class="tile" class:focus={focused&&rowKey(focused)===k} class:sel={choix.includes(row.run)} data-tile-key={k} data-casting-shot={row.stem} data-famille={row.famille} data-model={row.model} data-loras={lorasDuShot(row.shot).join(',')} data-state={row.state} data-decision={row.decision}>
@@ -665,7 +732,7 @@
           {#if row.decision==='oui'&&row.phases?.['2']}
             {#if row.runState==='running'}<p class="tile-progress">{$t("Finition en cours · {done}/6 passes",{done:passesFaites(row)})}</p>
             {:else}<p class="tile-progress" data-casting-progress>{row.runState==='completed'?$t("Workflow complet terminé · {done}/6 passes",{done:passesFaites(row)}):$t("Workflow complet interrompu · {done}/6 passes",{done:passesFaites(row)})}</p>{/if}
-          {:else if row.decision==='oui'}<p class="tile-progress" data-casting-progress>{$t("Enregistré · workflow complet à lancer depuis l'image")}</p>
+          {:else if row.decision==='oui'}<p class="tile-progress" data-casting-progress>{row.finishQueued?$t("6 passes en file · elles partent quand toutes les passes 1 sont finies"):$t("Enregistré · workflow complet à lancer depuis l'image")}</p>
           {:else if row.decision==='non'}<p class="tile-progress" data-casting-progress>{$t("Écarté · ancien essai")}</p>{/if}
           {#if row.error}<p class="error tile-progress" title={row.error}>{row.error}</p>{/if}
         </article>
@@ -728,6 +795,7 @@
     </div>
     <footer>
       <span data-cibler-compteur>{$tn("{n} sélectionné","{n} sélectionnés",ciblerChoisis.length)}{ciblerChoisis.length?` : ${ciblerChoisis.join(', ')}`:''}</span>
+      {#if missingPortraits.length&&!choixRotation}<button data-cibler-portraits disabled={busy} title={$t("Chaque perso sans image passe à son tour : passe 1 dans une pose aléatoire, puis Oui (6 passes, image gardée) ou Non (autre pose).")} onclick={portraitsStart}>{$t("Générer les images manquantes ({n})",{n:missingPortraits.length})}</button>{/if}
       <button data-cibler-valider class="primary" onclick={validerCiblage} disabled={!ciblerChoisis.length||busy}>{$tn("Utiliser {n} perso au casting","Utiliser {n} persos au casting",ciblerChoisis.length)}</button>
     </footer>
   </div>
@@ -926,8 +994,11 @@
   .cibler-fenetre header input{width:220px}
   .cibler-filtre{display:flex;flex-direction:row;align-items:center;gap:6px;font-size:12px;color:var(--muted);white-space:nowrap}
   .cibler-filtre select{width:140px}
-  .cibler-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;overflow:auto;min-height:200px;flex:1;padding:2px;background:var(--canvas);border-radius:var(--radius)}
-  .cibler-tuile{display:flex;flex-direction:column;gap:3px;padding:6px;min-height:0;border:1px solid transparent;border-radius:var(--radius);background:transparent;min-width:0;text-align:start}
+  .cibler-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));grid-auto-rows:max-content;align-content:start;gap:10px;overflow:auto;min-height:200px;flex:1;padding:2px;background:var(--canvas);border-radius:var(--radius)}
+  /* Rows take their content height and the grid scrolls: a fixed-height grid otherwise shares its
+     height between rows and squashes every tile (portrait and name collapsed to a few pixels). */
+  .cibler-tuile{display:flex;flex-direction:column;gap:3px;padding:6px;border:1px solid transparent;border-radius:var(--radius);background:transparent;min-width:0;text-align:start}
+  .cibler-tuile>*{flex:none}
   .cibler-tuile:hover:not(:disabled){background:var(--raised)}
   .cibler-tuile strong{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cibler-tuile small{font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

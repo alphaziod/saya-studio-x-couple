@@ -12,7 +12,8 @@
   import StreamGrid from './StreamGrid.svelte';
   import VisualSearch from './VisualSearch.svelte';
   import Icon from './Icon.svelte';
-  let {target=null,oncharacter=()=>{},onedit=()=>{},ontree=()=>{},oncompare=()=>{}}:{target?:{character:string;asset:string|null}|null;oncharacter?:(id:string)=>void;onedit?:(asset:Asset)=>void;ontree?:(job:string)=>void;oncompare?:(job:string)=>void}=$props();
+  import { assetLabel, loadAssetNames } from '../lib/asset-names.svelte';
+  let {target=null,oncharacter=()=>{},onedit=()=>{},onworkflow=()=>{},ontree=()=>{},oncompare=()=>{}}:{target?:{character:string;asset:string|null}|null;oncharacter?:(id:string)=>void;onworkflow?:(asset:Asset)=>void;onedit?:(asset:Asset)=>void;ontree?:(job:string)=>void;oncompare?:(job:string)=>void}=$props();
   let images = $state<Asset[]>([]), characters = $state<Character[]>([]);
   let total = $state(0), busy = $state(false), loading = $state(false), error = $state(''), note = $state('');
   let root = $state(''), initializing=$state(true);
@@ -43,7 +44,19 @@
   $effect(()=>{const value={mode:selectionMode,ids:selection.map(a=>a.id)};if(initializing)return;clearTimeout(selectionTimer);selectionTimer=setTimeout(()=>persistSelection(value),150)});
   onDestroy(()=>{clearTimeout(selectionTimer);if(!initializing)persistSelection({mode:selectionMode,ids:selection.map(a=>a.id)});});
   function galleryClick(asset:Asset){if(!selectionMode){open(asset);return;}if(selection.some(a=>a.id===asset.id))selection=selection.filter(a=>a.id!==asset.id);else if(selection.length<1000)selection=[...selection,asset];else error=$t("Maximum 1000 images par opération.");}
-  async function assetsChanged(){await lists();await load();streamRefresh++;}
+  async function assetsChanged(){await lists();await load();void loadAssetNames(true);streamRefresh++;}
+  // Create opens a file: gallery assets carry their library-relative path, so resolve the
+  // absolute one first.
+  async function sendToWorkflow(asset:Asset){try{const found=await call<{path:string}>('detail',{id:asset.id});onworkflow({...asset,path:found.path})}catch(e){error=message(e)}}
+  // Right-click on an image: the inspector opens on it and the menu offers its actions.
+  let menu=$state<{asset:Asset;x:number;y:number}|null>(null);
+  async function contextMenu(asset:Asset,event:MouseEvent){
+    event.preventDefault();
+    menu={asset,x:Math.min(event.clientX,window.innerWidth-260),y:Math.min(event.clientY,window.innerHeight-330)};
+    if(selected?.id!==asset.id)await open(asset);
+  }
+  async function menuAction(action:(asset:Asset)=>unknown){const asset=menu?.asset;menu=null;if(asset)await action(asset);}
+  function menuKey(event:KeyboardEvent){if(menu&&event.key==='Escape'){event.preventDefault();menu=null}}
   const availabilityLabels:Record<string,string>={present:'Présente',missing:'Manquante',unreadable:'Fichier inaccessible',source_inaccessible:'Source inaccessible',outside_roots:'Hors racines actives',removed:'Retirée du catalogue'};
   let similar=$state<Asset|null>(null);
   // Every active filter is visible and removable; nothing narrows the gallery silently.
@@ -180,6 +193,7 @@
   }
   onMount(() => {
     if (!native) return;
+    void loadAssetNames(true);
     let alive = true, polling = false;
     (async () => { try { const prefs = await call<Record<string, unknown>>('preferences'); if (!alive) return; filters = restoreFilters(target?{character:target.character}:prefs.galleryFilters); filters.capture='main'; root=typeof prefs.libraryRoot==='string'?prefs.libraryRoot:''; if(typeof prefs.captureRoot==='string'&&prefs.captureRoot)captureRoot=prefs.captureRoot;
       // First open: the default (brief point 4) becomes the effective
@@ -195,7 +209,7 @@
     }, 750);
     return () => { alive = false; ++serial; ++detailSerial; clearInterval(timer); clearTimeout(searchTimer); };
   });
-</script><svelte:window onkeydown={viewerKey}/>
+</script><svelte:window onkeydown={event=>{menuKey(event);viewerKey(event)}} onclick={()=>{menu=null}}/>
 <div class="gallery wb">
 <aside class="wb-panel left" aria-label={$t("Filtres")}>
   <div class="wb-head"><h1 class="vh">{$t("Galerie")}</h1><input class="search" aria-label={$t("Rechercher une image")} placeholder={$t("Rechercher…")} title={$t("Nom de fichier ou dossier")} bind:value={filters.search} oninput={search} /></div>
@@ -259,10 +273,10 @@
   {#if error && !viewerOpen}<p class="msg error" role="alert">{error}</p>{/if}{#if note}<p class="msg notice" role="status">{note}</p>{/if}
   <div class="grid-area">
   {#if streaming}
-  <StreamGrid {filters} onopen={galleryClick} selectedIds={selection.map(a=>a.id)} {selectionMode} refresh={streamRefresh} size={thumbSize} currentId={selected?.id ?? null} />
+  <StreamGrid {filters} onopen={galleryClick} oncontext={contextMenu} selectedIds={selection.map(a=>a.id)} {selectionMode} refresh={streamRefresh} size={thumbSize} currentId={selected?.id ?? null} />
   {:else}
   <div class="pages">
-  <div class="image-grid" style="--thumb:{thumbSize}px" aria-busy={loading}>{#each images as asset (asset.id)}<button class="image-card" class:selected={selection.some(a=>a.id===asset.id)} class:current={selected?.id===asset.id} aria-pressed={selectionMode?selection.some(a=>a.id===asset.id):undefined} onclick={() => galleryClick(asset)} title={asset.path}><Thumbnail id={asset.id} alt={asset.path} /><div class="caption"><span>{asset.favorite ? '★ ' : ''}{asset.path.split(/[\\/]/).pop()?.replace(/\.(png|jpe?g|webp)$/i,'')}</span><small class="num">{asset.width ?? '?'} × {asset.height ?? '?'}{asset.review!=='unreviewed'?` · ${$t(reviewLabels[asset.review]??asset.review)}`:''}{asset.metadataState === 'absent' ? ' · '+$t("sans métadonnées") : ''}</small></div></button>{/each}</div>
+  <div class="image-grid" style="--thumb:{thumbSize}px" aria-busy={loading}>{#each images as asset (asset.id)}<button class="image-card" class:selected={selection.some(a=>a.id===asset.id)} class:current={selected?.id===asset.id} aria-pressed={selectionMode?selection.some(a=>a.id===asset.id):undefined} onclick={() => galleryClick(asset)} oncontextmenu={event=>contextMenu(asset,event)} title={asset.path}><Thumbnail id={asset.id} alt={asset.path} /><div class="caption"><span>{asset.favorite ? '★ ' : ''}{assetLabel(asset)}</span><small class="num">{asset.width ?? '?'} × {asset.height ?? '?'}{asset.review!=='unreviewed'?` · ${$t(reviewLabels[asset.review]??asset.review)}`:''}{asset.metadataState === 'absent' ? ' · '+$t("sans métadonnées") : ''}</small></div></button>{/each}</div>
   {#if !images.length}<div class="empty-state">{loading ? $t("Chargement…") : $t("Aucune image dans cette sélection. Indexez le dossier ou ajustez les filtres.")}</div>{/if}
   </div>
   <div class="pagination"><button class="quiet" disabled={filters.offset === 0 || loading} onclick={() => { filters.offset = Math.max(0, filters.offset - 48); load(); }}>{$t("← Précédentes")}</button><span class="num muted">{total ? filters.offset + 1 : 0}–{Math.min(filters.offset + 48, total)} / {total}</span><button class="quiet" disabled={filters.offset + 48 >= total || loading} onclick={() => { filters.offset += 48; load(); }}>{$t("Suivantes →")}</button></div>
@@ -271,12 +285,13 @@
 </main>
 <aside class="wb-panel right inspector" data-inspector data-inspector-path={selected?.path ?? ''} aria-label={$t("Inspecteur")}>
   {#if selected}
-  <div class="wb-head"><h2 title={selected.path}>{fileName(selected.path)}</h2><button class="icon-btn quiet" onclick={clearInspector} title={$t("Fermer l’inspecteur")} aria-label={$t("Fermer l’inspecteur")}><Icon name="close"/></button></div>
+  <div class="wb-head"><h2 title={selected.path}>{assetLabel(selected)}</h2><button class="icon-btn quiet" onclick={clearInspector} title={$t("Fermer l’inspecteur")} aria-label={$t("Fermer l’inspecteur")}><Icon name="close"/></button></div>
   <div class="iconrow" data-file-actions>
     <button class="icon-btn quiet" data-open-manager disabled={!selected} onclick={openInManager} title={$t("« Ouvrir dans le gestionnaire » montre le dossier conteneur (xdg-open) ; c’est ainsi que se retrouvent les références à réutiliser.")}><Icon name="folder"/><span class="vh">{$t("Ouvrir dans le gestionnaire")}</span></button>
     <button class="icon-btn quiet" class:done={pathCopied} data-copy-path disabled={!detail} onclick={copyPath} title={pathCopied?$t("Chemin copié ✓"):$t("Copier le chemin")}><Icon name={pathCopied?'check':'copy'}/><span class="vh">{pathCopied?$t("Chemin copié ✓"):$t("Copier le chemin")}</span></button>
     <button class="icon-btn quiet" disabled={comparison.length>=2||comparison.some(a=>a.id===selected?.id)} onclick={addComparison} title={$t("Deux images maximum ; retirez une sélection pour la remplacer.")}><Icon name="compare"/><span class="vh">{$t("Ajouter à la comparaison")}</span></button>
     <button class="icon-btn quiet" data-find-similar onclick={() => { if (selected) similar = { ...selected }; }} title={$t("Similarité visuelle approximative, calculée localement ; jamais une identification de personnage.")}><Icon name="casting"/><span class="vh">{$t("Trouver des images similaires")}</span></button>
+    <button class="icon-btn quiet" data-open-workflow disabled={!selected} onclick={() => { const asset = selected; if (asset) void sendToWorkflow(asset); }} title={$t("Ouvre l’image dans Créer avec le workflow enregistré dedans ; Générer lance alors les 6 passes. L’original n’est pas modifié.")}><Icon name="play"/><span class="vh">{$t("Envoyer au workflow complet")}</span></button>
     <button class="icon-btn quiet" onclick={() => { const asset = selected; if (asset) { selected = null; onedit(asset); } }} title={$t("Ouvre l’éditeur non destructif ; l’original reste en lecture seule.")}><Icon name="edit"/><span class="vh">{$t("Retoucher (flou localisé)")}</span></button>
     <button class="icon-btn quiet" disabled={!selected} onclick={refreshPresence} title={$t("Actualiser l’état du fichier")}><Icon name="redo"/><span class="vh">{$t("Actualiser l’état du fichier")}</span></button>
     <span class="grow"></span>
@@ -312,6 +327,15 @@
 </aside>
 </div>
 {#if comparing&&comparison.length===2}<ImageComparison assets={comparison} onclose={()=>comparing=false} />{/if}
+{#if menu}{@const asset=menu.asset}<div class="ctx-menu" role="menu" tabindex="-1" data-gallery-menu aria-label={$t("Actions de {name}",{name:assetLabel(asset)})} style:left={`${menu.x}px`} style:top={`${menu.y}px`} onclick={event=>event.stopPropagation()} onkeydown={menuKey} oncontextmenu={event=>event.preventDefault()}>
+  <button role="menuitem" data-menu-workflow onclick={()=>menuAction(sendToWorkflow)}><Icon name="play"/>{$t("Envoyer au workflow complet")}</button>
+  <button role="menuitem" data-menu-edit onclick={()=>menuAction(a=>{selected=null;onedit(a)})}><Icon name="edit"/>{$t("Retoucher (flou localisé)")}</button>
+  <button role="menuitem" data-menu-favorite disabled={selected?.id!==asset.id} onclick={()=>menuAction(()=>{if(selected){selected.favorite=!selected.favorite;return annotate()}})}><Icon name="star"/>{selected?.favorite?$t("Retirer des favoris"):$t("Ajouter aux favoris")}</button>
+  <button role="menuitem" data-menu-compare disabled={selected?.id!==asset.id||comparison.length>=2||comparison.some(a=>a.id===asset.id)} onclick={()=>menuAction(()=>addComparison())}><Icon name="compare"/>{$t("Ajouter à la comparaison")}</button>
+  <button role="menuitem" data-menu-similar onclick={()=>menuAction(a=>{similar={...a}})}><Icon name="casting"/>{$t("Trouver des images similaires")}</button>
+  <button role="menuitem" data-menu-folder disabled={selected?.id!==asset.id} onclick={()=>menuAction(()=>openInManager())}><Icon name="folder"/>{$t("Ouvrir dans le gestionnaire")}</button>
+  <button role="menuitem" data-menu-copy disabled={selected?.id!==asset.id||!detail} onclick={()=>menuAction(()=>copyPath())}><Icon name="copy"/>{$t("Copier le chemin")}</button>
+</div>{/if}
 {#if similar}<VisualSearch asset={similar} onclose={()=>similar=null} />{/if}
 {#if selected && viewerOpen}<dialog class="image-dialog viewer" use:dialog onclose={closeViewer} aria-label={$t("Image et métadonnées")}>
   <div class="dialog-toolbar"><strong title={selected.path}>{selected.path}</strong><span class="num muted" data-viewer-position>{neighbors?.total?`${neighbors.position+1} / ${neighbors.total}`:$t("Aucun résultat")}{navBusy?' · '+$t("Chargement…"):''}</span>{#if error}<span class="error" role="alert">{error}</span>{/if}<span class="grow"></span><button class="quiet" data-viewer-close onclick={closeViewer}>{$t("Fermer ×")}</button></div>
@@ -411,4 +435,7 @@
   .index{display:inline-flex;align-items:center;gap:6px;color:var(--text);border-color:var(--line);background:var(--raised);font-weight:500}
   .index:hover:not(:disabled){border-color:var(--accent)}
 @media(max-width:1200px){.gallery{--wb-left:230px;--wb-right:280px}.size{width:72px}}
+  .ctx-menu{position:fixed;z-index:1000;min-width:220px;max-width:min(320px,calc(100vw - 8px));display:grid;gap:2px;padding:4px;background:var(--panel);border:1px solid var(--line-strong);border-radius:var(--radius);box-shadow:0 8px 24px #0008}
+  .ctx-menu button{display:flex;align-items:center;gap:8px;background:transparent;border-color:transparent;color:var(--text);text-align:start;white-space:nowrap}
+  .ctx-menu button:hover:not(:disabled),.ctx-menu button:focus-visible{background:var(--hover)}
 </style>

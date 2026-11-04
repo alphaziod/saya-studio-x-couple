@@ -25,3 +25,16 @@ test('LoRA nom:poids vers la forme Rust', () => {
   assert.throws(() => parseLoras('ok:1\nx:abc'), /ligne 2/);
   assert.throws(() => parseLoras(':0.5'), /ligne 1/);
 });
+
+// Regression: the casting pickers' grid has a fixed height. Without content-sized rows it shared
+// that height between rows and squashed every tile (names 2 px tall, action list looking empty).
+test('casting picker rows keep their content height', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL('../src/components/Casting.svelte', import.meta.url), 'utf8');
+  const escape = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const rule = selector => source.match(new RegExp(`${escape(selector)}\\{([^}]*)\\}`))?.[1] ?? '';
+  assert.match(rule('.cibler-grille'), /grid-auto-rows:max-content/);
+  assert.match(rule('.cibler-grille'), /align-content:start/);
+  assert.doesNotMatch(rule('.cibler-tuile'), /min-height:0/);
+  assert.match(rule('.cibler-tuile>*'), /flex:none/);
+});

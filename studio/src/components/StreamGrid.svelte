@@ -5,11 +5,12 @@
   import { fingerprintFilters, restoreTop, streamPosition, type StreamPosition } from '../lib/stream';
   import CachedThumb from './CachedThumb.svelte';
   import { reviewLabels } from '../lib/gallery';
+  import { assetLabel } from '../lib/asset-names.svelte';
   // `refresh` changes after annotations, indexing or associations: the stream
   // reloads around the same anchor.
   // `size` is the minimum thumbnail width (slider in the gallery bar);
   // `currentId` outlines the image shown in the inspector.
-  let { filters, onopen, refresh = 0, selectedIds=[],selectionMode=false,size=184,currentId=null }: { filters: Filters; onopen: (asset: Asset) => void; refresh?: number;selectedIds?:string[];selectionMode?:boolean;size?:number;currentId?:string|null } = $props();
+  let { filters, onopen, oncontext = null, refresh = 0, selectedIds=[],selectionMode=false,size=184,currentId=null }: { filters: Filters; onopen: (asset: Asset) => void; oncontext?: ((asset: Asset, event: MouseEvent) => void) | null; refresh?: number;selectedIds?:string[];selectionMode?:boolean;size?:number;currentId?:string|null } = $props();
   // Metadata is a bounded sliding window around the viewport. Thumbnails stay
   // lazy and LRU-bounded; at most ~250 entries are kept before/after.
   const WINDOW = 250;
@@ -186,9 +187,9 @@
         {#each Array.from({ length: metrics.columns }, (_, c) => row * metrics.columns + c) as index (index)}
           {@const asset = assetAt(index)}
           {#if asset}
-            <button class="image-card stream-card" class:selected={selectedIds.includes(asset.id)} class:current={currentId === asset.id} aria-pressed={selectionMode?selectedIds.includes(asset.id):undefined} data-stream-asset={asset.id} style="width:{metrics.cardWidth}px" onclick={() => onopen(asset)} title={asset.path}>
+            <button class="image-card stream-card" class:selected={selectedIds.includes(asset.id)} class:current={currentId === asset.id} aria-pressed={selectionMode?selectedIds.includes(asset.id):undefined} data-stream-asset={asset.id} style="width:{metrics.cardWidth}px" onclick={() => onopen(asset)} oncontextmenu={event => { if (oncontext) { event.preventDefault(); oncontext(asset, event); } }} title={asset.path}>
               <div class="stream-thumb" style="height:{metrics.imageHeight}px"><CachedThumb id={asset.id} alt={asset.path} /></div>
-              <div class="caption"><span>{asset.favorite ? '★ ' : ''}{asset.path.split(/[\\/]/).pop()?.replace(/\.(png|jpe?g|webp)$/i,'')}</span><small class="num">{asset.width ?? '?'} × {asset.height ?? '?'}{asset.review !== 'unreviewed' ? ` · ${$t(reviewLabels[asset.review] ?? asset.review)}` : ''}{asset.metadataState === 'absent' ? ' · ' + $t("sans métadonnées") : ''}</small></div>
+              <div class="caption"><span>{asset.favorite ? '★ ' : ''}{assetLabel(asset)}</span><small class="num">{asset.width ?? '?'} × {asset.height ?? '?'}{asset.review !== 'unreviewed' ? ` · ${$t(reviewLabels[asset.review] ?? asset.review)}` : ''}{asset.metadataState === 'absent' ? ' · ' + $t("sans métadonnées") : ''}</small></div>
             </button>
           {:else if total === null || index < total}
             <div class="image-card stream-placeholder" style="width:{metrics.cardWidth}px;height:{metrics.imageHeight}px" aria-hidden="true"></div>

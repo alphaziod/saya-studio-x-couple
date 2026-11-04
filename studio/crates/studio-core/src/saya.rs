@@ -553,7 +553,25 @@ impl Database {
     /// Casting -> gallery: marks the representative image (final if pass 6
     /// succeeded, otherwise pass 1) as kept. No file copy: validating
     /// the same image twice never creates a duplicate.
-    pub fn casting_publish(&self, runs: &[String]) -> CoreResult<Value> {
+    /// Keeps trials in the gallery and queues their six-pass finish (owner rule: the finish runs
+    /// after the whole casting, see `casting_start_queued_finish`).
+    pub fn casting_publish(
+        &mut self,
+        runs: &[String],
+        client: &Comfy,
+        results: &Path,
+    ) -> CoreResult<Value> {
+        let published = self.casting_mark_published(runs)?;
+        let mut queued = 0;
+        for id in runs {
+            if self.casting_keep_for_finish(id, client, results)? {
+                queued += 1;
+            }
+        }
+        Ok(json!({"published": published, "finishQueued": queued}))
+    }
+
+    fn casting_mark_published(&self, runs: &[String]) -> CoreResult<usize> {
         let mut published = 0;
         for id in runs {
             let mut run = read_run(self, id)?;
@@ -570,7 +588,7 @@ impl Database {
                 published += 1;
             }
         }
-        Ok(json!({"published": published}))
+        Ok(published)
     }
 
     /// Deletes a casting batch. Trials validated in the gallery or saved
@@ -840,7 +858,7 @@ impl Database {
                 "seed":run["masterSeed"],"graine":metadata.get("graine").or_else(|| kept.and_then(|k|k.get("graine"))),
                 "catalogue":metadata.get("catalogue").or_else(|| kept.and_then(|k|k.get("catalogue"))),
                 "state":phase["state"],"asset":phase["asset"],"decision":decision,"shot":shot,
-                "createdAt":run["createdAt"],"runState":run["state"],"stopPending":run["stopPending"],"phases":run["phases"],"finalAsset":final_asset,"error":run["autoError"],"published":metadata["published"],
+                "createdAt":run["createdAt"],"runState":run["state"],"stopPending":run["stopPending"],"phases":run["phases"],"finalAsset":final_asset,"error":run["autoError"],"published":metadata["published"],"finishQueued":metadata["finishQueued"],
                 "step":run["casting"]["step"],"released":run["casting"]["released"]}));
         }
         Ok(rows)
@@ -919,6 +937,7 @@ impl Database {
             write_run(self, id, &value)?;
             started.insert(batch.to_owned());
         }
+        self.casting_start_queued_finish(client, results)?;
         Ok(())
     }
 
@@ -1050,12 +1069,85 @@ impl Database {
             value["state"] = json!("stopped");
             value["autoAdvance"] = json!(false);
         }
+        // Owner rule (2026-11-04): a kept trial's six passes never run between pass-1 trials (an
+        // SDXL pass 1 and a HiDream pass 3 sharing the GPU ran out of memory). The finish is
+        // queued; `casting_start_queued_finish` starts it once every pass-1 trial is done.
+        if keep && only_pass_one(&value) && value["casting"]["finishQueued"] != true {
+            value["casting"]["finishQueued"] = json!(true);
+            value["casting"]["finishQueuedAt"] = json!(chrono_now());
+            value["state"] = json!("running");
+        }
         write_run(self, run, &value)?;
-        // One decision starts phase 2 once; the existing runner owns phases 3–6.
-        if keep && value["phases"].get("2").is_none() {
-            return self.saya_continue(run, client, results);
+        if keep {
+            if let Err(error) = self.casting_start_queued_finish(client, results) {
+                // The finish stays queued: the background runner retries.
+                eprintln!("saya: casting_decide: queued finish not started yet: {error}");
+            }
+            return read_run(self, run);
         }
         Ok(value)
+    }
+
+    /// Keeping a trial (gallery or character sheet) also wants its six passes: queue the finish
+    /// of an undecided trial whose pass 1 succeeded. A rejected trial is left as it is.
+    pub fn casting_keep_for_finish(
+        &mut self,
+        run: &str,
+        client: &Comfy,
+        results: &Path,
+    ) -> CoreResult<bool> {
+        let value = read_run(self, run)?;
+        // Already decided, past pass 1 (finished or finishing) or paused: kept as it is.
+        if !value["casting"].is_object()
+            || value["phases"]["1"]["state"] != "succeeded"
+            || value["state"] == "paused"
+            || !only_pass_one(&value)
+            || !value["casting"]["decision"].as_str().unwrap_or_default().is_empty()
+        {
+            return Ok(false);
+        }
+        self.casting_decide(run, true, client, results)?;
+        Ok(true)
+    }
+
+    /// Starts the oldest queued casting finish when no pass-1 trial is waiting or in flight and
+    /// no other finish is running: one six-pass chain at a time, after the whole casting. Trials
+    /// held by step-by-step mode until the user releases them do not block. A finish stopped on
+    /// a failed pass does not block the others (it waits for « Reprendre »).
+    pub fn casting_start_queued_finish(
+        &mut self,
+        client: &Comfy,
+        results: &Path,
+    ) -> CoreResult<Option<Value>> {
+        let runs = self.saya_runs()?;
+        let casting: Vec<&Value> = runs.iter().filter(|r| r["casting"].is_object()).collect();
+        if casting.iter().any(|r| pass_one_pending(r) || finish_running(r)) {
+            return Ok(None);
+        }
+        let mut queued: Vec<&&Value> = casting
+            .iter()
+            .filter(|r| {
+                r["casting"]["finishQueued"] == true
+                    && r["state"] == "running"
+                    && r["phases"]["1"]["state"] == "succeeded"
+                    && only_pass_one(r)
+            })
+            .collect();
+        queued.sort_by_key(|r| {
+            r["casting"]["finishQueuedAt"]
+                .as_str()
+                .or(r["createdAt"].as_str())
+                .unwrap_or_default()
+                .to_owned()
+        });
+        let Some(id) = queued.first().and_then(|r| r["id"].as_str()).map(str::to_owned) else {
+            return Ok(None);
+        };
+        let started = self.saya_continue(&id, client, results)?;
+        let mut value = read_run(self, &id)?;
+        value["casting"]["finishQueued"] = json!(false);
+        write_run(self, &id, &value)?;
+        Ok(Some(started))
     }
 
     /// Create a persistent Saya run and submit phase 1. The source is read-only.
@@ -1578,30 +1670,56 @@ impl Database {
         Ok(value)
     }
 }
+/// The run has no phase beyond pass 1 yet (a finished run may record only phases 1 and 6).
+fn only_pass_one(run: &Value) -> bool {
+    run["phases"].as_object().is_some_and(|phases| phases.keys().all(|k| k == "1"))
+}
+
+/// A casting trial whose pass 1 still has to run or is running. A step-by-step trial not yet
+/// released waits for the user, not for the GPU.
+fn pass_one_pending(run: &Value) -> bool {
+    if run["state"] != "running" {
+        return false;
+    }
+    let held = run["casting"]["step"] == true && run["casting"]["released"] != true;
+    match run["phases"]["1"]["state"].as_str().unwrap_or_default() {
+        "waiting" => !held,
+        "submitting" | "submitted" | "queued" | "running" | "submission_unknown" => true,
+        _ => false,
+    }
+}
+
+/// A casting six-pass finish in progress: started, not completed, and not stopped on a failed
+/// pass (that one waits for « Reprendre » and must not hold the queue).
+fn finish_running(run: &Value) -> bool {
+    run["state"] == "running"
+        && !only_pass_one(run)
+        && run["phases"]["6"]["state"] != "succeeded"
+        && !run["phases"].as_object().is_some_and(|phases| {
+            phases.values().any(|p| {
+                matches!(
+                    p["state"].as_str(),
+                    Some("failed" | "interrupted" | "cancelled")
+                )
+            })
+        })
+}
+
+/// The next trial of a batch may be submitted: no trial of the batch is paused, still being
+/// prepared, or has its pass 1 owned by ComfyUI. Only pass 1 matters: a kept trial's later
+/// pass that failed (a HiDream pass 3 out of memory) or a trial stopped, rejected or failed on
+/// its own must not freeze the rest of the batch forever; those wait for « Reprendre ».
 fn casting_batch_ready(runs: &[Value], batch: &str) -> bool {
     !runs
         .iter()
         .filter(|r| r["casting"]["catalogue"] == batch)
         .any(|r| {
             r["state"] == "paused"
-                || r["state"] == "stopped"
                 || (r["casting"]["deferred"] == true && r["casting"]["prepared"] != true)
-                || r["phases"].as_object().is_some_and(|phases| {
-                    phases.values().any(|p| {
-                        matches!(
-                            p["state"].as_str(),
-                            Some(
-                                "submitted"
-                                    | "submitting"
-                                    | "queued"
-                                    | "running"
-                                    | "submission_unknown"
-                                    | "failed"
-                                    | "interrupted"
-                            )
-                        )
-                    })
-                })
+                || matches!(
+                    r["phases"]["1"]["state"].as_str(),
+                    Some("submitted" | "submitting" | "queued" | "running" | "submission_unknown")
+                )
         })
 }
 
@@ -1619,8 +1737,6 @@ mod casting_batch_queue_tests {
             "queued",
             "running",
             "submission_unknown",
-            "failed",
-            "interrupted",
         ] {
             assert!(!casting_batch_ready(
                 &[row("running", phase), row("running", "waiting")],
@@ -1631,14 +1747,31 @@ mod casting_batch_queue_tests {
             &[row("paused", "succeeded"), row("running", "waiting")],
             "batch"
         ));
-        assert!(!casting_batch_ready(
-            &[row("stopped", "cancelled"), row("running", "waiting")],
-            "batch"
-        ));
         assert!(casting_batch_ready(
             &[row("running", "succeeded"), row("running", "waiting")],
             "batch"
         ));
+    }
+
+    /// Regression (owner, 2026-11-04): a HiDream pass 3 ran out of memory on a kept trial and
+    /// the batch stayed at 9/20 forever. A failed, interrupted, stopped or rejected trial no
+    /// longer holds the remaining ones.
+    #[test]
+    fn a_failed_or_stopped_trial_never_freezes_the_batch() {
+        let mut finish_failed = row("running", "succeeded");
+        finish_failed["phases"]["3"] = json!({"state":"failed"});
+        for blocker in [
+            finish_failed,
+            row("running", "failed"),
+            row("running", "interrupted"),
+            row("stopped", "cancelled"),
+            row("stopped", "succeeded"),
+        ] {
+            assert!(
+                casting_batch_ready(&[blocker.clone(), row("running", "waiting")], "batch"),
+                "{blocker}"
+            );
+        }
     }
     #[test]
     fn incomplete_preparation_and_other_batches_are_separate() {

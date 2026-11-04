@@ -2890,7 +2890,11 @@ fn handle_inner(s: &AppState, request: Request) -> Result<Value> {
                 .saya_operations
                 .lock()
                 .map_err(|_| "Saya operation lock")?;
-            return Database::open(&s.directory.join("studio.sqlite3"))?.casting_publish(&runs);
+            return Database::open(&s.directory.join("studio.sqlite3"))?.casting_publish(
+                &runs,
+                &Comfy::loopback(s.comfy_port)?,
+                &s.directory.join("results"),
+            );
         }
         Request::CastingDeleteLot { run } => {
             let _operation = s

@@ -40,6 +40,15 @@ const EMPTIED_TEXTS: [u64; 2] = [654, 655];
 const FORMAT: u64 = 100042;
 
 /// Reads the catalogue produced by the engine and validates the expected shape of a casting.
+/// Character a shot pictures. Rotation shots carry `<id>-rotNN` (engine `moteur/tirage.py`): they
+/// show the same character, so their image belongs to `<id>` in the pickers.
+fn character_key(id: &str) -> &str {
+    match id.rsplit_once("-rot") {
+        Some((base, n)) if !base.is_empty() && n.len() == 2 && n.bytes().all(|b| b.is_ascii_digit()) => base,
+        _ => id,
+    }
+}
+
 pub fn read_catalogue(chemin: &Path) -> Result<Vec<Value>> {
     let raw = std::fs::read(chemin)?;
     let shots: Vec<Value> = serde_json::from_slice(&raw)
@@ -472,7 +481,9 @@ impl crate::Database {
                 actions.entry(name.to_owned()).or_insert(json!(asset));
             }
             if let Some(id) = shot["id"].as_str().filter(|n| !n.is_empty()) {
-                persos.entry(id.to_owned()).or_insert(json!(asset));
+                persos
+                    .entry(character_key(id).to_owned())
+                    .or_insert(json!(asset));
             }
         }
         Ok(json!({"actions": actions, "persos": persos}))
@@ -934,6 +945,16 @@ mod controle_tests {
         assert_eq!(p["persos"]["CH--0002"], "kept");
         assert_eq!(p["persos"]["CH--0001"], "old");
         assert!(p["persos"].get("CH--0003").is_none());
+        // A rotation of CH--0004 (engine id `CH--0004-rot01`) pictures CH--0004 itself.
+        db.connection
+            .execute("INSERT INTO assets(id,library_id,relative_path,availability) VALUES('rot','lib','e.png','present')", [])
+            .unwrap();
+        run("00000000-0000-4000-8000-000000000005", "2026-10-04T00:00:00Z", "", "CH--0004-rot01", "rot", false);
+        let p = db.casting_previews().unwrap();
+        assert_eq!(p["persos"]["CH--0004"], "rot");
+        assert!(p["persos"].get("CH--0004-rot01").is_none());
+        assert_eq!(super::character_key("CH--0004-rot12"), "CH--0004");
+        assert_eq!(super::character_key("CH--0004-rotation"), "CH--0004-rotation");
         let _ = std::fs::remove_dir_all(dir);
     }
 
@@ -1805,17 +1826,25 @@ mod controle_tests {
             v
         };
         assert!(shown(&db).is_empty(), "casting non validé : hors galerie");
+        // ComfyUI is unreachable here: a queued finish simply stays queued.
+        let offline = {
+            let port = TcpListener::bind(("127.0.0.1", 0)).unwrap().local_addr().unwrap().port();
+            Comfy::loopback(port).unwrap()
+        };
         // Multiple validation: final for the full workflow, pass 1 otherwise.
-        assert_eq!(
-            db.casting_publish(&["run-a-complet".into(), "run-b-passe-1".into()])
-                .unwrap()["published"],
-            2
-        );
+        let kept = db
+            .casting_publish(&["run-a-complet".into(), "run-b-passe-1".into()], &offline, &results)
+            .unwrap();
+        assert_eq!(kept["published"], 2);
+        // Keeping also queues the six passes of the pass-1-only trial, never of a finished one.
+        assert_eq!(kept["finishQueued"], 1);
+        assert_eq!(crate::saya::read_run(&db, "run-b-passe-1").unwrap()["casting"]["finishQueued"], true);
+        assert_ne!(crate::saya::read_run(&db, "run-a-complet").unwrap()["casting"]["finishQueued"], true);
         let mut expected = vec![ids["a6"].clone(), ids["b1"].clone()];
         expected.sort();
         assert_eq!(shown(&db), expected);
         assert_eq!(
-            db.casting_publish(&["run-a-complet".into()]).unwrap()["published"],
+            db.casting_publish(&["run-a-complet".into()], &offline, &results).unwrap()["published"],
             0,
             "deuxième validation : aucun doublon"
         );
