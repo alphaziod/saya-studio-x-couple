@@ -19,7 +19,18 @@ This checks native installation/startup, not a manual UI tour or GPU rendering.
 
 Windows builds are unsigned; Mac builds are ad-hoc signed, not Apple-notarized. Production trust
 requires the publisher's signing certificates. Python and ComfyUI remain external requirements.
-Linux-only limitations are listed in `../README.md`.
+On Windows and macOS, the installed executable also serves Native Messaging requests before starting
+its UI. Startup registers Chrome, Chromium, Brave and Edge: per-user HKCU registry entries on Windows
+(both registry views), and each browser's `NativeMessagingHosts` directory under
+`~/Library/Application Support` on macOS. Only the bundled extension's origin is allowed.
+The host uses the app's native data directory and does not require a separate Python host.
+The app's HTTP bridge still requires Python.
+
+Gallery trash uses Windows `IFileOperation` with forced recycling and macOS `NSFileManager` Trash.
+It never falls back to permanent deletion. Linux retains `gio trash`.
+CI moves and restores a synthetic file through each native trash service. It also runs the packaged
+extension in real Chromium, requests the token through the registered host, authenticates to the
+running bridge, and checks that an unrelated extension is refused.
 
 Snap is not attached to beta.2: CI could not reliably download build prerequisites from the Snapcraft store.
 The recipe remains available for a later build.

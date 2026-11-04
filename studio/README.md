@@ -89,11 +89,15 @@ Tests: `cargo test -p studio-core`, `node --test scripts/*.test.mjs`, `npx svelt
 
 The app never deletes your originals; temporary previews are cleaned by rule.
 
+The gallery uses each system's recoverable trash (Linux, Windows Recycle Bin, macOS Trash).
+On Windows and macOS, launching Studio registers its native host for Chrome, Chromium, Brave and Edge.
+The extension connects to the running app without manually copying its token.
+
 ## Known limitations (beta)
 
 - Tested day to day on Arch (Wayland/Niri) with an AMD GPU. Windows and macOS packages have CI installation/startup checks, not a full manual UI or GPU validation.
 - Windows packages are unsigned; macOS packages use ad-hoc signing and are not Apple-notarized. OS security checks can block the first launch.
-- Browser Native Messaging registration and the gallery system-trash action currently require Linux. On Windows/macOS, failed trash operations leave originals intact. Legacy `.bash` engine launchers require Bash; Python test scripts use `python` on Windows and `python3` elsewhere (`SAYA_PYTHON` overrides this).
+- Legacy `.bash` engine launchers require Bash; Python test scripts use `python` on Windows and `python3` elsewhere (`SAYA_PYTHON` overrides this).
 - AppImage: presets and helpers are found next to the binary (`../share/saya-studio`); not run by hand yet.
 - Flatpak and Snap run sandboxed: access to ComfyUI and your folders goes through the permissions listed in
   their manifests; the browser extension bridge may not work there.

@@ -6,6 +6,10 @@
   with native installation/startup checks, bundled public presets, platform resource/user paths and Python
   process handling. Windows builds are unsigned; macOS builds are ad-hoc signed, not Apple-notarized.
 
+- **Windows/macOS integration:** add recoverable native gallery trash and automatic browser host
+  registration for Chrome, Chromium, Brave and Edge. The installed app handles Native Messaging;
+  the extension connects without a manually copied token. Linux keeps its existing integration.
+
 - **Unified download:** add `install.sh` to install Couple nodes, the Studio app, or both, plus a standalone
   `saya-couple-2.3.0.tar.gz` containing the unchanged public nodes, workflows and existing installer.
 

@@ -9,9 +9,9 @@ own setup. Back up your data and your ComfyUI folder before trying it.
 
 ## Windows and macOS downloads
 
-Native assets use source commit [`5edae80`](https://github.com/alphaziod/saya-studio-x-couple/commit/5edae8051d0d10770dd146f79eafd4c559b70ce1); the existing Linux packages and Couple archive are unchanged.
+Native assets use source commit [`9cd643d`](https://github.com/alphaziod/saya-studio-x-couple/commit/9cd643d65881bdf77ef44336a2bfcf7b75621729); the existing Linux packages and Couple archive are unchanged.
 
-[Native installation and startup checks](https://github.com/alphaziod/saya-studio-x-couple/actions/runs/41688038845) passed on all three platforms on 2026-11-03, using these exact installers. Preset hashes and initial database setup were verified; no GPU generation was run.
+[Native installation, startup and browser checks](https://github.com/alphaziod/saya-studio-x-couple/actions/runs/41745313792) passed on all three platforms on 2026-11-04, using these exact installers. Preset hashes and initial database setup were verified. The packaged extension connected through the real registered host to the running app in Chromium; an unrelated extension was refused. Native trash tests moved and restored a synthetic file on each platform during the [build run](https://github.com/alphaziod/saya-studio-x-couple/actions/runs/41692142023). That first run built all three installers but failed its browser harness; the linked successful check retested the same binaries with the corrected harness. No GPU generation was run.
 
 - **Windows 10/11 x64:** `saya-studio-1.0.0-beta.2-windows-x64.exe`. Run the installer; WebView2 is required (the installer handles it).
 - **Mac with Apple Silicon:** `saya-studio-1.0.0-beta.2-macos-arm64.dmg`.
@@ -22,7 +22,9 @@ Mac builds use ad-hoc signing and are not Apple-notarized, so the OS may block f
 Python 3 and a working ComfyUI installation remain separate requirements. The private draw engine is not included.
 These packages include the same public presets as Linux. Native package installation, startup and preset checks
 run in CI; a complete manual UI/GPU workflow has not been validated on these platforms.
-Browser Native Messaging registration and the gallery's system-trash action currently require Linux.
+The gallery now uses Windows Recycle Bin and macOS Trash, with recoverable deletion and no permanent-delete fallback.
+Launching Studio registers its browser host for Chrome, Chromium, Brave and Edge on Windows and macOS;
+the extension connects without manually copying a token. Linux keeps its existing integration.
 The nodes remain available in `saya-couple-2.3.0.tar.gz`; extract it and run `python installer/saya.py install`
 (or `python3` on macOS) from that folder. `install.sh` selects Linux app packages only.
 
