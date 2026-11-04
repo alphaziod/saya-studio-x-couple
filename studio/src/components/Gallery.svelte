@@ -13,7 +13,7 @@
   import VisualSearch from './VisualSearch.svelte';
   import Icon from './Icon.svelte';
   import { assetLabel, loadAssetNames } from '../lib/asset-names.svelte';
-  let {target=null,oncharacter=()=>{},onedit=()=>{},onworkflow=()=>{},ontree=()=>{},oncompare=()=>{}}:{target?:{character:string;asset:string|null}|null;oncharacter?:(id:string)=>void;onworkflow?:(asset:Asset)=>void;onedit?:(asset:Asset)=>void;ontree?:(job:string)=>void;oncompare?:(job:string)=>void}=$props();
+  let {active=true,target=null,oncharacter=()=>{},onedit=()=>{},onworkflow=()=>{},ontree=()=>{},oncompare=()=>{}}:{target?:{character:string;asset:string|null}|null;oncharacter?:(id:string)=>void;onworkflow?:(asset:Asset)=>void;active?:boolean;onedit?:(asset:Asset)=>void;ontree?:(job:string)=>void;oncompare?:(job:string)=>void}=$props();
   let images = $state<Asset[]>([]), characters = $state<Character[]>([]);
   let total = $state(0), busy = $state(false), loading = $state(false), error = $state(''), note = $state('');
   let root = $state(''), initializing=$state(true);
@@ -209,7 +209,7 @@
     }, 750);
     return () => { alive = false; ++serial; ++detailSerial; clearInterval(timer); clearTimeout(searchTimer); };
   });
-</script><svelte:window onkeydown={event=>{menuKey(event);viewerKey(event)}} onclick={()=>{menu=null}}/>
+</script><svelte:window onkeydown={event=>{if(!active)return;menuKey(event);viewerKey(event)}} onclick={()=>{menu=null}}/>
 <div class="gallery wb">
 <aside class="wb-panel left" aria-label={$t("Filtres")}>
   <div class="wb-head"><h1 class="vh">{$t("Galerie")}</h1><input class="search" aria-label={$t("Rechercher une image")} placeholder={$t("Rechercher…")} title={$t("Nom de fichier ou dossier")} bind:value={filters.search} oninput={search} /></div>

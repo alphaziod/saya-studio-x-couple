@@ -37,8 +37,15 @@
   let generationImage=$state<string|null>(null);
   let characterTarget=$state<string|null>(null),galleryTarget=$state<{character:string;asset:string|null}|null>(null);
   let editorTarget=$state<Asset|null>(null);
-  function showCharacter(id:string){characterTarget=id;galleryTarget=null;navigate('characters',true);}
-  function showGallery(character:string,asset:string|null=null){galleryTarget={character,asset};characterTarget=null;navigate('gallery',true);}
+  // Heavy pages stay mounted (hidden) once visited: switching back is instant and keeps their
+  // state (filters, scroll, selection) instead of reloading everything. A contextual opening
+  // (a character's gallery, a given sheet) remounts the page through its epoch.
+  const KEPT=['gallery','casting','characters','lora'];
+  let visited=$state<Record<string,boolean>>({});
+  $effect(()=>{if(KEPT.includes(selected)&&!visited[selected])visited={...visited,[selected]:true}});
+  let galleryEpoch=$state(0),charactersEpoch=$state(0);
+  function showCharacter(id:string){characterTarget=id;galleryTarget=null;charactersEpoch++;navigate('characters',true);}
+  function showGallery(character:string,asset:string|null=null){galleryTarget={character,asset};characterTarget=null;galleryEpoch++;navigate('gallery',true);}
   let comparisonTarget=$state<string|null>(null);
   function showComparison(job:string){comparisonTarget=job;navigate('generation',true);}
   // Gallery « Envoyer au workflow complet »: Create opens the PNG's embedded workflow (imagePath).
@@ -89,8 +96,12 @@
     {#if !native}<p class="notice" role="status">{$t("Aperçu navigateur : ouvrir le binaire Saya Studio pour lire les données locales.")}</p>{/if}
     {#if error}<p class="error" role="alert">{error}</p>{/if}
     {#if help && pageGuides[selected]}<aside class="guide-pop" aria-label={$t("Mode d’emploi")} data-page-guide={selected}><header><strong>{$t(pageGuides[selected].title)}</strong><button class="quiet icon-btn" aria-label={$t("Fermer")} onclick={() => help = false}><Icon name="close"/></button></header><p>{$t(pageGuides[selected].next)}</p></aside>{/if}
-    <div class="screen" class:page={!fullBleed.has(selected)} hidden={selected === 'generation'}>
-      {#if selected === 'gallery'}<Gallery target={galleryTarget} oncharacter={showCharacter} onedit={showEditor} onworkflow={showWorkflow} oncompare={showComparison} />{:else if selected === 'lora'}<LoraManager />{:else if selected === 'generation'}{:else if selected === 'casting'}<Casting onconfigure={()=>navigate('generation')} onbrowse={()=>navigate('gallery')} />{:else if selected === 'people'}<CharacterGallery onimage={(character,asset)=>showGallery(character,asset)} />{:else if selected === 'characters'}<Characters initialId={characterTarget} onimage={(character,asset)=>showGallery(character,asset)} onbrowse={id=>showGallery(id)} />{:else if selected === 'engine'}<Engine />{:else if selected === 'workflows'}<Workflows />{:else if selected === 'scenes'}<SceneComposer />{:else if selected === 'modules'}<Modules />{:else if selected === 'ablab'}<AbLab />{:else if selected === 'data'}<DataMaintenance />{:else if selected === 'settings'}<Settings ondevmode={value=>{devMode=value}} />{:else if selected === 'dev' && devMode}<DevMode onprefs={setDevMode} />{:else if selected === 'editor'}<ImageEditor target={editorTarget} onclose={()=>navigate('gallery')} />{:else if selected === 'graph'}<GraphEditor />{:else if selected === 'pipelines'}<Pipelines />{:else}<PromptEngine />{/if}
+    {#if visited.gallery}<div class="screen" class:page={!fullBleed.has('gallery')} hidden={selected!=='gallery'}>{#key galleryEpoch}<Gallery active={selected==='gallery'} target={galleryTarget} oncharacter={showCharacter} onedit={showEditor} onworkflow={showWorkflow} oncompare={showComparison} />{/key}</div>{/if}
+    {#if visited.casting}<div class="screen" class:page={!fullBleed.has('casting')} hidden={selected!=='casting'}><Casting active={selected==='casting'} onconfigure={()=>navigate('generation')} onbrowse={()=>navigate('gallery')} /></div>{/if}
+    {#if visited.characters}<div class="screen" class:page={!fullBleed.has('characters')} hidden={selected!=='characters'}>{#key charactersEpoch}<Characters initialId={characterTarget} onimage={(character,asset)=>showGallery(character,asset)} onbrowse={id=>showGallery(id)} />{/key}</div>{/if}
+    {#if visited.lora}<div class="screen" class:page={!fullBleed.has('lora')} hidden={selected!=='lora'}><LoraManager /></div>{/if}
+    <div class="screen" class:page={!fullBleed.has(selected)} hidden={selected === 'generation' || KEPT.includes(selected)}>
+      {#if KEPT.includes(selected) || selected === 'generation'}{:else if selected === 'people'}<CharacterGallery onimage={(character,asset)=>showGallery(character,asset)} />{:else if selected === 'engine'}<Engine />{:else if selected === 'workflows'}<Workflows />{:else if selected === 'scenes'}<SceneComposer />{:else if selected === 'modules'}<Modules />{:else if selected === 'ablab'}<AbLab />{:else if selected === 'data'}<DataMaintenance />{:else if selected === 'settings'}<Settings ondevmode={value=>{devMode=value}} />{:else if selected === 'dev' && devMode}<DevMode onprefs={setDevMode} />{:else if selected === 'editor'}<ImageEditor target={editorTarget} onclose={()=>navigate('gallery')} />{:else if selected === 'graph'}<GraphEditor />{:else if selected === 'pipelines'}<Pipelines />{:else}<PromptEngine />{/if}
     </div>
     {#if generationMounted}<div class="screen" hidden={selected!=='generation'}><Generation active={selected==='generation'} imagePath={generationImage} comparisonJob={comparisonTarget} oncloseComparison={()=>comparisonTarget=null} /></div>{/if}
   </main>

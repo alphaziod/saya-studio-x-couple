@@ -15,7 +15,8 @@
   import ContextMenu from './ContextMenu.svelte';
   import type { MenuItem } from '../lib/context-menu';
   import ActionDrafts from './ActionDrafts.svelte';
-  let {onconfigure=()=>{},onbrowse=()=>{}}:{onconfigure?:()=>void;onbrowse?:()=>void}=$props();
+  // `active` is false while the page is kept mounted but hidden: its shortcuts then stay quiet.
+  let {active=true,onconfigure=()=>{},onbrowse=()=>{}}:{active?:boolean;onconfigure?:()=>void;onbrowse?:()=>void}=$props();
   // 1-to-1 casting (V0.1): the panel leaves Generation and lives in its own menu.
   // NO workflow config here: this menu CONSUMES the preparation set in Generation
   // (generationWorkspace preference: resumed session + pending drafts applied,
@@ -462,6 +463,7 @@
   async function portraitNo(){if(portraitQueue.length)await task(()=>portraitAttempt(portraitQueue[0]))}
   async function portraitSkip(){await task(()=>portraitNext(portraitQueue.slice(1)))}
   function stepKeys(e:KeyboardEvent){
+    if(!active)return;
     if(portraitView&&!busy&&!(e.target as HTMLElement)?.closest?.('input,textarea,select')){
       if(e.key==='o'||e.key==='O'){e.preventDefault();void portraitYes()}
       else if(e.key==='n'||e.key==='N'){e.preventDefault();void portraitNo()}
