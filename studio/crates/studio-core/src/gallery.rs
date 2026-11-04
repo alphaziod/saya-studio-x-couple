@@ -821,93 +821,48 @@ impl Database {
         if f.capture == "all" || self.connection.path().is_none_or(|path| path.is_empty()) {
             return Ok((clause, values));
         }
-        // Old deliveries have no capture_phase. Read their run manifests without
-        // rewriting the catalogue; cache only job IDs, never the large workflows.
-        type Stamp = Vec<(std::path::PathBuf, std::time::SystemTime, u64)>;
-        static CACHE: std::sync::Mutex<Option<(Stamp, String)>> = std::sync::Mutex::new(None);
-        let root = self.pass_state_root()?.join("saya-runs");
-        let mut stamp = Vec::new();
-        if root.is_dir() {
-            for entry in std::fs::read_dir(root)? {
-                let entry = entry?;
-                if entry.path().extension().is_none_or(|e| e != "json") {
-                    continue;
-                }
-                let Ok(meta) = entry.metadata() else { continue };
-                if let (true, Ok(modified)) = (meta.is_file(), meta.modified()) {
-                    stamp.push((entry.path(), modified, meta.len()));
-                }
-            }
-        }
-        stamp.sort_by(|a, b| a.0.cmp(&b.0));
-        let mut cache = CACHE.lock().map_err(|_| "Cache des phases indisponible")?;
-        if cache.as_ref().is_none_or(|(old, _)| old != &stamp) {
-            #[derive(serde::Deserialize)]
-            struct Phase {
-                job: Option<String>,
-                asset: Option<String>,
-                state: Option<String>,
-            }
-            #[derive(serde::Deserialize)]
-            struct Run {
-                #[serde(default)]
-                phases: std::collections::BTreeMap<String, Phase>,
-                #[serde(default)]
-                casting: Value,
-                #[serde(default, rename = "retiredJobs")]
-                retired_jobs: Vec<String>,
-                #[serde(default, rename = "retiredFinals")]
-                retired_finals: Vec<String>,
-            }
-            let mut hidden = Vec::new();
-            for (path, _, _) in &stamp {
-                let parsed = std::fs::File::open(path)
-                    .map_err(|e| e.to_string())
-                    .and_then(|f| {
-                        serde_json::from_reader::<_, Run>(std::io::BufReader::new(f))
-                            .map_err(|e| e.to_string())
-                    });
-                let run = match parsed {
-                    Ok(run) => run,
-                    Err(error) => {
-                        eprintln!("Manifeste Saya ignoré {}: {error}", path.display());
-                        continue;
-                    }
-                };
-                // A superseded final stays visible until the new attempt validates phase 6.
-                let new_final = run.phases.get("6").is_some_and(|p| {
-                    p.state.as_deref() == Some("succeeded") && p.asset.is_some()
-                });
-                hidden.extend(
-                    run.retired_jobs
-                        .iter()
-                        .filter(|job| new_final || !run.retired_finals.contains(job))
-                        .cloned(),
-                );
-                let finished = run
-                    .phases
-                    .get("6")
-                    .is_some_and(|p| p.state.as_deref() == Some("succeeded") && p.asset.is_some());
-                let unapproved = run.casting.is_object() && run.casting["published"] != true;
-                for (phase, info) in run.phases {
-                    if unapproved
-                        || matches!(phase.as_str(), "2" | "3" | "4" | "5")
-                        || (phase == "1" && finished)
-                    {
-                        if let Some(job) = info.job {
-                            hidden.push(job);
-                        }
+        // Old deliveries have no capture_phase: the run manifests say which jobs are
+        // intermediate passes, retired attempts or unapproved casting trials. They come from the
+        // cached run listing (`saya_runs`), which only reparses changed manifests; reading all of
+        // them here cost ~2 s on a real library every time a single run changed.
+        let mut hidden = Vec::new();
+        for run in self.saya_runs()? {
+            let phase_done = |phase: &str| {
+                run["phases"][phase]["state"] == "succeeded" && run["phases"][phase]["asset"].is_string()
+            };
+            // A superseded final stays visible until the new attempt validates phase 6.
+            let new_final = phase_done("6");
+            let finals: Vec<&str> = run["retiredFinals"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(Value::as_str)
+                .collect();
+            hidden.extend(
+                run["retiredJobs"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(Value::as_str)
+                    .filter(|job| new_final || !finals.contains(job))
+                    .map(str::to_owned),
+            );
+            let unapproved = run["casting"].is_object() && run["casting"]["published"] != true;
+            for (phase, info) in run["phases"].as_object().into_iter().flatten() {
+                if unapproved
+                    || matches!(phase.as_str(), "2" | "3" | "4" | "5")
+                    || (phase == "1" && new_final)
+                {
+                    if let Some(job) = info["job"].as_str() {
+                        hidden.push(job.to_owned());
                     }
                 }
             }
-            *cache = Some((stamp, serde_json::to_string(&hidden)?));
         }
-        if let Some((_, hidden)) = cache.as_ref() {
             clause.push_str(" AND NOT EXISTS (SELECT 1 FROM job_outputs jo WHERE jo.asset_id=a.id AND jo.job_id IN (SELECT value FROM json_each(?)))");
             // A preview copy (Saya review gate) is hidden when its job also saved a real image.
             clause.push_str(" AND NOT EXISTS (SELECT 1 FROM job_outputs jo WHERE jo.asset_id=a.id AND jo.output_kind='preview' AND EXISTS (SELECT 1 FROM job_outputs j2 WHERE j2.job_id=jo.job_id AND j2.output_kind<>'preview'))");
-            values.push(hidden.clone().into());
-        }
+        values.push(serde_json::to_string(&hidden)?.into());
         Ok((clause, values))
     }
 

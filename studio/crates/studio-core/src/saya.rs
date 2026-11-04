@@ -424,6 +424,10 @@ fn runs_root(db: &Database) -> CoreResult<PathBuf> {
     std::fs::create_dir_all(&root)?;
     Ok(root)
 }
+#[cfg(test)]
+pub(crate) fn saya_runs_root_for_tests(db: &Database) -> PathBuf {
+    runs_root(db).unwrap()
+}
 fn run_file(db: &Database, run: &str) -> CoreResult<PathBuf> {
     if run.len() < 8 || !run.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
         return Err("Run Saya invalide".into());
@@ -432,6 +436,17 @@ fn run_file(db: &Database, run: &str) -> CoreResult<PathBuf> {
 }
 /// `pub(crate)`: the casting stop/pause/resume/save commands (casting.rs)
 /// read and persist the SAME manifest, without duplicating its paths.
+/// Run manifests listed by `saya_runs`, without their `source`, cached per file and keyed by
+/// modification time and size. A casting keeps hundreds of runs whose frozen workflow weighs
+/// megabytes each: every history, background tick and batch operation used to read and parse all
+/// of them again (hundreds of MB, seconds each time). Only changed files are read now.
+type RunStamp = (std::time::SystemTime, u64);
+fn run_cache() -> &'static std::sync::Mutex<std::collections::HashMap<PathBuf, (RunStamp, Value)>> {
+    static CACHE: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<PathBuf, (RunStamp, Value)>>> =
+        std::sync::OnceLock::new();
+    CACHE.get_or_init(Default::default)
+}
+
 pub(crate) fn read_run(db: &Database, run: &str) -> CoreResult<Value> {
     let bytes = match std::fs::read(run_file(db, run)?) {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
@@ -513,16 +528,31 @@ fn remove_stale_run_temps(root: &Path) {
 impl Database {
     /// Read existing manifests for UI recovery, including when the engine is offline.
     pub fn saya_runs(&self) -> CoreResult<Vec<Value>> {
-        let mut runs = Vec::new();
-        let root = runs_root(self)?;
+        // Listing never creates the folder: readers such as the gallery call it too.
+        let root = self.pass_state_root()?.join("saya-runs");
+        if !root.is_dir() {
+            return Ok(Vec::new());
+        }
         remove_stale_run_temps(&root);
+        let mut cache = run_cache().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut present = std::collections::HashSet::new();
+        let mut runs = Vec::new();
         for entry in std::fs::read_dir(&root)? {
             let entry = entry?;
-            if !entry.file_type()?.is_file() || entry.path().extension().is_none_or(|e| e != "json")
-            {
+            let path = entry.path();
+            if !entry.file_type()?.is_file() || path.extension().is_none_or(|e| e != "json") {
                 continue;
             }
-            let parsed = std::fs::read(entry.path())
+            let metadata = entry.metadata()?;
+            let stamp = (metadata.modified()?, metadata.len());
+            present.insert(path.clone());
+            if let Some((cached_stamp, value)) = cache.get(&path) {
+                if *cached_stamp == stamp {
+                    runs.push(value.clone());
+                    continue;
+                }
+            }
+            let parsed = std::fs::read(&path)
                 .map_err(|e| e.to_string())
                 .and_then(|bytes| {
                     serde_json::from_slice::<Value>(&bytes).map_err(|e| e.to_string())
@@ -537,15 +567,20 @@ impl Database {
             let mut value = match parsed {
                 Ok(value) => value,
                 Err(error) => {
-                    eprintln!("Manifeste Saya ignoré {}: {error}", entry.path().display());
+                    eprintln!("Manifeste Saya ignoré {}: {error}", path.display());
+                    cache.remove(&path);
                     continue;
                 }
             };
             if let Some(object) = value.as_object_mut() {
                 object.remove("source");
             }
+            cache.insert(path, (stamp, value.clone()));
             runs.push(value);
         }
+        // Deleted runs leave the cache (only this database's folder is pruned).
+        cache.retain(|path, _| !path.starts_with(&root) || present.contains(path));
+        drop(cache);
         runs.sort_by(|a, b| b["createdAt"].as_str().cmp(&a["createdAt"].as_str()));
         Ok(runs)
     }
@@ -2473,5 +2508,33 @@ mod run_manifest_resilience_tests {
         run["retiredJobs"] = json!(["job-old-0001"]);
         write_run(&db, "restart-run-1", &run).unwrap();
         assert_eq!(visible_ids(&db), vec!["asset-new"]);
+    }
+}
+
+#[cfg(test)]
+mod run_cache_tests {
+    use super::{saya_runs_root_for_tests, write_run};
+    use crate::Database;
+    use serde_json::json;
+
+    /// The listing cache must never serve a stale run: an update, a new run and a deletion are
+    /// all visible at the next listing, and `source` never reaches the listing.
+    #[test]
+    fn listing_follows_updates_creations_and_deletions() {
+        let dir = std::env::temp_dir().join(format!("saya-run-cache-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let db = Database::open(&dir.join("studio.sqlite3")).unwrap();
+        write_run(&db, "run-cache-0001", &json!({"id":"run-cache-0001","state":"running","source":"{}"})).unwrap();
+        assert_eq!(db.saya_runs().unwrap()[0]["state"], "running");
+        assert!(db.saya_runs().unwrap()[0].get("source").is_none());
+        write_run(&db, "run-cache-0001", &json!({"id":"run-cache-0001","state":"completed!","source":"{}"})).unwrap();
+        assert_eq!(db.saya_runs().unwrap()[0]["state"], "completed!", "update seen");
+        write_run(&db, "run-cache-0002", &json!({"id":"run-cache-0002","state":"running"})).unwrap();
+        assert_eq!(db.saya_runs().unwrap().len(), 2, "creation seen");
+        std::fs::remove_file(saya_runs_root_for_tests(&db).join("run-cache-0001.json")).unwrap();
+        let runs = db.saya_runs().unwrap();
+        assert_eq!(runs.len(), 1, "deletion seen");
+        assert_eq!(runs[0]["id"], "run-cache-0002");
+        let _ = std::fs::remove_dir_all(dir);
     }
 }

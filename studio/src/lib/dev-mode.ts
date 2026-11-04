@@ -19,7 +19,8 @@ export const READ_ONLY_ACTIONS: ReadonlySet<string> = new Set([
 /** Action names called somewhere in src/ (suggestions for the console; any other name can still be typed). */
 export const KNOWN_ACTIONS: readonly string[] = [
   'ab_campaign', 'ab_campaigns', 'ab_cell_diff', 'ab_plan', 'action_draft_delete', 'action_draft_promote',
-  'action_drafts', 'action_draft_save', 'action_drafts_refresh', 'actions_lister', 'add_ab_parameter',
+  'action_drafts', 'action_draft_save', 'action_drafts_refresh', 'action_pending_refuse', 'action_pending_test',
+  'action_pending_unrefuse', 'action_pending_validate', 'actions_lister', 'add_ab_parameter',
   'add_library_source', 'annotate', 'archive_character', 'associate', 'audit_prepare_profile',
   'backup_dependencies', 'backup_estimate', 'blur_document', 'blur_save', 'cancel_index',
   'cancel_pipeline_run', 'capture_checkpoint', 'casting_decide', 'casting_delete_lot',

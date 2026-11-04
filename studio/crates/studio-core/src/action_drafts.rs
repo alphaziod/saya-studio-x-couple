@@ -3,8 +3,14 @@
 //! promoted one by one into the real engine on the user's YES (`solo action add`, which
 //! validates the schema, refuses duplicates and keeps a backup for `solo rollback`).
 //!
-//! Layout under `<data>/action-drafts/`: `drafts.json` (the list), `engine/` (the copy,
-//! `engine/generez` is its engine directory), `tmp/` (action files handed to the CLI).
+//! The same copy also tests bank actions that are not validated yet ("waiting" actions):
+//! `prepare_pending_test` flags them drawable IN THE COPY ONLY; the user's decision is then
+//! `validate_pending` (real engine, `solo action patch`, backup kept) or `refuse_pending`
+//! (nothing written to the engine, only recorded in `pending.json`).
+//!
+//! Layout under `<data>/action-drafts/`: `drafts.json` (the list), `pending.json` (waiting
+//! actions prepared for a test and refused ones), `engine/` (the copy, `engine/generez` is
+//! its engine directory), `tmp/` (action files handed to the CLI).
 use crate::Result;
 use serde_json::{json, Map, Value};
 use std::path::{Path, PathBuf};
@@ -102,17 +108,204 @@ pub fn overview(root: &Path, engine: &Path) -> Result<Value> {
             "drafts": read_drafts(root)?,
             "families": [],
             "fields": {},
+            "waiting": [],
             "sandbox": false,
             "engineMissing": engine.display().to_string(),
         }));
     }
     Ok(json!({
         "drafts": read_drafts(root)?,
+        "waiting": waiting_rows(root, engine)?,
         "families": families(engine)?,
         // A bank without schema.json still lists drafts; saving then says what is missing.
         "fields": schema_fields(engine).unwrap_or_default(),
         "sandbox": sandbox_engine(root).join("test_solo.py").is_file(),
     }))
+}
+
+// ---------------------------------------------------------------------------------------
+// Waiting actions: bank actions that are not drawable yet (see `actions_bank`).
+// ---------------------------------------------------------------------------------------
+
+fn pending_file(root: &Path) -> PathBuf {
+    root.join("pending.json")
+}
+
+/// `{"prepared": [ids], "refused": [{id, date, note}]}`; a missing file is an empty store.
+fn read_pending(root: &Path) -> Result<Value> {
+    let mut store = match std::fs::read(pending_file(root)) {
+        Ok(bytes) => serde_json::from_slice::<Value>(&bytes)?,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => json!({}),
+        Err(e) => return Err(e.into()),
+    };
+    for key in ["prepared", "refused"] {
+        if !store[key].is_array() {
+            store[key] = json!([]);
+        }
+    }
+    Ok(store)
+}
+
+fn write_pending(root: &Path, store: &Value) -> Result<()> {
+    write_atomic(&pending_file(root), store)
+}
+
+/// Writes JSON next to the target then renames it over (never a half-written file).
+fn write_atomic(path: &Path, value: &Value) -> Result<()> {
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    let tmp = path.with_extension("json.tmp");
+    std::fs::write(&tmp, serde_json::to_vec_pretty(value)?)?;
+    std::fs::rename(tmp, path)?;
+    Ok(())
+}
+
+/// Reasons a sandbox test can override (`valide` / `hors_random` in the copy).
+fn testable(reason: &str) -> bool {
+    matches!(reason, "non_validee" | "hors_tirage")
+}
+
+/// The REAL bank's unavailable actions, each with its short `raison`, whether a test is
+/// possible (`testable`) and, when the user refused it, `refused: {date, note}`.
+fn waiting_rows(root: &Path, engine: &Path) -> Result<Vec<Value>> {
+    let store = read_pending(root)?;
+    let refused = store["refused"].as_array().cloned().unwrap_or_default();
+    let mut rows = Vec::new();
+    for mut row in crate::actions_bank::list_actions(&engine.join(ACTIONS))? {
+        if row["disponible"] != false {
+            continue;
+        }
+        let reason = row["raison"].as_str().unwrap_or("non_validee").to_owned();
+        row["testable"] = json!(testable(&reason));
+        if let Some(entry) = refused.iter().find(|r| r["id"] == row["name"]) {
+            row["refused"] = json!({"date": entry["date"], "note": entry["note"]});
+        }
+        rows.push(row);
+    }
+    Ok(rows)
+}
+
+/// The waiting row of `id`, or the reason it cannot be handled.
+fn waiting_row(root: &Path, engine: &Path, id: &str) -> Result<Value> {
+    waiting_rows(root, engine)?
+        .into_iter()
+        .find(|r| r["name"] == id)
+        .ok_or_else(|| format!("« {id} » n'est pas une action en attente de validation").into())
+}
+
+/// File of an engine whose bank holds `id`, with its parsed content.
+fn bank_file_of(engine: &Path, id: &str) -> Result<Option<(PathBuf, Value)>> {
+    for family in families(engine)? {
+        let path = engine.join(ACTIONS).join(format!("{family}.actions.json"));
+        let payload: Value = serde_json::from_slice(&std::fs::read(&path)?)?;
+        if payload["actions"].get(id).is_some() {
+            return Ok(Some((path, payload)));
+        }
+    }
+    Ok(None)
+}
+
+/// In the TEST COPY ONLY: flags `id` drawable (`valide: true`, no `hors_random`).
+fn flag_in_sandbox(root: &Path, id: &str) -> Result<()> {
+    let engine = sandbox_engine(root);
+    let Some((path, mut payload)) = bank_file_of(&engine, id)? else {
+        return Err(format!("« {id} » absente de la copie de test : refais la copie de test").into());
+    };
+    let action = payload["actions"][id]
+        .as_object_mut()
+        .ok_or_else(|| format!("« {id} » n'est pas un objet JSON"))?;
+    action.insert("valide".into(), Value::Bool(true));
+    action.remove("hors_random");
+    write_atomic(&path, &payload)?;
+    solo(&engine, &["action", "validate", id])?;
+    Ok(())
+}
+
+/// Test of waiting actions: flags them drawable IN THE COPY (real engine untouched) and
+/// remembers them so the casting draft mode accepts them. Returns the refreshed overview.
+pub fn prepare_pending_test(root: &Path, engine: &Path, ids: &[String]) -> Result<Value> {
+    if ids.is_empty() {
+        return Err("Coche au moins une action en attente à tester".into());
+    }
+    for id in ids {
+        let row = waiting_row(root, engine, id)?;
+        let reason = row["raison"].as_str().unwrap_or_default();
+        if !testable(reason) {
+            return Err(format!("« {id} » ne peut pas être tirée seule ({reason}) : test impossible").into());
+        }
+    }
+    ensure_sandbox(root, engine, false)?;
+    let mut store = read_pending(root)?;
+    for id in ids {
+        flag_in_sandbox(root, id)?;
+        let prepared = store["prepared"].as_array_mut().expect("normalised by read_pending");
+        if !prepared.iter().any(|p| p == id) {
+            prepared.push(json!(id));
+        }
+    }
+    write_pending(root, &store)?;
+    overview(root, engine)
+}
+
+/// The user's YES on a waiting action: the REAL engine patches `valide: true`
+/// (`solo action patch`, dry run then apply; the engine keeps a backup for `solo rollback`).
+/// The overview carries `last: {id, backup}`.
+pub fn validate_pending(root: &Path, engine: &Path, id: &str) -> Result<Value> {
+    let row = waiting_row(root, engine, id)?;
+    let reason = row["raison"].as_str().unwrap_or_default();
+    if !testable(reason) {
+        return Err(format!("« {id} » ne peut pas être validée ainsi ({reason})").into());
+    }
+    if reason == "hors_tirage" {
+        return Err(format!(
+            "« {id} » est « hors_random » : le CLI ne sait pas retirer ce champ, édite la banque à la main"
+        )
+        .into());
+    }
+    let file = action_file(root, &format!("{id}.patch"), &json!({"valide": true}))?;
+    let file = file.to_str().ok_or("Chemin non UTF-8")?;
+    let base = ["action", "patch", id, "--file", file];
+    solo(engine, &[&base[..], &["--dry-run"]].concat())?;
+    let applied = solo(engine, &[&base[..], &["--apply", "--yes"]].concat())?;
+    let mut store = read_pending(root)?;
+    for key in ["prepared", "refused"] {
+        if let Some(list) = store[key].as_array_mut() {
+            list.retain(|e| e != id && e["id"] != id);
+        }
+    }
+    write_pending(root, &store)?;
+    let mut view = overview(root, engine)?;
+    view["last"] = json!({"id": id, "backup": applied["backup"]});
+    Ok(view)
+}
+
+/// The user's NO: nothing is written to the engine; the refusal (date, optional note) is
+/// recorded so the action moves to the refused list. Returns the refreshed overview.
+pub fn refuse_pending(root: &Path, engine: &Path, id: &str, note: &str) -> Result<Value> {
+    waiting_row(root, engine, id)?;
+    let mut store = read_pending(root)?;
+    for key in ["prepared", "refused"] {
+        if let Some(list) = store[key].as_array_mut() {
+            list.retain(|e| e != id && e["id"] != id);
+        }
+    }
+    store["refused"]
+        .as_array_mut()
+        .expect("normalised by read_pending")
+        .push(json!({"id": id, "date": now(), "note": note.trim()}));
+    write_pending(root, &store)?;
+    overview(root, engine)
+}
+
+/// Undoes a refusal: the action is simply waiting again.
+pub fn unrefuse_pending(root: &Path, engine: &Path, id: &str) -> Result<Value> {
+    let mut store = read_pending(root)?;
+    if let Some(list) = store["refused"].as_array_mut() {
+        list.retain(|e| e["id"] != id);
+    }
+    write_pending(root, &store)?;
+    overview(root, engine)
 }
 
 /// Runs `python3 solo_cli.py <args> --json` in an engine directory and returns the JSON
@@ -182,6 +375,11 @@ pub fn ensure_sandbox(root: &Path, engine: &Path, force: bool) -> Result<()> {
         if draft["state"] == "draft" {
             write_into_sandbox(root, &draft)?;
         }
+    }
+    // Waiting actions prepared for a test are flagged again in the fresh copy; one that no
+    // longer exists in the engine is just skipped.
+    for id in read_pending(root)?["prepared"].as_array().into_iter().flatten().filter_map(Value::as_str) {
+        let _ = flag_in_sandbox(root, id);
     }
     Ok(())
 }
@@ -334,13 +532,17 @@ pub fn promote(root: &Path, engine: &Path, id: &str) -> Result<Value> {
     Ok(drafts[index].clone())
 }
 
-/// Draft ids accepted by the casting in draft mode (pending drafts only).
+/// Ids accepted by the casting in draft mode (pending drafts and prepared waiting actions).
 pub fn pending_ids(root: &Path) -> Result<Vec<String>> {
-    Ok(read_drafts(root)?
+    let mut ids: Vec<String> = read_drafts(root)?
         .iter()
         .filter(|d| d["state"] == "draft")
         .filter_map(|d| d["id"].as_str().map(str::to_owned))
-        .collect())
+        .collect();
+    // Waiting actions prepared for a test are drawable from the copy too.
+    let store = read_pending(root)?;
+    ids.extend(store["prepared"].as_array().into_iter().flatten().filter_map(Value::as_str).map(str::to_owned));
+    Ok(ids)
 }
 
 #[cfg(test)]
@@ -411,6 +613,59 @@ mod tests {
         save(&root, &engine, "assise_b", "assise", &json!({"add": "sitting b"})).unwrap();
         ensure_sandbox(&root, &engine, true).unwrap();
         assert_eq!(bank(&sandbox, "assise")["actions"]["assise_b"]["add"], "sitting b");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn waiting_actions_are_tested_in_the_copy_and_decided_explicitly() {
+        let dir = std::env::temp_dir().join(format!("drafts-waiting-{}", uuid::Uuid::new_v4()));
+        let engine = fake_engine(&dir);
+        let actions = engine.join(ACTIONS);
+        std::fs::write(
+            actions.join("assise.actions.json"),
+            r#"{"actions":{"attente":{"add":"sitting"},"duo":{"add":"d","valide":true,"pas_solo":true},"ecartee":{"add":"e","valide":false}}}"#,
+        )
+        .unwrap();
+        std::fs::write(actions.join("_ordre.json"), r#"["existante","attente","duo","ecartee"]"#).unwrap();
+        let root = dir.join("data").join("action-drafts");
+        let real_before = std::fs::read(actions.join("assise.actions.json")).unwrap();
+
+        // Listing: unavailable rows with a short reason; structural ones are not testable.
+        let view = overview(&root, &engine).unwrap();
+        let row = |id: &str| view["waiting"].as_array().unwrap().iter().find(|r| r["name"] == id).cloned();
+        assert_eq!(row("attente").unwrap()["raison"], "non_validee");
+        assert_eq!(row("attente").unwrap()["testable"], true);
+        assert_eq!(row("duo").unwrap()["raison"], "duo_seulement");
+        assert_eq!(row("duo").unwrap()["testable"], false);
+        assert!(row("existante").is_none(), "available actions are not waiting");
+        assert!(prepare_pending_test(&root, &engine, &["duo".into()]).is_err());
+        assert!(prepare_pending_test(&root, &engine, &["existante".into()]).is_err());
+        assert!(prepare_pending_test(&root, &engine, &[]).is_err());
+
+        // Test: only the copy is flagged drawable; the real engine bytes do not change.
+        prepare_pending_test(&root, &engine, &["attente".into()]).unwrap();
+        assert_eq!(bank(&sandbox_engine(&root), "assise")["actions"]["attente"]["valide"], true);
+        assert_eq!(std::fs::read(actions.join("assise.actions.json")).unwrap(), real_before, "real engine untouched");
+        assert!(pending_ids(&root).unwrap().contains(&"attente".to_owned()));
+        // A refreshed copy replays the flag.
+        ensure_sandbox(&root, &engine, true).unwrap();
+        assert_eq!(bank(&sandbox_engine(&root), "assise")["actions"]["attente"]["valide"], true);
+
+        // Refuse: nothing written to the engine, recorded, undoable.
+        let refused = refuse_pending(&root, &engine, "ecartee", " trop flou ").unwrap();
+        let ecartee = refused["waiting"].as_array().unwrap().iter().find(|r| r["name"] == "ecartee").unwrap().clone();
+        assert_eq!(ecartee["refused"]["note"], "trop flou");
+        assert_eq!(std::fs::read(actions.join("assise.actions.json")).unwrap(), real_before, "refusal writes nothing");
+        let back = unrefuse_pending(&root, &engine, "ecartee").unwrap();
+        assert!(back["waiting"].as_array().unwrap().iter().all(|r| r["name"] != "ecartee" || r.get("refused").is_none()));
+        assert!(refuse_pending(&root, &engine, "existante", "").is_err());
+
+        // Validate: the real engine's CLI writes valide:true and reports its backup.
+        assert!(validate_pending(&root, &engine, "duo").is_err());
+        let done = validate_pending(&root, &engine, "attente").unwrap();
+        assert_eq!(done["last"]["backup"], "_backups/fake-patch-attente");
+        assert_eq!(bank(&engine, "assise")["actions"]["attente"]["valide"], true);
+        assert!(!pending_ids(&root).unwrap().contains(&"attente".to_owned()));
         let _ = std::fs::remove_dir_all(&dir);
     }
 

@@ -663,6 +663,24 @@ enum Request {
     },
     /// Rebuild the test copy from the real engine and replay pending drafts.
     ActionDraftsRefresh,
+    /// Test waiting (not validated) bank actions: flagged drawable in the test copy only.
+    ActionPendingTest {
+        ids: Vec<String>,
+    },
+    /// The user's YES on a waiting action: real engine `solo action patch` (backup kept).
+    ActionPendingValidate {
+        id: String,
+    },
+    /// The user's NO: recorded in the drafts store, nothing written to the engine.
+    ActionPendingRefuse {
+        id: String,
+        #[serde(default)]
+        note: String,
+    },
+    /// Undo a refusal.
+    ActionPendingUnrefuse {
+        id: String,
+    },
     /// Step-by-step casting: release the next trial of this run's batch.
     CastingNext {
         run: String,
@@ -1240,6 +1258,12 @@ fn action_drafts_request(s: &AppState, request: Request) -> Result<Value> {
             action_drafts::ensure_sandbox(&root, &engine, true)?;
             action_drafts::overview(&root, &engine)?
         }
+        Request::ActionPendingTest { ids } => action_drafts::prepare_pending_test(&root, &engine, &ids)?,
+        Request::ActionPendingValidate { id } => action_drafts::validate_pending(&root, &engine, &id)?,
+        Request::ActionPendingRefuse { id, note } => {
+            action_drafts::refuse_pending(&root, &engine, &id, &note)?
+        }
+        Request::ActionPendingUnrefuse { id } => action_drafts::unrefuse_pending(&root, &engine, &id)?,
         _ => unreachable!("action_drafts_request receives action-draft requests only"),
     })
 }
@@ -3115,6 +3139,10 @@ fn handle_inner(s: &AppState, request: Request) -> Result<Value> {
         Request::ActionDraftDelete { .. } => return action_drafts_request(s, request),
         Request::ActionDraftPromote { .. } => return action_drafts_request(s, request),
         Request::ActionDraftsRefresh => return action_drafts_request(s, request),
+        Request::ActionPendingTest { .. } => return action_drafts_request(s, request),
+        Request::ActionPendingValidate { .. } => return action_drafts_request(s, request),
+        Request::ActionPendingRefuse { .. } => return action_drafts_request(s, request),
+        Request::ActionPendingUnrefuse { .. } => return action_drafts_request(s, request),
         Request::CastingLancer {
             graine,
             nombre,
@@ -3924,6 +3952,10 @@ fn handle_inner(s: &AppState, request: Request) -> Result<Value> {
         | Request::ActionDraftDelete { .. }
         | Request::ActionDraftPromote { .. }
         | Request::ActionDraftsRefresh
+        | Request::ActionPendingTest { .. }
+        | Request::ActionPendingValidate { .. }
+        | Request::ActionPendingRefuse { .. }
+        | Request::ActionPendingUnrefuse { .. }
         | Request::GenerationBrowser
         | Request::ComfyOutputInfo
         | Request::GenerationBrowserImage { .. }

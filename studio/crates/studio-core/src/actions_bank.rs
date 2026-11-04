@@ -201,30 +201,32 @@ fn ban_slime(action: &mut Value) {
     }
 }
 
-/// A/B CONVERGENCE: the `available` filter, exact port of the draw rule (see the
-/// documentation block above). `in_order` covers the engine constraint specific to
-/// FILES (`valider_actions_familles` refuses an id absent from `_ordre.json`); the sisters
-/// cloned in memory belong to the engine bank by construction and pass
-/// `in_order = true`.
-fn available(action: &Value, in_order: bool, nom: &str) -> bool {
-    if !in_order
-        || !truthy(action.get("valide"))
-        || truthy(action.get("hors_random"))
-        || truthy(action.get("pas_solo"))
-        || lora_blocked(action)
-        || action_retired(nom)
-    {
-        return false;
+/// Why an action is out of the solo draw, as a short code for the Casting "Brouillons"
+/// panel (`None` = drawable). The conditions are exactly those of the available rule
+/// (see the documentation block above); only the order decides which code is reported:
+/// structural reasons first (nothing the sandbox can fix), then the two flags a test may
+/// override in the sandbox copy (`hors_tirage`, `non_validee`).
+pub fn unavailable_reason(action: &Value, in_order: bool, nom: &str) -> Option<&'static str> {
+    if action_retired(nom) {
+        return Some("retiree");
+    }
+    if truthy(action.get("pas_solo")) {
+        return Some("duo_seulement");
+    }
+    if lora_blocked(action) {
+        return Some("lora_bloquee");
+    }
+    if !in_order {
+        return Some("hors_ordre");
     }
     if let Some(rx) = action
         .get("persos_rx")
         .and_then(Value::as_str)
         .filter(|r| !r.is_empty())
     {
-        let matched = Regex::new(rx).map(|re| re.is_match(BASE_CONTEXT));
-        match matched {
+        match Regex::new(rx).map(|re| re.is_match(BASE_CONTEXT)) {
             Ok(true) => {}
-            _ => return false,
+            _ => return Some("filtre_perso"),
         }
     }
     // `action.get("persos_exclure_rx") or "$^"`: empty string = never matched.
@@ -233,10 +235,25 @@ fn available(action: &Value, in_order: bool, nom: &str) -> bool {
         .and_then(Value::as_str)
         .filter(|r| !r.is_empty())
         .unwrap_or("$^");
-    match Regex::new(exclude).map(|re| re.is_match(BASE_CONTEXT)) {
-        Ok(true) => false,
-        _ => true,
+    if let Ok(true) = Regex::new(exclude).map(|re| re.is_match(BASE_CONTEXT)) {
+        return Some("filtre_perso");
     }
+    if truthy(action.get("hors_random")) {
+        return Some("hors_tirage");
+    }
+    if !truthy(action.get("valide")) {
+        return Some("non_validee");
+    }
+    None
+}
+
+/// A/B CONVERGENCE: the `available` filter, exact port of the draw rule (see the
+/// documentation block above). `in_order` covers the engine constraint specific to
+/// FILES (`valider_actions_familles` refuses an id absent from `_ordre.json`); the sisters
+/// cloned in memory belong to the engine bank by construction and pass
+/// `in_order = true`.
+fn available(action: &Value, in_order: bool, nom: &str) -> bool {
+    unavailable_reason(action, in_order, nom).is_none()
 }
 
 /// Port of `donnees.enrich_flaccid` (donnees.py:1478): the `_flaccide` sisters of the
@@ -297,6 +314,10 @@ fn entry(nom: &str, famille: &str, action: &Value, in_order: bool) -> Value {
         "famille": famille,
         "disponible": available(action, in_order, nom),
     });
+    // Only on unavailable rows: the short code of why (see `unavailable_reason`).
+    if let Some(reason) = unavailable_reason(action, in_order, nom) {
+        out["raison"] = json!(reason);
+    }
     if let Some(object) = action.as_object() {
         for field in ["add", "note"] {
             if let Some(value) = object.get(field).and_then(Value::as_str) {
