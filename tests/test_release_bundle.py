@@ -17,9 +17,9 @@ from saya_installer.cli import choose_what
 
 with tempfile.TemporaryDirectory(prefix='saya-release-test-') as tmp:
     root = Path(tmp)
-    archive, launcher = build(root / 'output', 'studio-v1.0.0-beta.2')
+    archive, launcher = build(root / 'output', 'studio-v1.0.0')
     first = archive.read_bytes()
-    build(root / 'output', 'studio-v1.0.0-beta.2')
+    build(root / 'output', 'studio-v1.0.0')
     assert first == archive.read_bytes(), 'archive must be reproducible'
     with tarfile.open(archive) as tar:
         members = tar.getmembers()

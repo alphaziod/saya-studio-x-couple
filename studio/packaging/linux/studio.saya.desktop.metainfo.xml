@@ -33,6 +33,11 @@
     <content_attribute id="sex-themes">moderate</content_attribute>
   </content_rating>
   <releases>
+    <release version="1.0.0" date="2026-11-04" type="stable">
+      <description>
+        <p>First stable release: crash recovery from the unfinished pass, reliable stop and restart, safer image cleanup.</p>
+      </description>
+    </release>
     <release version="1.0.0-beta.2" date="2026-11-02" type="development">
       <description>
         <p>Improved interface readability and test-script discovery in Casting.</p>

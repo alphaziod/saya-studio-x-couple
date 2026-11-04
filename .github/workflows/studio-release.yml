@@ -11,14 +11,14 @@ on:
       tag:
         description: 'Release tag'
         required: true
-        default: 'studio-v1.0.0-beta.2'
+        default: 'studio-v1.0.0'
 
 permissions:
   contents: read
   actions: read
 
 env:
-  VERSION: 1.0.0-beta.2
+  VERSION: 1.0.0
 
 jobs:
   desktop:
@@ -133,7 +133,7 @@ jobs:
             cargo fetch --locked
             stage="$GITHUB_WORKSPACE/arch-stage"
             mkdir -p "$stage"
-            tarname="saya-studio-1.0.0beta2.tar.gz"
+            tarname="saya-studio-1.0.0.tar.gz"
             git config --global --add safe.directory "$GITHUB_WORKSPACE"
             git archive --format=tar --prefix=saya-studio/ HEAD . | gzip -n > "$stage/$tarname"
             cp packaging/arch/PKGBUILD packaging/arch/saya-studio.desktop packaging/arch/saya-studio.install "$stage/"
@@ -248,7 +248,7 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
-          name: Saya Studio 1.0.0-beta.2 × Saya Couple 2.3.0
+          name: Saya Studio 1.0.0 × Saya Couple 2.3.0
           body_path: studio/RELEASE_NOTES.md
           draft: false
           prerelease: false

@@ -1,6 +1,9 @@
 # Changelog
 
-## Saya Studio — unreleased
+## Saya Studio 1.0.0 — 2026-11-04
+
+First stable release. Saya Couple nodes unchanged (2.3.0).
+
 
 - **Crash recovery:** a six-pass run, or a kept casting trial's finish, resumes from its unfinished pass
   with the same seed after a ComfyUI crash or restart, a failed pass or a stop (« Reprendre depuis la
