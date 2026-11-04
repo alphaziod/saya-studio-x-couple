@@ -36,6 +36,10 @@ export const pageGuides: Record<string, {title:string;next:string}> = {
     "title": "Voir si ComfyUI est prêt",
     "next": "Consultez la connexion, les calculs en cours et la mémoire. La liste des modèles disponibles se charge avec le bouton dédié."
   },
+  "dev": {
+    "title": "Inspecter et modifier l’application",
+    "next": "La console IPC appelle une action du noyau avec des arguments JSON ; seules les lectures partent sans confirmation. L’éditeur change une préférence à la fois. Désactivez le mode dans Réglages pour masquer cette page."
+  },
   "data": {
     "title": "Sauvegarder ou restaurer les données Studio",
     "next": "Choisissez un nouveau dossier et estimez la taille avant la copie. Les images originales et les modèles doivent être sauvegardés séparément."

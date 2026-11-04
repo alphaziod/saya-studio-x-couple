@@ -1,0 +1,133 @@
+{
+ "fakes-01": {
+  "missing": [
+   "QuantumNoodleSampler"
+  ],
+  "nodes": {
+   "QuantumNoodleSampler": [
+    "3"
+   ]
+  }
+ },
+ "fakes-02": {
+  "missing": [
+   "Banana Latent Teleporter",
+   "Sayaʼs Mirror Of Doom"
+  ],
+  "nodes": {
+   "Banana Latent Teleporter": [
+    "9"
+   ],
+   "Sayaʼs Mirror Of Doom": [
+    "8"
+   ]
+  }
+ },
+ "fakes-03": {
+  "missing": [
+   "ΩmegaConditioningFuser"
+  ],
+  "nodes": {
+   "ΩmegaConditioningFuser": [
+    "5:1"
+   ]
+  }
+ },
+ "fakes-04": {
+  "missing": [
+   "Ghost  Double  Space",
+   "Trailing Space Node ",
+   "ひみつのサンプラー"
+  ],
+  "nodes": {
+   "Ghost  Double  Space": [
+    "6:1"
+   ],
+   "Trailing Space Node ": [
+    "5"
+   ],
+   "ひみつのサンプラー": [
+    "6:2:1"
+   ]
+  }
+ },
+ "fakes-05": {
+  "missing": [],
+  "nodes": {}
+ },
+ "fakes-06": {
+  "missing": [],
+  "nodes": {}
+ },
+ "fakes-07": {
+  "missing": [
+   "Reroute (fake)",
+   "checkpointloadersimple"
+  ],
+  "nodes": {
+   "Reroute (fake)": [
+    "11"
+   ],
+   "checkpointloadersimple": [
+    "4"
+   ]
+  }
+ },
+ "fakes-08": {
+  "missing": [
+   "Emoji 🍎 Encoder",
+   "LoraLoader_V99_ULTRA",
+   "Node.With.Dots",
+   "Node/With/Slashes"
+  ],
+  "nodes": {
+   "Emoji 🍎 Encoder": [
+    "12"
+   ],
+   "LoraLoader_V99_ULTRA": [
+    "13"
+   ],
+   "Node.With.Dots": [
+    "11"
+   ],
+   "Node/With/Slashes": [
+    "5",
+    "6",
+    "7:1"
+   ]
+  }
+ },
+ "fakes-09": {
+  "missing": [
+   "CLIPTextEncode ",
+   "KSampler ",
+   "checkpointloadersimple",
+   "ksampler"
+  ],
+  "nodes": {
+   "CLIPTextEncode ": [
+    "3"
+   ],
+   "KSampler ": [
+    "9"
+   ],
+   "checkpointloadersimple": [
+    "11"
+   ],
+   "ksampler": [
+    "10"
+   ]
+  }
+ },
+ "fakes-10": {
+  "missing": [
+   "QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ"
+  ],
+  "nodes": {
+   "QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ": [
+    "5:1",
+    "6:1"
+   ]
+  }
+ }
+}

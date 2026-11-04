@@ -588,6 +588,11 @@ enum Request {
     SayaRestart {
         run: String,
     },
+    /// Developer mode: which node classes a workflow file needs and which the running ComfyUI
+    /// lacks (`studio_core::workflow_check`). Read-only.
+    WorkflowCheck {
+        path: String,
+    },
     /// Crash recovery: resubmits the first unfinished phase with the same master seed.
     SayaResume {
         run: String,
@@ -2861,6 +2866,17 @@ fn handle_inner(s: &AppState, request: Request) -> Result<Value> {
                 &s.directory.join("results"),
             );
         }
+        Request::WorkflowCheck { path } => {
+            let metadata = std::fs::metadata(&path)?;
+            if metadata.len() > 32 * 1024 * 1024 {
+                return Err("Workflow trop volumineux (32 Mo maximum)".into());
+            }
+            let source = std::fs::read_to_string(&path)?;
+            let info = Comfy::loopback(s.comfy_port)?.get("/object_info")?;
+            let mut report = studio_core::workflow_check::check_workflow(&source, &info)?;
+            report["file"] = json!(path);
+            return Ok(report);
+        }
         Request::SayaResume { run } => {
             let _operation = s
                 .saya_operations
@@ -3886,6 +3902,7 @@ fn handle_inner(s: &AppState, request: Request) -> Result<Value> {
         | Request::SayaContinue { .. }
         | Request::SayaRestart { .. }
         | Request::SayaResume { .. }
+        | Request::WorkflowCheck { .. }
         | Request::SayaStop { .. }
         | Request::CastingHistory { .. }
         | Request::CastingDecide { .. }

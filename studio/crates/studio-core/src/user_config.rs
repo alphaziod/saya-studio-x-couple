@@ -18,7 +18,7 @@ pub fn enable() {
 }
 
 /// Lasting settings worth carrying to another machine (not drafts, selections or journals).
-pub const MIRRORED: [&str; 13] = [
+pub const MIRRORED: [&str; 14] = [
     "language",
     "fileNamingLanguage",
     "libraryRoot",
@@ -32,6 +32,7 @@ pub const MIRRORED: [&str; 13] = [
     "presetBase",
     "comfyOutputDir",
     "galleryView",
+    "devMode",
 ];
 
 fn settings_file(config: &Path) -> PathBuf {

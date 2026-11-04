@@ -5,6 +5,13 @@
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { parseBootstrap, type Bootstrap } from '../lib/contracts';
+  let { ondevmode }: { ondevmode?: (value: boolean) => void } = $props();
+  let devMode = $state(false);
+  async function chooseDevMode(value: boolean) {
+    if (busy) return; busy = true; error = '';
+    try { await call('set_preference', { key: 'devMode', value }); devMode = value; ondevmode?.(value); }
+    catch (e) { error = message(e); } finally { busy = false; }
+  }
   let note = $state(''), error = $state(''), busy=$state(false);
   // Folder preferences gathered here; library and LoRA roots keep their own pages for indexing.
   // Language of the folder and file names written in the capture root ('' = same as the interface).
@@ -44,6 +51,7 @@
       invoke('get_bootstrap').then(value => { about = parseBootstrap(value); }).catch(() => { about = null; });
     }
     try { const prefs = await call<Record<string, unknown>>('preferences');
+    devMode = prefs.devMode === true;
     captureRoot = typeof prefs.captureRoot === 'string' ? prefs.captureRoot : ''; captureDraft = captureRoot;
     fileLanguage = typeof prefs.fileNamingLanguage === 'string' ? prefs.fileNamingLanguage : '';
     captureDefault = typeof prefs.defaultCaptureRoot === 'string' ? prefs.defaultCaptureRoot : '';
@@ -134,6 +142,16 @@
     <div class="set-row">
       <span class="set-label">{$t("Version")}</span>
       <span class="set-value num">{engine?.version ?? $t("non indiquée")}</span>
+    </div>
+  </section>
+
+  <section class="set-sec" data-settings-dev>
+    <h2 class="set-title">{$t("Développement")}</h2>
+    <div class="set-row">
+      <label class="set-label" for="settings-dev-mode">{$t("Mode développeur")}</label>
+      <div class="set-control">
+        <label class="checkbox"><input id="settings-dev-mode" type="checkbox" data-settings-dev-mode checked={devMode} disabled={busy||!native} onchange={e => chooseDevMode(e.currentTarget.checked)}/>{$t("Afficher l’onglet Dev (console IPC, préférences, chemins)")}</label>
+      </div>
     </div>
   </section>
 

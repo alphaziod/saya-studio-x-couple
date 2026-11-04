@@ -27,7 +27,20 @@ const HIDDEN_WIDGETS: &[&str] = &[
 ];
 
 /// Purely frontend nodes, with no executable output.
-const VIRTUAL_NO_OUTPUT: &[&str] = &["Fast Groups Bypasser (rgthree)"];
+/// Frontend-only nodes (`isVirtualNode`) without outputs: ComfyUI's own notes and rgthree's canvas
+/// helpers (bookmarks, labels, bypass/mute toggles, buttons). They are absent from `/object_info`
+/// and never sent by the ComfyUI frontend, so they are neither emitted nor required.
+const VIRTUAL_NO_OUTPUT: &[&str] = &[
+    "Note",
+    "MarkdownNote",
+    "Fast Groups Bypasser (rgthree)",
+    "Fast Groups Muter (rgthree)",
+    "Fast Bypasser (rgthree)",
+    "Fast Muter (rgthree)",
+    "Fast Actions Button (rgthree)",
+    "Bookmark (rgthree)",
+    "Label (rgthree)",
+];
 
 #[derive(Clone, Debug)]
 struct Link {
@@ -418,7 +431,9 @@ impl Converter {
             );
         }
         match class.as_str() {
-            "Reroute" | "SetNode" => self.resolve_input(scope, node_id, 0, target_type, visited),
+            "Reroute" | "Reroute (rgthree)" | "SetNode" => {
+                self.resolve_input(scope, node_id, 0, target_type, visited)
+            }
             "GetNode" => {
                 let name = self.constant(scope, node_id);
                 if name.is_empty() {
@@ -431,6 +446,17 @@ impl Converter {
                     Err(_) => Ok(None),
                 }
             }
+            // Frontend « Primitive » (a widget converted to an input and fed by a primitive):
+            // a virtual node. At queue time its `applyToGraph` writes its first widget value into
+            // every target widget, then graphToPrompt skips it. Same here: the link becomes that
+            // value; a primitive without a value leaves the target widget as saved.
+            "PrimitiveNode" => Ok(self
+                .node(scope, node_id)
+                .and_then(|n| n.get("widgets_values"))
+                .and_then(Value::as_array)
+                .and_then(|values| values.first())
+                .filter(|value| !value.is_null())
+                .map(|value| Resolved::Value(value.clone()))),
             _ if VIRTUAL_NO_OUTPUT.contains(&class.as_str()) => Ok(None),
             _ => Ok(Some(Resolved::Link {
                 node: self.exec_id(scope, node_id),
@@ -746,8 +772,10 @@ fn emit_scope(converter: &Converter, scope: usize, is_root: bool, state: &mut Em
             continue;
         }
         if class == "Reroute"
+            || class == "Reroute (rgthree)"
             || class == "SetNode"
             || class == "GetNode"
+            || class == "PrimitiveNode"
             || VIRTUAL_NO_OUTPUT.contains(&class.as_str())
         {
             state.virtual_skipped += 1;

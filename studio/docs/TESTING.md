@@ -14,6 +14,25 @@ Every command runs from the `studio/` directory.
 Ignored Rust tests need a real ComfyUI, the GPU or the installed Prompt Engine; run them only on purpose
 with `--ignored`.
 
+## Workflow node check (which ComfyUI nodes are missing?)
+
+`studio-maintenance check-workflow WORKFLOW_OR_DIR OBJECT_INFO.json` compares a workflow with a saved
+ComfyUI `/object_info` and prints a JSON report: `complete`, `nodeCount`, `classes` (classes of the
+executed nodes), `missing` (`[{class, nodes}]`, with execution ids such as `12` or `5:3` for node 3 inside
+subgraph instance 5) and `unresolved` (other converter findings). UI workflows (subgraphs included) and API
+prompts are both accepted. Muted (mode 2) and bypassed (mode 4) nodes are not executed, so they are never
+reported as missing. Exit code: 0 complete, 2 missing nodes or otherwise incomplete, 1 error.
+
+```bash
+bash scripts/check-workflows.sh ~/some/workflows object_info.json   # one report per file in the folder
+cargo test -p studio-core --test workflow_corpus                     # 30 valid + 10 broken synthetic workflows
+```
+
+The fixtures live in `crates/studio-core/tests/fixtures/workflow-corpus/` (synthetic `object_info.json`,
+`expected.json` for the `fakes-NN` files). The frontend-only `PrimitiveNode` is a virtual node, like
+`Reroute`: its value is written into the widget it feeds and the node itself is never sent (as the ComfyUI
+frontend's `applyToGraph` does), so it is never reported as missing.
+
 ## Native smokes (real WebView, fake engine)
 
 Build the test binary first (both features are required):

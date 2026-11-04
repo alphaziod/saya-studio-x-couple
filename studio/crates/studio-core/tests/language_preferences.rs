@@ -18,6 +18,10 @@ fn language_preferences_validate_and_survive_reopening() {
     }
     assert!(db.set_preference("language_setup_completed",json!("true")).is_err());
     assert!(db.set_preference("probe_test",json!("ok")).is_err());
+    // Developer mode is a plain on/off switch.
+    db.set_preference("devMode",json!(true)).unwrap();
+    assert_eq!(db.preferences().unwrap()["devMode"],true);
+    assert!(db.set_preference("devMode",json!("on")).is_err());
     drop(db);
     let db=Database::open(&path).unwrap();
     assert_eq!(db.preferences().unwrap()["language"],"fr");

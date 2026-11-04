@@ -155,10 +155,14 @@ impl Database {
             "galleryView",
             "presetBase",
             "comfyOutputDir",
+            "devMode",
         ]
         .contains(&key)
             || value.to_string().len() > 1_000_000
         {
+            return Err("Préférence invalide".into());
+        }
+        if key == "devMode" && !value.is_boolean() {
             return Err("Préférence invalide".into());
         }
         const LANGUAGES: [&str; 14] = ["fr","en","ja","ko","zh-CN","zh-TW","pt-BR","es","ru","tr","ar","vi","th","id"];
