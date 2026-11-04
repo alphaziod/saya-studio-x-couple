@@ -17,7 +17,7 @@
   {
    "path": "CHANGELOG.md",
    "type": "markdown",
-   "sha256": "cb5ce8cf7ba2ae7c0969f06be5bd33f43c67c8e16dfd4a7d7089b8e79a8aaa4b",
+   "sha256": "77a515cb0e4e67a2695d2438267da8720d30bb972ef90e191e975b8388e8841b",
    "destination": null,
    "origin": "Saya Couple (original)",
    "license": "GPL-3.0-or-later",
@@ -39,7 +39,7 @@
   {
    "path": "README.md",
    "type": "markdown",
-   "sha256": "6d764dc9803797ed4bf0f2f1dfbc6e10adf0e03f0c1ea88f02f26a056a8f1c04",
+   "sha256": "73b5e550de85a856e21ac88179c44818f0edf9e5cd751b6b1eef76192add9453",
    "destination": null,
    "origin": "Saya Couple (original)",
    "license": "GPL-3.0-or-later",
@@ -193,7 +193,7 @@
   {
    "path": "docs/images/studio-casting.webp",
    "type": "webp",
-   "sha256": "2df8a095e095cd24fcb8a14b6a67e787247f6a3fb1ff2e888260f9e760f01cce",
+   "sha256": "48122287419e4d8c25c3e5fc54b895ae54f8642ab918489351e5399e0289bf42",
    "destination": null,
    "origin": "Saya Couple (original)",
    "license": "GPL-3.0-or-later",
@@ -204,7 +204,7 @@
   {
    "path": "docs/images/studio-gallery.webp",
    "type": "webp",
-   "sha256": "963fc04941bf8a50b58eea0e26e0de3208e83bc8c777b0dd1c05d24ba181b336",
+   "sha256": "6a34e9403bc04482536d602db0b2c661719f61a3fd04577312ae3bb5dce5354a",
    "destination": null,
    "origin": "Saya Couple (original)",
    "license": "GPL-3.0-or-later",
@@ -215,7 +215,7 @@
   {
    "path": "docs/images/studio-generation.webp",
    "type": "webp",
-   "sha256": "153762f8dc7b6ebfb1be5f3a93040b94264d1ed5874a3de398e6900d037c6d34",
+   "sha256": "e39e95cd27be056c58d31a9d220ab9293261e8bfa65b9b0e1cc6259ffa0f3eb1",
    "destination": null,
    "origin": "Saya Couple (original)",
    "license": "GPL-3.0-or-later",
@@ -1835,6 +1835,17 @@
    "description": "public test and validation scripts"
   },
   {
+   "path": "tests/test_release_bundle.py",
+   "type": "python",
+   "sha256": "0ea6954b786b10ef697e34dbda30341b5a8fbc776a53c9c0113f79919c6fdf4e",
+   "destination": null,
+   "origin": "Saya Couple (original)",
+   "license": "GPL-3.0-or-later",
+   "required": false,
+   "component": "test",
+   "description": "public test and validation scripts"
+  },
+  {
    "path": "tests/test_studio_app.py",
    "type": "python",
    "sha256": "0e215a083610cd16146625bd9ae3f6a0f8d9dd70c3fb43521d63ef326e6bebb0",
@@ -1882,6 +1893,17 @@
    "path": "tools/build_manifest.py",
    "type": "python",
    "sha256": "bbf7bf6292cbe352f9d6cbbea7cfb3064f5a315026c12472b70a646321b03ce4",
+   "destination": null,
+   "origin": "Saya Couple (original)",
+   "license": "GPL-3.0-or-later",
+   "required": false,
+   "component": "installer",
+   "description": "installer / release tooling"
+  },
+  {
+   "path": "tools/build_release_bundle.py",
+   "type": "python",
+   "sha256": "6416b45c58979e40371c2666b43b5a7f6d482bc5ceb84245419a9d468943bf6d",
    "destination": null,
    "origin": "Saya Couple (original)",
    "license": "GPL-3.0-or-later",
