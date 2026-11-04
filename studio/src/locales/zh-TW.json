@@ -2261,5 +2261,8 @@
   "Choisir un script de test…": "選擇測試指令碼…",
   "Aucun script de test trouvé.": "找不到測試指令碼。",
   "Test interrompu : délai dépassé.": "測試已停止：超過時間限制。",
-  "Échec du test (code {code}).": "測試失敗（代碼 {code}）。"
+  "Échec du test (code {code}).": "測試失敗（代碼 {code}）。",
+  "Reprendre depuis la passe {n}": "從第 {n} 遍繼續",
+  "Passe {n} relancée avec la même seed.": "已使用相同種子重新提交第 {n} 遍。",
+  "Reprise après un plantage, une erreur ou un arrêt : même seed, les passes terminées sont gardées.": "當機、錯誤或停止後繼續：使用相同種子，已完成的遍數會保留。"
 }

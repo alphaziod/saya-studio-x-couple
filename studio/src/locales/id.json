@@ -2261,5 +2261,8 @@
   "Choisir un script de test…": "Pilih skrip pengujian…",
   "Aucun script de test trouvé.": "Tidak ada skrip pengujian ditemukan.",
   "Test interrompu : délai dépassé.": "Pengujian dihentikan: batas waktu terlampaui.",
-  "Échec du test (code {code}).": "Pengujian gagal (kode {code})."
+  "Échec du test (code {code}).": "Pengujian gagal (kode {code}).",
+  "Reprendre depuis la passe {n}": "Lanjutkan dari tahap {n}",
+  "Passe {n} relancée avec la même seed.": "Tahap {n} dikirim ulang dengan seed yang sama.",
+  "Reprise après un plantage, une erreur ou un arrêt : même seed, les passes terminées sont gardées.": "Lanjutkan setelah crash, galat, atau penghentian: seed sama, tahap yang selesai tetap disimpan."
 }

@@ -2261,5 +2261,8 @@
   "Choisir un script de test…": "Elige un script de prueba…",
   "Aucun script de test trouvé.": "No se encontraron scripts de prueba.",
   "Test interrompu : délai dépassé.": "Prueba interrumpida: tiempo límite excedido.",
-  "Échec du test (code {code}).": "Error en la prueba (código {code})."
+  "Échec du test (code {code}).": "Error en la prueba (código {code}).",
+  "Reprendre depuis la passe {n}": "Reanudar desde la pasada {n}",
+  "Passe {n} relancée avec la même seed.": "Pasada {n} relanzada con la misma semilla.",
+  "Reprise après un plantage, une erreur ou un arrêt : même seed, les passes terminées sont gardées.": "Reanudar tras un fallo, un error o una parada: misma semilla, se conservan las pasadas terminadas."
 }

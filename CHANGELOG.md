@@ -1,5 +1,22 @@
 # Changelog
 
+## Saya Studio — unreleased
+
+- **Crash recovery:** a six-pass run, or a kept casting trial's finish, resumes from its unfinished pass
+  with the same seed after a ComfyUI crash or restart, a failed pass or a stop (« Reprendre depuis la
+  passe N » in Create and in the casting sheet). Finished passes are kept; a prompt lost by the engine
+  is first confirmed gone from its queue and history, and a pass still running is never duplicated.
+- **Stop and restart:** stopping a run now removes its queued pass from the ComfyUI queue (it used to
+  send an interrupt that only reaches the executing prompt, so the queued pass still ran). Restart is
+  refused while a pass is still owned by ComfyUI. Targeted interrupt accepts ComfyUI 0.34.0 and newer.
+- **Casting:** resuming a batch no longer revives trials already decided (rejected, or a stopped finish).
+- **Data safety:** replacing a lineage never hides an image of your own library that a delivery was
+  deduplicated onto; every erased file is journaled (`preview-cleanup/removed-assets.log`). The startup
+  preview cleanup runs under the run lock (it could overwrite a phase just submitted by the background
+  runner) and keeps its journal when a deletion fails.
+- **Interface:** the shell error banner clears after the next successful navigation. README screenshots
+  refreshed from the current interface.
+
 ## Saya Studio 1.0.0-beta.2 — 2026-11-02
 
 - **Windows and macOS:** add a Windows x64 EXE installer and Apple Silicon/Intel DMGs to the same release,

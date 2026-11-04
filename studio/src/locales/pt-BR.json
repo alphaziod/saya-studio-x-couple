@@ -2261,5 +2261,8 @@
   "Choisir un script de test…": "Escolha um script de teste…",
   "Aucun script de test trouvé.": "Nenhum script de teste encontrado.",
   "Test interrompu : délai dépassé.": "Teste interrompido: tempo limite excedido.",
-  "Échec du test (code {code}).": "Falha no teste (código {code})."
+  "Échec du test (code {code}).": "Falha no teste (código {code}).",
+  "Reprendre depuis la passe {n}": "Retomar a partir da passada {n}",
+  "Passe {n} relancée avec la même seed.": "Passada {n} reenviada com a mesma seed.",
+  "Reprise après un plantage, une erreur ou un arrêt : même seed, les passes terminées sont gardées.": "Retomar após uma falha, um erro ou uma parada: mesma seed, as passadas concluídas são mantidas."
 }

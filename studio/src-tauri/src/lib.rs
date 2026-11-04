@@ -588,6 +588,10 @@ enum Request {
     SayaRestart {
         run: String,
     },
+    /// Crash recovery: resubmits the first unfinished phase with the same master seed.
+    SayaResume {
+        run: String,
+    },
     SayaStop {
         run: String,
     },
@@ -2857,6 +2861,18 @@ fn handle_inner(s: &AppState, request: Request) -> Result<Value> {
                 &s.directory.join("results"),
             );
         }
+        Request::SayaResume { run } => {
+            let _operation = s
+                .saya_operations
+                .lock()
+                .map_err(|_| "Saya operation lock")?;
+            let mut db = Database::open(&s.directory.join("studio.sqlite3"))?;
+            return db.saya_resume(
+                &run,
+                &Comfy::loopback(s.comfy_port)?,
+                &s.directory.join("results"),
+            );
+        }
         Request::SayaStop { run } => {
             let _operation = s
                 .saya_operations
@@ -3865,6 +3881,7 @@ fn handle_inner(s: &AppState, request: Request) -> Result<Value> {
         | Request::SayaStatus { .. }
         | Request::SayaContinue { .. }
         | Request::SayaRestart { .. }
+        | Request::SayaResume { .. }
         | Request::SayaStop { .. }
         | Request::CastingHistory { .. }
         | Request::CastingDecide { .. }
@@ -4398,28 +4415,6 @@ pub fn run() {
                 Ok(r) => eprintln!("Preset de base : {r}"),
                 Err(e) => eprintln!("Preset de base non appliqué : {e}"),
             }
-            // Disposable previews (passes 2-5, ComfyUI-side copies of finished runs) are
-            // deleted at every start, off the UI thread; see studio_core::lineage.
-            {
-                let path = directory.join("studio.sqlite3");
-                let port = comfy_port().unwrap_or(8188);
-                std::thread::spawn(move || {
-                    // Short best-effort probe of the running ComfyUI for its output folder.
-                    studio_core::generation_browser::refresh_running_argv(port);
-                    let outcome = Database::open(&path).and_then(|db| {
-                        db.cleanup_previews(studio_core::generation_browser::comfy_output_dir().as_deref())
-                    });
-                    match outcome {
-                        Ok(report) => eprintln!("Preview cleanup: {report}"),
-                        Err(error) => eprintln!("Preview cleanup failed: {error}"),
-                    }
-                    match Database::open(&path).and_then(|db| db.purge_internal_workflows(20)) {
-                        Ok(0) => {}
-                        Ok(n) => eprintln!("Internal workflows purged: {n}"),
-                        Err(error) => eprintln!("Internal workflow purge failed: {error}"),
-                    }
-                });
-            }
             let comfy_port = comfy_port().map_err(|e| -> Box<dyn std::error::Error> { e })?;
             let monitor =
                 studio_core::live_transport::Monitor::loopback(directory.clone(), comfy_port)
@@ -4450,6 +4445,40 @@ pub fn run() {
                 bridge: Mutex::new(bridge),
                 node_catalog: Mutex::new(None),
             });
+            // Disposable previews (passes 2-5, ComfyUI-side copies of finished runs) are
+            // deleted at every start, off the UI thread; see studio_core::lineage. The
+            // cleanup rewrites run manifests (read-modify-write): it holds the Saya
+            // operation lock so the monitor below cannot submit a phase in between and
+            // have its ownership overwritten (lost phase = resubmitted phase).
+            {
+                let state = Arc::clone(&state);
+                std::thread::spawn(move || {
+                    // Short best-effort probe of the running ComfyUI for its output folder,
+                    // done before taking the lock so it never delays run control.
+                    studio_core::generation_browser::refresh_running_argv(state.comfy_port);
+                    let path = state.directory.join("studio.sqlite3");
+                    {
+                        let Ok(_operation) = state.saya_operations.lock() else {
+                            eprintln!("Preview cleanup skipped: Saya operation lock poisoned");
+                            return;
+                        };
+                        let outcome = Database::open(&path).and_then(|db| {
+                            db.cleanup_previews(
+                                studio_core::generation_browser::comfy_output_dir().as_deref(),
+                            )
+                        });
+                        match outcome {
+                            Ok(report) => eprintln!("Preview cleanup: {report}"),
+                            Err(error) => eprintln!("Preview cleanup failed: {error}"),
+                        }
+                    }
+                    match Database::open(&path).and_then(|db| db.purge_internal_workflows(20)) {
+                        Ok(0) => {}
+                        Ok(n) => eprintln!("Internal workflows purged: {n}"),
+                        Err(error) => eprintln!("Internal workflow purge failed: {error}"),
+                    }
+                });
+            }
             // Continue accepted runs even when the Generation page is not mounted.
             let weak = Arc::downgrade(&state);
             std::thread::spawn(move || loop {

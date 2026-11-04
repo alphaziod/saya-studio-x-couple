@@ -681,9 +681,11 @@ impl Database {
         )
     }
 
-    /// Removes an asset from a deleted trial: file erased only if it is in
-    /// Saya storage and no other row (same path) is kept,
-    /// cited by a character, a reference or the A/B lab.
+    /// Removes an asset of a replaced or deleted trial. Only files inside Studio's own
+    /// folders (`owned`) are touched: a delivery deduplicated onto an image of the
+    /// user's library shares its asset, and that image must stay listed and on disk.
+    /// Spared: favourites, accepted images and anything a character, a reference or the
+    /// A/B lab uses. Every erased file is appended to the removal journal.
     pub(crate) fn remove_unused_asset(&self, asset: &str, owned: &[PathBuf]) -> CoreResult<usize> {
         let Some(path): Option<String> = self
             .connection
@@ -696,6 +698,20 @@ impl Database {
         else {
             return Ok(0);
         };
+        let file = PathBuf::from(&path);
+        let in_owned_root = match file.canonicalize() {
+            Ok(real) => owned
+                .iter()
+                .any(|root| root.canonicalize().is_ok_and(|root| real.starts_with(root))),
+            // Already gone: its catalog rows are cleaned only if it lived in Studio's folders.
+            Err(_) => owned.iter().any(|root| {
+                file.starts_with(root)
+                    || root.canonicalize().is_ok_and(|root| file.starts_with(root))
+            }),
+        };
+        if !in_owned_root {
+            return Ok(0);
+        }
         let protected: bool = self.connection.query_row(
             "SELECT EXISTS(SELECT 1 FROM assets a WHERE a.absolute_path=?1 AND (a.review='accepted' OR a.favorite=1
                OR EXISTS(SELECT 1 FROM asset_characters c WHERE c.asset_id=a.id)
@@ -728,15 +744,40 @@ impl Database {
                     .execute("DELETE FROM assets WHERE id=?", [id])?;
             }
         }
-        let file = PathBuf::from(&path);
+        // Re-checked through the canonical path right before erasing (no symlink escape).
         let inside = owned
             .iter()
             .any(|root| crate::fsutil::ensure_within(root, &file).is_ok());
         if inside && file.is_file() {
             std::fs::remove_file(&file)?;
+            self.journal_removed_file(&file);
             return Ok(1);
         }
         Ok(0)
+    }
+
+    /// Appends one erased image to `<pass states>/preview-cleanup/removed-assets.log`
+    /// (`<unix seconds>\t<path>`). A journal failure is logged, never fatal: the file is
+    /// already gone and the caller must still finish its catalog update.
+    fn journal_removed_file(&self, file: &Path) {
+        use std::io::Write;
+        let outcome = self.pass_state_root().and_then(|root| {
+            let directory = root.join("preview-cleanup");
+            std::fs::create_dir_all(&directory)?;
+            let stamp = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            let mut journal = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(directory.join("removed-assets.log"))?;
+            writeln!(journal, "{stamp}\t{}", file.display())?;
+            Ok(())
+        });
+        if let Err(error) = outcome {
+            eprintln!("saya: removal journal failed for {}: {error}", file.display());
+        }
     }
 
     pub fn casting_history(&self) -> CoreResult<Vec<Value>> {
@@ -1225,14 +1266,32 @@ impl Database {
             value["reviewValidated"] = json!(true);
             write_run(self, run, &value)?;
         }
+        self.submit_phase(run, value, phase, client, results)
+    }
+
+    /// Prepares phase `phase` of a run from its frozen source and master seed, records the
+    /// job in the manifest BEFORE the POST (a lost response stays recoverable), then submits.
+    /// Phase 1 is built from the whole source, like `saya_start`; later phases from their
+    /// pass file when the preset is split.
+    fn submit_phase(
+        &mut self,
+        run: &str,
+        mut value: Value,
+        phase: u32,
+        client: &Comfy,
+        results: &Path,
+    ) -> CoreResult<Value> {
         let info = client.get("/object_info")?;
         let source = value["source"].as_str().ok_or("Source Saya absente")?;
         let seed = value["masterSeed"].as_str();
         let root = value["isolatedRoot"]
             .as_str()
             .ok_or("Racine Saya absente")?;
-        // Split workflow (ILUSTCOUPLE preset): phase N comes from the pass N file.
-        let split = split_phase_source(source, phase)?;
+        let split = if phase > 1 {
+            split_phase_source(source, phase)?
+        } else {
+            None
+        };
         let api = prepare_phase_api(
             split.as_deref().unwrap_or(source),
             &info,
@@ -1265,13 +1324,156 @@ impl Database {
         write_run(self, run, &value)?;
         // The run is already persisted: a sync failure is reported, not fatal.
         if let Err(error) = self.sync_jobs(client, results) {
-            eprintln!("saya: saya_continue: sync_jobs failed for run {run}: {error}");
+            eprintln!("saya: submit_phase: sync_jobs failed for run {run}: {error}");
         }
         Ok(value)
     }
 
-    pub fn saya_restart(&mut self, run: &str, client: &Comfy, results: &Path) -> CoreResult<Value> {
+    /// Crash recovery: resubmits the first unfinished phase of a run with the SAME master
+    /// seed after ComfyUI crashed or restarted, a pass failed or the user stopped. Finished
+    /// phases are kept: the resubmitted phase reads the previous phase's state, which
+    /// ComfyUI saved on disk under the run's isolated root.
+    ///
+    /// A phase still queued or running is never duplicated. A prompt left
+    /// `submission_unknown` by a ComfyUI restart is first confirmed gone (targeted queue
+    /// delete, then absence from queue and history) before it is replaced. A casting
+    /// trial's phase 1 belongs to the casting queue (`casting_resume_batch`).
+    pub fn saya_resume(&mut self, run: &str, client: &Comfy, results: &Path) -> CoreResult<Value> {
+        // Unlike a status poll, the engine must answer: deciding "lost" needs fresh evidence.
+        self.sync_jobs(client, results)?;
         let mut value = read_run(self, run)?;
+        let jobs = self.jobs_by_ids(&phase_jobs(&value))?;
+        let job_state = |job: &str| {
+            jobs.iter()
+                .find(|j| j["id"] == job)
+                .and_then(|j| j["state"].as_str().map(str::to_owned))
+        };
+        let mut target = None;
+        for phase in 1..=SAYA_PHASES {
+            let key = phase.to_string();
+            let Some(job) = value["phases"][&key]["job"].as_str().map(str::to_owned) else {
+                // No attempt yet: a waiting later phase is what `saya_continue` submits.
+                target = (phase > 1).then_some((phase, None));
+                break;
+            };
+            let state = job_state(&job).unwrap_or_else(|| {
+                value["phases"][&key]["state"].as_str().unwrap_or_default().to_owned()
+            });
+            match state.as_str() {
+                "succeeded" => continue,
+                "queued" | "running" | "submitting" => {
+                    return Err("Une passe est encore en cours : rien à reprendre".into())
+                }
+                "submission_unknown" => {
+                    self.abandon_lost_job(&job, client)?;
+                    target = Some((phase, Some(job)));
+                }
+                "failed" | "interrupted" | "cancelled" | "draft" => {
+                    target = Some((phase, Some(job)))
+                }
+                other => return Err(format!("Passe {phase} dans un état non repris : {other}").into()),
+            }
+            break;
+        }
+        let (phase, previous) = target.ok_or("Toutes les passes sont terminées : rien à reprendre")?;
+        if phase == 1 && value["casting"].is_object() {
+            return Err("Essai de casting : utiliser « Reprendre » sur le lot".into());
+        }
+        if let Some(job) = previous {
+            let mut retired = value["retiredJobs"].as_array().cloned().unwrap_or_default();
+            if !retired.iter().any(|v| v.as_str() == Some(job.as_str())) {
+                retired.push(json!(job));
+            }
+            value["retiredJobs"] = json!(retired);
+            let mut resumed = value["resumedPhases"].as_array().cloned().unwrap_or_default();
+            resumed.push(json!({"phase":phase,"previousJob":job,"at":chrono_now()}));
+            value["resumedPhases"] = json!(resumed);
+        }
+        if phase == 1 {
+            value["reviewValidated"] = json!(false);
+        }
+        value["state"] = json!("running");
+        value["stopPending"] = json!(false);
+        self.submit_phase(run, value, phase, client, results)
+    }
+
+    /// Confirms that a `submission_unknown` job is not executing anymore and records it as
+    /// cancelled. With a prompt id the targeted queue delete proves its absence; without
+    /// one, the successful sync that just ran already searched the queue and the recent
+    /// history by client id and found nothing.
+    fn abandon_lost_job(&self, job: &str, client: &Comfy) -> CoreResult<()> {
+        let prompt: Option<String> = self.connection.query_row(
+            "SELECT comfy_prompt_id FROM generation_jobs WHERE id=?",
+            [job],
+            |r| r.get(0),
+        )?;
+        if prompt.is_some() {
+            let outcome = self.control_job(job, "cancel_queue", true, client)?;
+            if outcome["confirmed"] != true {
+                return Err(format!(
+                    "Passe perdue non confirmée : {}",
+                    outcome["message"].as_str().unwrap_or("état moteur incertain")
+                )
+                .into());
+            }
+            return Ok(());
+        }
+        self.connection.execute(
+            "UPDATE generation_jobs SET state='cancelled' WHERE id=? AND state='submission_unknown'",
+            [job],
+        )?;
+        self.job_event(job, "lost_submission_abandoned", &json!({"evidence":"absent_after_sync"}))?;
+        Ok(())
+    }
+
+    /// Sends the matching control for every phase job ComfyUI may still execute: a queued
+    /// or uncertain prompt is deleted from the queue, the running one is interrupted
+    /// (`/interrupt` only reaches the executing prompt). Job states are read from the
+    /// database, so callers synchronize first. A refused control is reported with
+    /// `sent: false`, never fatal: the caller records the pending stop.
+    pub(crate) fn stop_phase_jobs(&self, run: &Value, client: &Comfy) -> CoreResult<Vec<Value>> {
+        let jobs = self.jobs_by_ids(&phase_jobs(run))?;
+        let mut controls = Vec::new();
+        for phase in 1..=SAYA_PHASES {
+            let Some(job) = run["phases"][phase.to_string()]["job"].as_str() else {
+                continue;
+            };
+            let Some(record) = jobs.iter().find(|j| j["id"] == job) else {
+                continue;
+            };
+            let action = match record["state"].as_str() {
+                Some("queued" | "submission_unknown") => "cancel_queue",
+                Some("running") => "interrupt",
+                _ => continue,
+            };
+            controls.push(match self.control_job(job, action, true, client) {
+                Ok(response) => json!({"job":job,"phase":phase,"action":action,"sent":true,"response":response}),
+                Err(error) => json!({"job":job,"phase":phase,"action":action,"sent":false,"error":error.to_string()}),
+            });
+        }
+        Ok(controls)
+    }
+
+    /// True while a phase job may still be executed by ComfyUI (database state).
+    fn has_engine_job(&self, run: &Value) -> CoreResult<bool> {
+        Ok(self.jobs_by_ids(&phase_jobs(run))?.iter().any(|job| {
+            matches!(
+                job["state"].as_str(),
+                Some("submitting" | "queued" | "running" | "submission_unknown")
+            )
+        }))
+    }
+
+    pub fn saya_restart(&mut self, run: &str, client: &Comfy, results: &Path) -> CoreResult<Value> {
+        if let Err(error) = self.sync_jobs(client, results) {
+            eprintln!("saya: saya_restart: sync_jobs failed for run {run}: {error}");
+        }
+        let mut value = read_run(self, run)?;
+        // A restart submits a new phase 1: an attempt still owned by ComfyUI would keep
+        // running beside it (two GPU jobs, orphaned outputs). Stop it first.
+        if self.has_engine_job(&value)? {
+            return Err("Une passe est encore en cours : l’arrêter avant de relancer".into());
+        }
         let phase1 = value["phases"]["1"].clone();
         if let Some(job) = phase1["job"].as_str() {
             if let Err(error) = self.saya_review_decision(job, "redo", client, true) {
@@ -1356,24 +1558,18 @@ impl Database {
     }
 
     pub fn saya_stop(&mut self, run: &str, client: &Comfy, results: &Path) -> CoreResult<Value> {
+        // The manifest can lag behind ComfyUI: decide the controls from synced job states.
+        if let Err(error) = self.sync_jobs(client, results) {
+            eprintln!("saya: saya_stop: sync_jobs failed for run {run}: {error}");
+        }
         let mut value = read_run(self, run)?;
-        for phase in 1..=SAYA_PHASES {
-            let key = phase.to_string();
-            let Some(job) = value["phases"][&key]["job"].as_str() else {
-                continue;
-            };
-            if ["submitted", "queued", "running"]
-                .contains(&value["phases"][&key]["state"].as_str().unwrap_or(""))
-            {
-                if let Err(error) = self.control_job(job, "interrupt", true, client) {
-                    eprintln!(
-                        "saya: saya_stop: interrupt of job {job} (run {run}) failed: {error}"
-                    );
-                }
-            }
+        let controls = self.stop_phase_jobs(&value, client)?;
+        for control in controls.iter().filter(|c| c["sent"] == false) {
+            eprintln!("saya: saya_stop: control failed for run {run}: {control}");
         }
         value["state"] = json!("stopped");
         value["autoAdvance"] = json!(false);
+        value["stopPending"] = json!(controls.iter().any(|c| c["sent"] == false));
         write_run(self, run, &value)?;
         // The run is already persisted: a sync failure is reported, not fatal.
         if let Err(error) = self.sync_jobs(client, results) {

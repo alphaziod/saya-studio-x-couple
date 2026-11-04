@@ -22,7 +22,15 @@ use serde_json::{json, Value};
 use std::collections::HashSet;
 use std::path::{Component, Path, PathBuf};
 
-const IN_FLIGHT: [&str; 4] = ["submitting", "submitted", "queued", "running"];
+/// Phase states ComfyUI may still be executing. `submission_unknown` is an accepted POST
+/// whose outcome is not known yet: it is treated as running until synchronized.
+const IN_FLIGHT: [&str; 5] = [
+    "submitting",
+    "submitted",
+    "queued",
+    "running",
+    "submission_unknown",
+];
 
 fn strings(value: &Value) -> Vec<String> {
     value
@@ -273,9 +281,15 @@ impl Database {
                     if entry.path().is_file()
                         && later.iter().any(|job| name.starts_with(&format!("{job}-")))
                     {
-                        std::fs::remove_file(entry.path())?;
-                        journal.push(entry.path().display().to_string());
-                        buffer += 1;
+                        // One failure must not abort the pass: the journal of the files
+                        // already deleted is written below in every case.
+                        match std::fs::remove_file(entry.path()) {
+                            Ok(()) => {
+                                journal.push(entry.path().display().to_string());
+                                buffer += 1;
+                            }
+                            Err(e) => errors.push(format!("{}: {e}", entry.path().display())),
+                        }
                     }
                 }
             }
@@ -464,6 +478,40 @@ mod tests {
         b.db.compact_lineage("run-cccc-0001").unwrap();
         assert!(fav.exists(), "favourite never deleted");
         assert!(shared.exists(), "asset shown by another run never deleted");
+    }
+
+    /// Regression: a delivery deduplicated onto an image of the user's own library shares
+    /// its asset. Replacing that lineage left the file on disk but removed its catalog row,
+    /// so the user's image vanished from the gallery.
+    #[test]
+    fn library_image_outside_studio_folders_stays_listed() {
+        let b = bench();
+        let library = b._dir.join("user-library");
+        std::fs::create_dir_all(&library).unwrap();
+        let mine = library.join("mine.png");
+        std::fs::write(&mine, b"same content").unwrap();
+        let root = library.to_string_lossy().replace('\'', "''");
+        b.db.connection.execute_batch(&format!(
+            "INSERT INTO libraries(id,label,root_path,platform) VALUES('user','Mine','{root}','linux');
+             INSERT INTO assets(id,library_id,relative_path,availability) VALUES('a-mine','user','mine.png','present');
+             INSERT INTO generation_jobs(id,workflow_revision_id,seed,state,request_snapshot_json) VALUES('j-old','wf','1','succeeded','{{}}');
+             INSERT INTO job_outputs(job_id,asset_id,node_id,output_index,output_kind) VALUES('j-old','a-mine','9',0,'saved');"
+        )).unwrap();
+        let replaced = image(&b, "j-gone", "a-gone");
+        image(&b, "j-new", "a-new");
+        write_run(&b.db, "run-hhhh-0001", &json!({"id":"run-hhhh-0001",
+            "phases":{"1":done("j-new","a-new")},"retiredJobs":["j-old","j-gone"]})).unwrap();
+        b.db.compact_lineage("run-hhhh-0001").unwrap();
+        assert!(mine.exists(), "user file untouched");
+        let (removed, availability): (i64, String) = b.db.connection.query_row(
+            "SELECT catalog_removed,availability FROM assets WHERE id='a-mine'", [],
+            |r| Ok((r.get(0)?, r.get(1)?))).unwrap();
+        assert_eq!((removed, availability.as_str()), (0, "present"), "still in the gallery");
+        assert!(!replaced.exists(), "Studio's own replaced image is erased");
+        let journal = std::fs::read_to_string(
+            b.db.pass_state_root().unwrap().join("preview-cleanup/removed-assets.log")).unwrap();
+        assert!(journal.contains("a-gone.png"), "erased file journaled: {journal}");
+        assert!(!journal.contains("mine.png"));
     }
 
     #[test]

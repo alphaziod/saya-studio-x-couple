@@ -58,7 +58,9 @@
     try{await call('set_preference',{key:'language',value:preselectedLanguage});await call('set_preference',{key:'language_setup_completed',value:true});applyLocale(preselectedLanguage);languageChoice=false;}
     catch(e){languageError=message(e)}finally{languageBusy=false}
   }
-  async function navigate(id: string, contextual=false) { navigated=true; if(!contextual){generationImage=null;characterTarget=null;galleryTarget=null;comparisonTarget=null;} selected = id; if (native) try { await call('set_preference', { key:'selectedTab',value:id }); } catch(e) { error = message(e); } }
+  // The shell banner only reports the last failed tab save: a later success clears it, so one
+  // transient write error does not stay pinned above every page.
+  async function navigate(id: string, contextual=false) { navigated=true; if(!contextual){generationImage=null;characterTarget=null;galleryTarget=null;comparisonTarget=null;} selected = id; if (native) try { await call('set_preference', { key:'selectedTab',value:id }); error=''; } catch(e) { error = message(e); } }
 </script>
 <div class="shell v1">
   <nav class="rail" aria-label={$t("Navigation principale")}>

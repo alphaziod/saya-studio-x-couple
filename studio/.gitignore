@@ -10,3 +10,4 @@ src-tauri/gen/
 target/
 test-results/
 RESUME.local.md
+*.local.md

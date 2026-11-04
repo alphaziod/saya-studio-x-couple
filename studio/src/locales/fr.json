@@ -2261,5 +2261,8 @@
   "Choisir un script de test…": "Choisir un script de test…",
   "Aucun script de test trouvé.": "Aucun script de test trouvé.",
   "Test interrompu : délai dépassé.": "Test interrompu : délai dépassé.",
-  "Échec du test (code {code}).": "Échec du test (code {code})."
+  "Échec du test (code {code}).": "Échec du test (code {code}).",
+  "Reprendre depuis la passe {n}": "Reprendre depuis la passe {n}",
+  "Passe {n} relancée avec la même seed.": "Passe {n} relancée avec la même seed.",
+  "Reprise après un plantage, une erreur ou un arrêt : même seed, les passes terminées sont gardées.": "Reprise après un plantage, une erreur ou un arrêt : même seed, les passes terminées sont gardées."
 }

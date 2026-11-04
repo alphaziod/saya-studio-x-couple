@@ -2493,5 +2493,8 @@
   "Choisir un script de test…": "اختر نص اختبار…",
   "Aucun script de test trouvé.": "لم يتم العثور على نصوص اختبار.",
   "Test interrompu : délai dépassé.": "تم إيقاف الاختبار: انتهت المهلة.",
-  "Échec du test (code {code}).": "فشل الاختبار (الرمز {code})."
+  "Échec du test (code {code}).": "فشل الاختبار (الرمز {code}).",
+  "Reprendre depuis la passe {n}": "الاستئناف من المرحلة {n}",
+  "Passe {n} relancée avec la même seed.": "أُعيد إرسال المرحلة {n} بالبذرة نفسها.",
+  "Reprise après un plantage, une erreur ou un arrêt : même seed, les passes terminées sont gardées.": "الاستئناف بعد تعطل أو خطأ أو إيقاف: البذرة نفسها، وتُحفظ المراحل المكتملة."
 }
