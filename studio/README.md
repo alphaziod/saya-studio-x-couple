@@ -6,20 +6,20 @@
 |:---:|:---:|
 | ![Casting grid](../docs/images/studio-casting.webp) | ![Gallery](../docs/images/studio-gallery.webp) |
 
-**1.0.0 — first stable release.** A local desktop app (Tauri 2, Rust, Svelte 5, SQLite) that drives
+**1.0.1 — stable.** A local desktop app (Tauri 2, Rust, Svelte 5, SQLite) that drives
 [ComfyUI](https://github.com/comfyanonymous/ComfyUI) for anime-style character images. Nothing runs in the
 cloud: Saya Studio is the interface, ComfyUI is the render engine.
 
 It is the companion app of the **Saya Couple** node pack in this repository, and like the pack it is first a
 backup of my own setup, published in case it helps someone. Back up your data, and use it at your own risk.
 
-## New in 1.0.0
+## New in 1.0.1
 
-Reliability first. A six-pass run or a kept casting finish interrupted by a ComfyUI crash, a failed pass or a
-stop resumes from the unfinished pass with the same seed (**Resume from pass N**). Stop really removes queued
-passes, restart waits for the running pass, and image cleanup only ever erases Studio's own files, with a journal.
+Fast on large libraries (pages open in tens of milliseconds and keep their state), six-pass finishes queued after
+the casting, a pending-action validator, right-click menus, workflow node checks, developer mode, and in-app
+updates checked against GitHub with checksum verification.
 
-See the [complete 1.0.0 changes and validation](RELEASE_NOTES.md#whats-new-in-100).
+See the [complete 1.0.1 changes and validation](RELEASE_NOTES.md#whats-new-in-101).
 
 ## What it does
 
@@ -47,21 +47,21 @@ See the [complete 1.0.0 changes and validation](RELEASE_NOTES.md#whats-new-in-10
 
 ## Install
 
-Packages are attached to the GitHub release `studio-v1.0.0`:
+Packages are attached to the GitHub release `studio-v1.0.1`:
 
 Snap is attached only when its CI build can reach the Snapcraft store. Its build recipe is in `packaging/snap/snapcraft.yaml`.
 
 | Distribution | File / command |
 |---|---|
-| Windows 10/11 x64 | `saya-studio-1.0.0-windows-x64.exe` |
-| macOS Apple Silicon | `saya-studio-1.0.0-macos-arm64.dmg` |
-| macOS Intel | `saya-studio-1.0.0-macos-x64.dmg` |
-| Debian, Ubuntu | `sudo apt install ./saya-studio_1.0.0_amd64.deb` |
-| Fedora | `sudo dnf install ./saya-studio-1.0.0.fedora.x86_64.rpm` |
-| openSUSE | `sudo zypper install ./saya-studio-1.0.0.opensuse.x86_64.rpm` |
-| Arch, EndeavourOS | `sudo pacman -U ./saya-studio-1.0.0-x86_64.pkg.tar.zst`, or AUR `saya-studio-bin` |
+| Windows 10/11 x64 | `saya-studio-1.0.1-windows-x64.exe` |
+| macOS Apple Silicon | `saya-studio-1.0.1-macos-arm64.dmg` |
+| macOS Intel | `saya-studio-1.0.1-macos-x64.dmg` |
+| Debian, Ubuntu | `sudo apt install ./saya-studio_1.0.1_amd64.deb` |
+| Fedora | `sudo dnf install ./saya-studio-1.0.1.fedora.x86_64.rpm` |
+| openSUSE | `sudo zypper install ./saya-studio-1.0.1.opensuse.x86_64.rpm` |
+| Arch, EndeavourOS | `sudo pacman -U ./saya-studio-1.0.1-x86_64.pkg.tar.zst`, or AUR `saya-studio-bin` |
 | NixOS / Nix | `nix run github:alphaziod/saya-studio-x-couple?dir=studio` |
-| Any distribution | `saya-studio_1.0.0_amd64.AppImage`, `saya-studio-1.0.0-x86_64.flatpak` |
+| Any distribution | `saya-studio_1.0.1_amd64.AppImage`, `saya-studio-1.0.1-x86_64.flatpak` |
 
 Release notes: [RELEASE_NOTES.md](RELEASE_NOTES.md). Build steps and per-distribution dependencies: [docs/PACKAGING.md](docs/PACKAGING.md).
 French install guide for Arch: [docs/INSTALLATION-ARCH.md](docs/INSTALLATION-ARCH.md).

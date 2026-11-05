@@ -1,56 +1,66 @@
-# Saya Studio 1.0.0 × Saya Couple 2.3.0
+# Saya Studio 1.0.1 × Saya Couple 2.3.0
 
 Saya Studio is a local desktop app that drives **ComfyUI** for anime-style character images. ComfyUI renders,
 Saya Studio organizes: casting, a six-pass workflow, gallery, character sheets, LoRA manager, graph editor.
 Nothing runs in the cloud.
 
-**1.0.0 is the first stable release.** It focuses on reliability: a generation interrupted by a ComfyUI crash,
-a failed pass or a stop now resumes where it stopped, stopping really stops, and image cleanup never touches
-what is not Studio's. It is the companion app of the Saya Couple node pack and, like the pack, first a backup
-of my own setup. Back up your data and your ComfyUI folder before upgrading.
+**1.0.1 makes the app fast on large libraries, finishes the casting workflow and checks every workflow's
+nodes.** Updating keeps your database, images, characters and settings.
 
-## What's new in 1.0.0
+## What's new in 1.0.1
 
-### Crash recovery in Create and Casting
+### Fast on real libraries
 
-- If ComfyUI crashes or restarts during a six-pass run, a pass fails, or you stop the run, **Resume from
-  pass N** restarts the unfinished pass with the **same seed**. Finished passes are kept: the pass reads the
-  previous pass's state that ComfyUI saved on disk.
-- A pass lost by a ComfyUI restart is first confirmed gone (targeted queue delete, then absence from the
-  queue and the history) before it is replaced. A pass that ComfyUI may still be running is never sent twice.
-- The same button appears in the casting sheet of a kept trial whose six-pass finish was interrupted.
-  Pass-1 trials keep the batch **Resume** button.
+Measured on a real library (432 casting runs, 3.8 GB database):
 
-### Stop and restart
+| Opening | 1.0.0 | 1.0.1 |
+|---|---|---|
+| Casting, Create, deleting a batch (run listing) | 1.5 s every time | 5 ms |
+| Gallery | 1.8 s | 22 ms |
+| Characters | 845 ms | 79 ms |
+| Coming back to a page already visited | full reload | ~50 ms, state kept |
 
-- **Stop** now removes a queued pass from the ComfyUI queue. It used to send an interrupt, which only reaches
-  the prompt being executed, so the queued pass still ran on the GPU after the run was marked stopped.
-- **Restart** is refused while a pass is still owned by ComfyUI, so two attempts never run at once.
-- Targeted interrupt accepts ComfyUI 0.34.0 **and newer** (it required exactly 0.34.0, so Stop was refused
-  on any newer ComfyUI).
+The background runner no longer re-reads every run manifest twice every 2.5 seconds while holding the run
+lock, which stalled batch deletion and every casting action. Gallery, Casting, Characters and Models stay open
+in memory: filters, scroll position, the open image and selections are still there when you come back.
 
 ### Casting
 
-- Resuming a batch no longer revives trials you already decided (rejected, or a stopped finish), which then
-  showed as running forever.
+- **Six passes after the casting.** Full, keeping an image in the gallery or saving a character queues its six
+  passes; they start one at a time once every pass-1 trial of the casting is done (an SDXL pass 1 and a HiDream
+  pass 3 no longer share the GPU).
+- **Missing images.** In « Cibler des personnages », characters without a picture take their turn: pass 1 in a
+  random pose, then **Yes** (six passes, image kept as their picture) or **No** (another pose).
+- **Pending actions.** Brouillons lists the bank actions your engine does not draw yet, with the reason. Test
+  them in the isolated engine copy, then decide per action: **Validate** writes it through the engine's own
+  command (with its backup), **Refuse** writes nothing.
+- A failed or stopped trial no longer freezes the rest of its batch; picker tiles show names and images again;
+  rotation images picture their character.
 
-### Your images and data
+### Gallery and menus
 
-- Replacing a lineage never hides an image of **your own library** that a delivery was deduplicated onto;
-  only files inside Studio's own folders are erased.
-- Every erased image is journaled in `pass-states/preview-cleanup/removed-assets.log`.
-- The startup preview cleanup now runs under the run lock: it could overwrite a pass just submitted by the
-  background runner, which then submitted it again. A deletion error no longer loses the cleanup journal.
+- Casting images show the character's name instead of a job id.
+- **Right-click menus** on gallery images, casting batches and trials, and models (open, six passes, favourite,
+  compare, copy path, delete a batch…). The browser's Back/Reload menu no longer appears in the app.
+- **Send to the full workflow** opens an image in Create with the workflow saved inside it.
 
-### Interface
+### Workflows
 
-- The error banner at the top of the app clears after the next successful navigation.
-- README screenshots refreshed from the current interface.
-- New labels translated in all 14 interface languages.
+- **Node check:** the app lists the nodes a workflow needs and those missing from your ComfyUI. Ordinary
+  workflows using a Primitive node, a Note or rgthree helpers were wrongly refused; they now open. Scripts can
+  use `studio-maintenance check-workflow FILE_OR_FOLDER object_info.json` (exit 0 complete, 2 missing).
+- **Developer mode** (Settings): an action console, a preference editor, data folders and the node check.
+
+### Updates
+
+- **The app checks for a new release at startup** and offers to install it: it downloads the package for your
+  system, verifies it against `SHA256SUMS`, then asks your system for permission to install it. You can turn
+  the check off in Settings.
+- **`install.sh` detects your system** and has an update mode: `sh install.sh --update`.
 
 ## Linux installer: Couple nodes, Studio app, or both
 
-Download **[install.sh](https://github.com/alphaziod/saya-studio-x-couple/releases/download/studio-v1.0.0/install.sh)**
+Download **[install.sh](https://github.com/alphaziod/saya-studio-x-couple/releases/download/studio-v1.0.1/install.sh)**
 from this release, then run it in a terminal:
 
 ```sh
@@ -66,23 +76,23 @@ sh install.sh --what both --comfyui /path/to/ComfyUI
 ```
 
 For the **nodes as a separate download**, use
-**[saya-couple-2.3.0.tar.gz](https://github.com/alphaziod/saya-studio-x-couple/releases/download/studio-v1.0.0/saya-couple-2.3.0.tar.gz)**:
+**[saya-couple-2.3.0.tar.gz](https://github.com/alphaziod/saya-studio-x-couple/releases/download/studio-v1.0.1/saya-couple-2.3.0.tar.gz)**:
 extract it and run `./saya install`.
 
 ## Install
 
 | System | File | Command |
 |---|---|---|
-| Debian, Ubuntu | `saya-studio_1.0.0_amd64.deb` | `sudo apt install ./saya-studio_1.0.0_amd64.deb` |
-| Fedora | `saya-studio-1.0.0.fedora.x86_64.rpm` | `sudo dnf install ./saya-studio-1.0.0.fedora.x86_64.rpm` |
-| openSUSE | `saya-studio-1.0.0.opensuse.x86_64.rpm` | `sudo zypper install ./saya-studio-1.0.0.opensuse.x86_64.rpm` |
-| Arch, EndeavourOS | `saya-studio-1.0.0-x86_64.pkg.tar.zst` | `sudo pacman -U ./saya-studio-1.0.0-x86_64.pkg.tar.zst` |
-| Any Linux distribution | `saya-studio_1.0.0_amd64.AppImage` | `chmod +x` it, then run it |
-| Flatpak | `saya-studio-1.0.0-x86_64.flatpak` | `flatpak install --user ./saya-studio-1.0.0-x86_64.flatpak` |
+| Debian, Ubuntu | `saya-studio_1.0.1_amd64.deb` | `sudo apt install ./saya-studio_1.0.1_amd64.deb` |
+| Fedora | `saya-studio-1.0.1.fedora.x86_64.rpm` | `sudo dnf install ./saya-studio-1.0.1.fedora.x86_64.rpm` |
+| openSUSE | `saya-studio-1.0.1.opensuse.x86_64.rpm` | `sudo zypper install ./saya-studio-1.0.1.opensuse.x86_64.rpm` |
+| Arch, EndeavourOS | `saya-studio-1.0.1-x86_64.pkg.tar.zst` | `sudo pacman -U ./saya-studio-1.0.1-x86_64.pkg.tar.zst` |
+| Any Linux distribution | `saya-studio_1.0.1_amd64.AppImage` | `chmod +x` it, then run it |
+| Flatpak | `saya-studio-1.0.1-x86_64.flatpak` | `flatpak install --user ./saya-studio-1.0.1-x86_64.flatpak` |
 | Nix | flake in `studio/` | `nix run github:alphaziod/saya-studio-x-couple?dir=studio` |
-| Windows 10/11 x64 | `saya-studio-1.0.0-windows-x64.exe` | run the installer (WebView2 is handled) |
-| Mac, Apple Silicon | `saya-studio-1.0.0-macos-arm64.dmg` | open it, drag Saya Studio into Applications |
-| Mac, Intel | `saya-studio-1.0.0-macos-x64.dmg` | open it, drag Saya Studio into Applications |
+| Windows 10/11 x64 | `saya-studio-1.0.1-windows-x64.exe` | run the installer (WebView2 is handled) |
+| Mac, Apple Silicon | `saya-studio-1.0.1-macos-arm64.dmg` | open it, drag Saya Studio into Applications |
+| Mac, Intel | `saya-studio-1.0.1-macos-x64.dmg` | open it, drag Saya Studio into Applications |
 
 Check your download: `sha256sum -c SHA256SUMS --ignore-missing`.
 
@@ -98,14 +108,17 @@ the first launch. Updating keeps your database, images, characters and settings.
 
 ## Validation
 
-- Local: 482 Rust tests passed (33 explicitly ignored), 100 frontend tests passed, Svelte check with no
-  errors or warnings, interface translations complete in 14 languages.
-- Real GPU, ComfyUI 0.34.0, SFW still-life prompts: stopping a run interrupted the executing prompt and
-  deleted the queued one from the ComfyUI queue.
-- Native app check with a simulated ComfyUI: a full six-pass run, a casting batch of eight, keeping images in
-  the gallery and restarting the app on that data.
-- Not verified end to end: a resume after actually killing ComfyUI. The decision logic (refusal while a pass
-  runs, confirmation of a lost pass) is covered by unit tests.
+- Local: 503 Rust tests passed (34 explicitly ignored), 109 frontend tests passed, Svelte check with no errors or
+  warnings, interface translations complete in 14 languages; installer tests (bundle, update mode, 7 distribution
+  detections) pass without network.
+- Speed measured on a copy of a real library (432 runs, 763 MB of run manifests, 3.8 GB database); the table
+  above gives those numbers.
+- Workflows: 30 synthetic workflows and 30 invented node classes give the exact expected report; the bundled
+  presets are complete against a real ComfyUI 0.34.0 node list.
+- Native app checks (real window, simulated ComfyUI): casting pickers, « Images manquantes » (Yes, No, Skip),
+  gallery names and right-click menu, developer mode and node check, page switching (~50 ms, no reload).
+- Not verified end to end: installing an update through `pkexec` and `install.sh --update` against this
+  release (both are covered by tests with recorded release data), and a resume after actually killing ComfyUI.
 
 ## Known limitations
 
