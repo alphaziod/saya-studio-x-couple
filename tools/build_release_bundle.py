@@ -23,9 +23,13 @@ LAUNCHER = '''#!/bin/sh
 # Run: sh install.sh   (choose nodes, app, or both)
 # Or:  sh install.sh --what both --comfyui /path/to/ComfyUI
 # Preview app install: sh install.sh --what app --dry-run
+# Update the Studio app only: sh install.sh --update [--dry-run] [--force-update]
 set -eu
 case "${1:-}" in
-  install|studio|verify|restore|check-compat|amd|-h|--help) ;;
+  --update) shift; set -- update "$@" ;;
+esac
+case "${1:-}" in
+  install|update|studio|verify|restore|check-compat|amd|-h|--help) ;;
   *) set -- install "$@" ;;
 esac
 for tool in curl tar sha256sum python3; do

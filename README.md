@@ -87,7 +87,12 @@ For a first run you only need the demo workflow. It takes about ten minutes.
    ```
 
    The installer first asks what you want: the **Saya Couple nodes**, the **Saya Studio** desktop app, or both
-   (`--what nodes|app|both` skips the question).
+   (`--what nodes|app|both` skips the question). The installer first prints your distribution family,
+   architecture and package format (x86_64 only; AppImage when the distribution is unknown).
+
+   **Update the Studio app only** (not the Couple nodes): `sh install.sh --update` (or menu choice 4).
+   It compares the installed version with the latest release, verifies the download against `SHA256SUMS`
+   and asks before installing. `--dry-run` previews; a local dev build is replaced only with `--force-update`.
 
 4. **Restart ComfyUI**, open `workflows/Saya_Couple_Demo.json`, select your SDXL / Illustrious model in both
    checkpoint loaders (the same model twice is fine), click **Run**.
