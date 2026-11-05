@@ -22,6 +22,11 @@ fn language_preferences_validate_and_survive_reopening() {
     db.set_preference("devMode",json!(true)).unwrap();
     assert_eq!(db.preferences().unwrap()["devMode"],true);
     assert!(db.set_preference("devMode",json!("on")).is_err());
+    // Update check at startup: on/off switch, absent = on.
+    assert!(db.preferences().unwrap().get("updateCheck").is_none());
+    db.set_preference("updateCheck",json!(false)).unwrap();
+    assert_eq!(db.preferences().unwrap()["updateCheck"],false);
+    assert!(db.set_preference("updateCheck",json!("off")).is_err());
     drop(db);
     let db=Database::open(&path).unwrap();
     assert_eq!(db.preferences().unwrap()["language"],"fr");

@@ -24,6 +24,7 @@ mod proposals;
 pub mod live;
 
 pub mod live_transport;
+pub mod updates;
 
 mod jobs;
 

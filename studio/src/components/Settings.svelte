@@ -5,12 +5,24 @@
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { parseBootstrap, type Bootstrap } from '../lib/contracts';
+  import { checkForUpdate, updateInfo, type UpdateInfo } from '../lib/updates';
   let { ondevmode }: { ondevmode?: (value: boolean) => void } = $props();
   let devMode = $state(false);
   async function chooseDevMode(value: boolean) {
     if (busy) return; busy = true; error = '';
     try { await call('set_preference', { key: 'devMode', value }); devMode = value; ondevmode?.(value); }
     catch (e) { error = message(e); } finally { busy = false; }
+  }
+  let updateCheck = $state(true), updateResult = $state<UpdateInfo|null>(null), updateBusy = $state(false);
+  async function chooseUpdateCheck(value: boolean) {
+    if (busy) return; busy = true; error = '';
+    try { await call('set_preference', { key: 'updateCheck', value }); updateCheck = value; }
+    catch (e) { error = message(e); } finally { busy = false; }
+  }
+  async function checkNow() {
+    if (updateBusy) return; updateBusy = true; error = '';
+    try { updateResult = await checkForUpdate(); }
+    catch (e) { error = message(e); } finally { updateBusy = false; }
   }
   let note = $state(''), error = $state(''), busy=$state(false);
   // Folder preferences gathered here; library and LoRA roots keep their own pages for indexing.
@@ -19,6 +31,7 @@
   let captureRoot = $state(''), captureDraft = $state(''), captureDefault = $state(''), libraryRoot = $state(''), loraRoot = $state(''), pathsNote = $state('');
   // Read-only information (engine connection, application version): never written from this page.
   let engine = $state<{ connected:boolean; version:string|null }|null>(null), about = $state<Bootstrap|null>(null);
+  const localBuild = $derived(updateResult?.status === 'local_build' || $updateInfo?.status === 'local_build' || /\.dev\.|-dev|wt/.test(about?.appVersion ?? ''));
   // ComfyUI output folder: detected path and which source found it (see generation_browser::resolve_output_dir).
   let outputInfo = $state<{ path:string|null; source:string }|null>(null), outputPref = $state('');
   async function loadOutput() {
@@ -51,7 +64,7 @@
       invoke('get_bootstrap').then(value => { about = parseBootstrap(value); }).catch(() => { about = null; });
     }
     try { const prefs = await call<Record<string, unknown>>('preferences');
-    devMode = prefs.devMode === true;
+    devMode = prefs.devMode === true; updateCheck = prefs.updateCheck !== false;
     captureRoot = typeof prefs.captureRoot === 'string' ? prefs.captureRoot : ''; captureDraft = captureRoot;
     fileLanguage = typeof prefs.fileNamingLanguage === 'string' ? prefs.fileNamingLanguage : '';
     captureDefault = typeof prefs.defaultCaptureRoot === 'string' ? prefs.defaultCaptureRoot : '';
@@ -143,6 +156,26 @@
       <span class="set-label">{$t("Version")}</span>
       <span class="set-value num">{engine?.version ?? $t("non indiquée")}</span>
     </div>
+  </section>
+
+  <section class="set-sec" data-settings-updates>
+    <h2 class="set-title">{$t("Mises à jour")}</h2>
+    <div class="set-row">
+      <label class="set-label" for="settings-update-check">{$t("Au démarrage")}</label>
+      <div class="set-control">
+        <label class="checkbox"><input id="settings-update-check" type="checkbox" data-settings-update-check checked={updateCheck} disabled={busy||!native} onchange={e => chooseUpdateCheck(e.currentTarget.checked)}/>{$t("Vérifier les mises à jour au démarrage")}</label>
+      </div>
+    </div>
+    <div class="set-row">
+      <span class="set-label">{$t("Saya Studio")}</span>
+      <div class="set-control inline">
+        <button data-settings-update-now disabled={updateBusy||!native} onclick={checkNow}>{updateBusy ? $t("Vérification…") : $t("Vérifier maintenant")}</button>
+        {#if updateResult?.status === 'up_to_date'}<span class="notice" role="status">{$t("Saya Studio est à jour.")}</span>
+        {:else if updateResult?.status === 'available'}<span class="notice" role="status">{$t("Saya Studio {version} est disponible", { version: updateResult.latest ?? '' })}</span>
+        {:else if updateResult?.status === 'offline'}<span class="notice" role="status">{$t("Hors ligne : GitHub est injoignable.")}</span>{/if}
+      </div>
+    </div>
+    {#if localBuild}<p class="notice row-note" role="status" data-settings-local-build>{$t("Build local : la mise à jour GitHub remplacerait ce build ; tes presets privés restent dans le dossier de config.")}</p>{/if}
   </section>
 
   <section class="set-sec" data-settings-dev>

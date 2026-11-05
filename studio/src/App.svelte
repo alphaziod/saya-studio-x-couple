@@ -4,6 +4,8 @@
   import { onMount } from 'svelte';
   import { pageGuides } from './lib/page-guides';
   import Settings from './components/Settings.svelte';
+  import UpdateBanner from './components/UpdateBanner.svelte';
+  import { checkForUpdate } from './lib/updates';
   import DevMode from './components/DevMode.svelte';
   import { applyLocale, locale, currentSystemLocale, LOCALES } from './lib/i18n';
   import { call, message, native, type Asset } from './lib/api';
@@ -70,7 +72,9 @@
   let help = $state(false), engine = $state<{connected:boolean;running:number|null;pending:number|null}|null>(null);
   onMount(() => { if (!native) return; const poll = async () => { try { engine = await call('connection'); } catch { engine = null; } }; void poll(); const timer = setInterval(poll, 10000); return () => clearInterval(timer); });
   const pages = [...primary,...tools,devEntry];
-  onMount(async () => { try { const prefs = await call<Record<string, unknown>>('preferences'); setDevMode(prefs); if (!navigated && prefs.selectedTab === 'browser') selected = 'gallery'; if (!navigated && pages.some(p => p.id === prefs.selectedTab)) selected = prefs.selectedTab === 'dev' && !devMode ? 'settings' : String(prefs.selectedTab); if (typeof prefs.language === 'string') applyLocale(prefs.language); else { preselectedLanguage = currentSystemLocale(); languageChoice = true; } } catch (e) { error = message(e); } if (!native) return; try { appVersion = parseBootstrap(await invoke('get_bootstrap')).appVersion; } catch { /* fallback: v0.1.0 */ } });
+  // Once per start, silent: any failure (offline, unreadable answer) simply shows nothing.
+  async function startupUpdateCheck() { try { const prefs = await call<Record<string, unknown>>('preferences'); if (prefs.updateCheck !== false) await checkForUpdate(); } catch { /* silent */ } }
+  onMount(async () => { try { const prefs = await call<Record<string, unknown>>('preferences'); setDevMode(prefs); if (!navigated && prefs.selectedTab === 'browser') selected = 'gallery'; if (!navigated && pages.some(p => p.id === prefs.selectedTab)) selected = prefs.selectedTab === 'dev' && !devMode ? 'settings' : String(prefs.selectedTab); if (typeof prefs.language === 'string') applyLocale(prefs.language); else { preselectedLanguage = currentSystemLocale(); languageChoice = true; } } catch (e) { error = message(e); } if (!native) return; try { appVersion = parseBootstrap(await invoke('get_bootstrap')).appVersion; } catch { /* fallback: v0.1.0 */ } void startupUpdateCheck(); });
   async function confirmLanguage(){
     if(languageBusy)return;languageBusy=true;languageError='';
     try{await call('set_preference',{key:'language',value:preselectedLanguage});await call('set_preference',{key:'language_setup_completed',value:true});applyLocale(preselectedLanguage);languageChoice=false;}
@@ -93,6 +97,7 @@
   </nav>
   <main id="main-content" class:full={fullBleed.has(selected)} class="workbench">
     {#if tabsFor(selected)}{@const tabs = tabsFor(selected)!}<div class="subtabs" role="tablist">{#each tabs as page}<button role="tab" class:on={selected === page.id} aria-selected={selected === page.id} data-nav={page.id} onclick={() => navigate(page.id)}>{$t(page.label)}</button>{/each}</div>{/if}
+    <UpdateBanner />
     {#if !native}<p class="notice" role="status">{$t("Aperçu navigateur : ouvrir le binaire Saya Studio pour lire les données locales.")}</p>{/if}
     {#if error}<p class="error" role="alert">{error}</p>{/if}
     {#if help && pageGuides[selected]}<aside class="guide-pop" aria-label={$t("Mode d’emploi")} data-page-guide={selected}><header><strong>{$t(pageGuides[selected].title)}</strong><button class="quiet icon-btn" aria-label={$t("Fermer")} onclick={() => help = false}><Icon name="close"/></button></header><p>{$t(pageGuides[selected].next)}</p></aside>{/if}
