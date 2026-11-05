@@ -1,6 +1,6 @@
 #!/bin/sh
 # Launcher for formats that cannot install under the hardcoded /usr/share/saya-studio
-# (Flatpak, Snap, Nix, AppImage). Points the app at the data directory of the package
+# (Flatpak, Nix, AppImage). Points the app at the data directory of the package
 # through the environment variables the app already honours, then execs the real binary.
 # SAYA_STUDIO_DATA: directory holding presets/, civitai_bridge.py, saya_native_host.py,
 # sidecars/ (default: ../share/saya-studio relative to this script).

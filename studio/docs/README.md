@@ -9,7 +9,7 @@
 | [PERSISTENCE.md](PERSISTENCE.md) | Data locations, schema and migrations, preferences, deletion rules |
 | [TESTING.md](TESTING.md) | Suites, native smokes, isolation and fixture rules |
 | [I18N.md](I18N.md) | Locales, `$t`/`$tn`, plurals, adding strings |
-| [PACKAGING.md](PACKAGING.md) | Linux packages (deb, rpm, Arch/AUR, Nix, AppImage, Flatpak, Snap): build, verify, install |
+| [PACKAGING.md](PACKAGING.md) | Linux packages (deb, rpm, Arch/AUR, Nix, AppImage, Flatpak): build, verify, install |
 | [RAM-VRAM.md](RAM-VRAM.md), [PROMPT-ENGINE.md](PROMPT-ENGINE.md) | Memory measurement and release between passes; prompt engine (French) |
 | [UI_V1_DESIGN.md](UI_V1_DESIGN.md) | UI principles and visual system  |
 | [API.md](API.md), [DATA_MODEL.md](DATA_MODEL.md) | Older contract notes (foundation era) |

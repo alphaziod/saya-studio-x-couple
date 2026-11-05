@@ -32,9 +32,6 @@ CI moves and restores a synthetic file through each native trash service. It als
 extension in real Chromium, requests the token through the registered host, authenticates to the
 running bridge, and checks that an unrelated extension is refused.
 
-Snap is attached only when CI can download its build prerequisites from the Snapcraft store.
-The recipe remains available for a later build.
-
 ## Arch Linux
 
 End-user installation notes stay in `INSTALLATION-ARCH.md` and `SAUVEGARDES.md` (French,
@@ -48,11 +45,17 @@ bash scripts/build-arch-worktree.sh
 
 - Packs the **current files** of the worktree (tracked + untracked, not ignored; uncommitted
   changes included, nothing committed) into `test-results/arch-package-worktree-<stamp>-XXXX/`.
-- Version `0.2.0.dev.wt<stamp>`; `SOURCE-COMMIT` records `HEAD` plus a "worktree" note.
+- Version `<pkgver>.dev.wt<stamp>` (for example `1.0.1.dev.wt202611051401`); `SOURCE-COMMIT` records `HEAD`
+  plus a "worktree" note. The app's update check treats this version as a local build.
 - Runs `makepkg` with `packaging/arch/PKGBUILD`: offline `npm ci`, `tauri build --no-bundle`,
   the `studio-maintenance` binary, then `check()` (Rust tests, JS tests, subgraph test,
   desktop file validation).
 - `RUSTFLAGS --remap-path-prefix` keeps build-machine paths out of the binaries.
+
+**With your own presets** (never published): `bash scripts/build-arch-private.sh PRESETS_DIR` packs the
+**committed** sources with `presets/` replaced by `PRESETS_DIR` (for example the `workflows/` folder of your
+config folder), into `test-results/arch-package-private-<stamp>-XXXX/stage/`, then checks that the packed presets
+are identical to `PRESETS_DIR`.
 
 `scripts/build-arch.sh` does the same from a committed Git snapshot.
 
@@ -176,26 +179,13 @@ manifests written under `~/.config` for Brave/Chrome point to a script inside th
 AppStream metadata: `packaging/linux/studio.saya.desktop.metainfo.xml` (OARS 1.1 `sex-nudity` and
 `sex-themes` set to `moderate`: **the owner must confirm**).
 
-## Snap
-
-`packaging/snap/snapcraft.yaml` (core24, GNOME extension, **strict** confinement with plugs
-`home network network-bind desktop desktop-legacy wayland x11 opengl removable-media`). Strict was
-chosen because the app only needs the home directory and the network; switch to `classic` if real
-use needs more (it requires store approval).
-
-```bash
-mkdir -p snap && cp packaging/snap/snapcraft.yaml snap/ && snapcraft
-sudo snap install --dangerous ./saya-studio_*.snap
-```
-
-Limits: the Chrome/Brave native messaging bridge cannot reach a confined script; the snap `home`
-plug excludes hidden directories of other apps.
+Snap is no longer built: its CI job took about 45 minutes and its store prerequisites often failed.
 
 ## CI (`.github/workflows/studio-release.yml`)
 
 Trigger: tag `studio-v*` or manual run. Jobs: bundles (tests, deb, Fedora rpm, AppImage), openSUSE rpm,
-Arch (makepkg in an `archlinux` container as non-root, then `verify-arch-package.py`), Nix, Flatpak, Snap,
-then a **draft prerelease** with `SHA256SUMS`. Nix, Flatpak and Snap are `continue-on-error` (untested);
+Arch (makepkg in an `archlinux` container as non-root, then `verify-arch-package.py`), Nix, Flatpak,
+then a **draft prerelease** with `SHA256SUMS`. Nix and Flatpak are `continue-on-error` (untested);
 the release is produced when bundles, openSUSE rpm and Arch succeed. Only `GITHUB_TOKEN` is used.
 
 ## Not tested locally
@@ -205,4 +195,4 @@ Tauri config keys against the Tauri 2.12 `config.schema.json`, YAML syntax, AppS
 validate --no-net`), `.desktop` (`desktop-file-validate`), AUR `.SRCINFO` (`makepkg --printsrcinfo`).
 Untested: the Tauri bundles (directory entries in `files`, `1.0.1` as an rpm version, two
 `--config` flags), the Arch CI job (offline `npm ci`/cargo from a prefetched cache), Nix (no `nix` installed),
-Flatpak, Snap, the AUR package, and all of the action pins in the workflow.
+Flatpak, the AUR package, and all of the action pins in the workflow.

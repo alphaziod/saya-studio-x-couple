@@ -53,7 +53,7 @@ pub fn engine_dir() -> PathBuf {
 }
 
 /// Packaged data (presets, helpers): `/usr/share/saya-studio` for system packages, otherwise
-/// `<binary>/../share/saya-studio` (AppImage, Nix store, Flatpak `/app`, Snap).
+/// `<binary>/../share/saya-studio` (AppImage, Nix store, Flatpak `/app`).
 pub fn share_dir() -> PathBuf {
     if let Some(dir) = RESOURCE_DIR.get() {
         return dir.clone();

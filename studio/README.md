@@ -26,14 +26,29 @@ See the [complete 1.0.1 changes and validation](RELEASE_NOTES.md#whats-new-in-10
 - **Generation**: open a ComfyUI workflow (UI format), check its faithful API conversion, edit inputs, submit,
   follow progress. The bundled **Saya preset** chains six passes (composition, hires fix, HiDream, post,
   detailers, final upscale) with memory released between passes.
+- **Crash resume**: if ComfyUI or the app stops in the middle of a run, the run is kept on disk with its seed.
+  **Reprendre depuis la passe N** (in Generation, and on each Casting trial) continues from the last finished
+  pass; a pass already sent to ComfyUI is never sent twice.
 - **Casting**: asks a draw engine for N characters, renders pass 1 only, lets you keep some and send them
-  through the six passes. Action drafts can be tested in an isolated copy of the engine before they are added
-  for real. *The draw engine itself is not distributed*; without one, Casting stays unavailable and says so.
+  through the six passes. The six passes of kept images wait until every pass-1 trial of the batch is done, so
+  two heavy models never share the GPU. **Images manquantes** gives a picture to the characters that have none
+  (random pose, then Yes = six passes and saved, No = another pose). *The draw engine itself is not
+  distributed*; without one, Casting stays unavailable and says so.
+- **Drafts and pending actions**: a new action is tested in an isolated copy of the engine before it is added
+  for real; actions the engine does not draw yet are listed with the reason, and you **Validate** or
+  **Refuse** each one yourself. Nothing is validated automatically.
 - **Gallery**: indexes your image folders (incremental, SHA-256, ComfyUI PNG metadata), filters by checkpoint,
-  LoRA and character, favourites, review, duplicates; files deliveries by day and family.
+  LoRA and character, favourites, review, duplicates; files deliveries by day and family. Casting images show
+  the character's name. **Envoyer au workflow complet** reopens an image in Generation with its own workflow.
 - **Characters**: sheets (identity prompt + anatomy), variants with backgrounds, reference images, import.
-- **Models**: LoRA manager (send to the generation, stack, right-click actions), checkpoints.
+- **Models**: LoRA manager (send to the generation, stack), checkpoints.
+- **Right-click menus** on gallery images, casting batches and trials, and models.
 - **Workshop**: graph editor (native ComfyUI graphs, subgraphs), workflows, pipelines, A/B lab, scenes.
+- **Node check**: lists the nodes a workflow needs and the ones missing from your ComfyUI, in the app or from a
+  script: `saya-studio-maintenance check-workflow FILE_OR_FOLDER object_info.json` (exit 0 complete, 2 missing).
+- **Developer mode** (Settings): action console, preference editor, data folders, node check.
+- **Updates**: at startup the app checks GitHub for a newer release and offers to install it (see below).
+- Fast on large libraries: pages open in tens of milliseconds and keep their state when you come back.
 - 14 interface languages (French by default).
 
 ## Requirements
@@ -47,9 +62,12 @@ See the [complete 1.0.1 changes and validation](RELEASE_NOTES.md#whats-new-in-10
 
 ## Install
 
-Packages are attached to the GitHub release `studio-v1.0.1`:
+Packages are attached to the GitHub release
+[`studio-v1.0.1`](https://github.com/alphaziod/saya-studio-x-couple/releases/tag/studio-v1.0.1).
 
-Snap is attached only when its CI build can reach the Snapcraft store. Its build recipe is in `packaging/snap/snapcraft.yaml`.
+**Linux, the simple way:** download `install.sh` from the release and run `sh install.sh`. It detects your
+distribution, downloads the matching package, checks it against `SHA256SUMS` and asks before installing. It can
+also install the Saya Couple nodes (choice 1, 2 or 3).
 
 | Distribution | File / command |
 |---|---|
@@ -61,10 +79,29 @@ Snap is attached only when its CI build can reach the Snapcraft store. Its build
 | openSUSE | `sudo zypper install ./saya-studio-1.0.1.opensuse.x86_64.rpm` |
 | Arch, EndeavourOS | `sudo pacman -U ./saya-studio-1.0.1-x86_64.pkg.tar.zst`, or AUR `saya-studio-bin` |
 | NixOS / Nix | `nix run github:alphaziod/saya-studio-x-couple?dir=studio` |
-| Any distribution | `saya-studio_1.0.1_amd64.AppImage`, `saya-studio-1.0.1-x86_64.flatpak` |
+| Any distribution | `saya-studio_1.0.1_amd64.AppImage` (`chmod +x`, then run it), or `flatpak install --user ./saya-studio-1.0.1-x86_64.flatpak` |
+
+Check a download by hand: `sha256sum -c SHA256SUMS --ignore-missing`.
+
+**First launch on Windows and macOS.** The builds are not signed by Microsoft or notarized by Apple, so the
+system may block them once. Windows: *More info → Run anyway*. macOS: right-click the app in Applications →
+*Open* → *Open* (or `xattr -dr com.apple.quarantine "/Applications/Saya Studio.app"`).
 
 Release notes: [RELEASE_NOTES.md](RELEASE_NOTES.md). Build steps and per-distribution dependencies: [docs/PACKAGING.md](docs/PACKAGING.md).
 French install guide for Arch: [docs/INSTALLATION-ARCH.md](docs/INSTALLATION-ARCH.md).
+
+## Updating
+
+- **From the app:** at startup Saya Studio asks GitHub for the latest release. If there is a newer one, a banner
+  offers to install it: the app downloads the package for your system and checks it against `SHA256SUMS`. A
+  Linux package is then installed after your system asks for your password; on Windows and macOS the app opens
+  the installer or the disk image; an AppImage is saved and the command to run is shown. Turn the check off
+  in Settings (*Vérifier les mises à jour au démarrage*).
+- **From a terminal (Linux):** `sh install.sh --update` (or choice 4 in its menu); `--dry-run` only shows what
+  it would do.
+- A build you compiled yourself is recognised as a local build: the app tells you a release exists but never
+  replaces it without asking.
+- Updating keeps your database, images, characters and settings. Back them up first anyway (see below).
 
 ## Build from source
 
@@ -77,7 +114,8 @@ npm run build && cargo build -p saya-studio --features custom-protocol
 ```
 
 Tests: `cargo test -p studio-core`, `node --test scripts/*.test.mjs`, `npx svelte-check`
-([docs/TESTING.md](docs/TESTING.md)).
+([docs/TESTING.md](docs/TESTING.md)). Check workflow files against a ComfyUI node list:
+`bash scripts/check-workflows.sh WORKFLOW_DIR OBJECT_INFO.json`.
 
 ## Your data
 
@@ -98,8 +136,8 @@ The extension connects to the running app without manually copying its token.
 - Windows packages are unsigned; macOS packages use ad-hoc signing and are not Apple-notarized. OS security checks can block the first launch.
 - Legacy `.bash` engine launchers require Bash; Python test scripts use `python` on Windows and `python3` elsewhere (`SAYA_PYTHON` overrides this).
 - AppImage: presets and helpers are found next to the binary (`../share/saya-studio`); not run by hand yet.
-- Flatpak and Snap run sandboxed: access to ComfyUI and your folders goes through the permissions listed in
-  their manifests; the browser extension bridge may not work there.
+- Flatpak runs sandboxed: access to ComfyUI and your folders goes through the permissions listed in
+  its manifest; the browser extension bridge may not work there.
 - The bundled preset ships with neutral SFW example prompts and empty LoRA stacks: fill in your own.
 
 ## For AI agents and contributors
