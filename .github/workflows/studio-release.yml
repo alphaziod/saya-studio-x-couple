@@ -197,32 +197,9 @@ jobs:
           name: flatpak
           path: dist-release/*
 
-  # (f) Snap.
-  snap:
-    name: Snap
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-      - name: Place snapcraft.yaml where snapcraft expects it
-        run: |
-          mkdir -p studio/snap
-          cp studio/packaging/snap/snapcraft.yaml studio/snap/snapcraft.yaml
-      - uses: snapcore/action-build@v1
-        id: build
-        with:
-          path: studio
-      - run: |
-          mkdir -p dist-release
-          cp "${{ steps.build.outputs.snap }}" "dist-release/saya-studio_${VERSION}_amd64.snap"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: snap
-          path: dist-release/*
-
   release:
     name: Publish release
-    needs: [desktop, bundles, opensuse-rpm, arch, nix, flatpak, snap]
+    needs: [desktop, bundles, opensuse-rpm, arch, nix, flatpak]
     if: ${{ !cancelled() && github.event_name != 'pull_request' && needs.desktop.result == 'success' && needs.bundles.result == 'success' && needs.opensuse-rpm.result == 'success' && needs.arch.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:

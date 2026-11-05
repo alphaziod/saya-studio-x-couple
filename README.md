@@ -46,7 +46,7 @@ is available in the same release as the app packages.
 
 > ### New: Saya Studio 1.0.1 (Linux, Windows and macOS)
 > A local desktop app that drives ComfyUI and these nodes. Packages for Debian/Ubuntu, Fedora, openSUSE, Arch
-> (+ AUR), Nix, AppImage, Flatpak, Snap, Windows EXE and Mac DMG. 1.0.1 is fast on large libraries, resumes
+> (+ AUR), Nix, AppImage, Flatpak, Windows EXE and Mac DMG. 1.0.1 is fast on large libraries, resumes
 > runs after a crash and updates itself from GitHub. See [Saya Studio](#saya-studio-desktop-app) below.
 >
 > ![Saya Studio](docs/images/studio-generation.webp)
@@ -526,7 +526,6 @@ It needs a running ComfyUI with the **Saya Couple nodes 2.3.0+**. Packages are a
 | openSUSE | `sudo zypper install ./saya-studio-1.0.1.opensuse.x86_64.rpm` |
 | Arch, EndeavourOS | `sudo pacman -U ./saya-studio-1.0.1-x86_64.pkg.tar.zst` |
 | Nix | `nix run github:alphaziod/saya-studio-x-couple?dir=studio` |
-| Snap | `sudo snap install --dangerous ./saya-studio_1.0.1_amd64.snap` |
 | Any Linux distribution | AppImage or Flatpak from the release |
 
 On Linux, let the installer pick the right package for your distribution, check its SHA256 and install it after

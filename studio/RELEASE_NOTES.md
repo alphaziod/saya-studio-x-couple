@@ -125,7 +125,6 @@ the first launch. Updating keeps your database, images, characters and settings.
 - **Casting needs a draw engine**, which is not distributed; without one, Casting says so and stays unavailable.
 - **Flatpak** runs sandboxed: ComfyUI on `127.0.0.1` and your home folder are allowed, but the browser
   extension bridge may not work there.
-- Snap is built by CI when the Snapcraft store is reachable; it is attached only if that build succeeds.
 - The bundled preset ships with **neutral example prompts and empty LoRA stacks**: fill in your own. Its model
   settings are mine; keep the ones that work on your machine.
 

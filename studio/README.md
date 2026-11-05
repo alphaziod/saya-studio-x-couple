@@ -79,7 +79,6 @@ also install the Saya Couple nodes (choice 1, 2 or 3).
 | openSUSE | `sudo zypper install ./saya-studio-1.0.1.opensuse.x86_64.rpm` |
 | Arch, EndeavourOS | `sudo pacman -U ./saya-studio-1.0.1-x86_64.pkg.tar.zst`, or AUR `saya-studio-bin` |
 | NixOS / Nix | `nix run github:alphaziod/saya-studio-x-couple?dir=studio` |
-| Snap | `sudo snap install --dangerous ./saya-studio_1.0.1_amd64.snap` |
 | Any distribution | `saya-studio_1.0.1_amd64.AppImage` (`chmod +x`, then run it), or `flatpak install --user ./saya-studio-1.0.1-x86_64.flatpak` |
 
 Check a download by hand: `sha256sum -c SHA256SUMS --ignore-missing`.
@@ -137,8 +136,8 @@ The extension connects to the running app without manually copying its token.
 - Windows packages are unsigned; macOS packages use ad-hoc signing and are not Apple-notarized. OS security checks can block the first launch.
 - Legacy `.bash` engine launchers require Bash; Python test scripts use `python` on Windows and `python3` elsewhere (`SAYA_PYTHON` overrides this).
 - AppImage: presets and helpers are found next to the binary (`../share/saya-studio`); not run by hand yet.
-- Flatpak and Snap run sandboxed: access to ComfyUI and your folders goes through the permissions listed in
-  their manifests; the browser extension bridge may not work there.
+- Flatpak runs sandboxed: access to ComfyUI and your folders goes through the permissions listed in
+  its manifest; the browser extension bridge may not work there.
 - The bundled preset ships with neutral SFW example prompts and empty LoRA stacks: fill in your own.
 
 ## For AI agents and contributors
