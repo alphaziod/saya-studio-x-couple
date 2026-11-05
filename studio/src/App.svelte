@@ -4,6 +4,9 @@
   import { onMount } from 'svelte';
   import { pageGuides } from './lib/page-guides';
   import Settings from './components/Settings.svelte';
+  import UpdateBanner from './components/UpdateBanner.svelte';
+  import { checkForUpdate } from './lib/updates';
+  import DevMode from './components/DevMode.svelte';
   import { applyLocale, locale, currentSystemLocale, LOCALES } from './lib/i18n';
   import { call, message, native, type Asset } from './lib/api';
   import Gallery from './components/Gallery.svelte';
@@ -26,6 +29,7 @@
   import Icon from './components/Icon.svelte';
   import appIcon from './assets/app-icon.png';
   import { parseBootstrap } from './lib/contracts';
+  import { keepsNativeMenu } from './lib/context-menu';
   let selected = $state('gallery'), error = $state(''), appVersion = $state('0.1.0');
   $effect.pre(()=>{bindTranslator($t,$tn)});
   let navigated=false;
@@ -35,24 +39,42 @@
   let generationImage=$state<string|null>(null);
   let characterTarget=$state<string|null>(null),galleryTarget=$state<{character:string;asset:string|null}|null>(null);
   let editorTarget=$state<Asset|null>(null);
-  function showCharacter(id:string){characterTarget=id;galleryTarget=null;navigate('characters',true);}
-  function showGallery(character:string,asset:string|null=null){galleryTarget={character,asset};characterTarget=null;navigate('gallery',true);}
+  // Heavy pages stay mounted (hidden) once visited: switching back is instant and keeps their
+  // state (filters, scroll, selection) instead of reloading everything. A contextual opening
+  // (a character's gallery, a given sheet) remounts the page through its epoch.
+  const KEPT=['gallery','casting','characters','lora'];
+  let visited=$state<Record<string,boolean>>({});
+  $effect(()=>{if(KEPT.includes(selected)&&!visited[selected])visited={...visited,[selected]:true}});
+  let galleryEpoch=$state(0),charactersEpoch=$state(0);
+  function showCharacter(id:string){characterTarget=id;galleryTarget=null;charactersEpoch++;navigate('characters',true);}
+  function showGallery(character:string,asset:string|null=null){galleryTarget={character,asset};characterTarget=null;galleryEpoch++;navigate('gallery',true);}
   let comparisonTarget=$state<string|null>(null);
   function showComparison(job:string){comparisonTarget=job;navigate('generation',true);}
+  // Gallery « Envoyer au workflow complet »: Create opens the PNG's embedded workflow (imagePath).
+  function showWorkflow(asset:Asset){generationImage=asset.path;characterTarget=null;galleryTarget=null;navigate('generation',true);}
   function showEditor(asset:Asset){editorTarget={...asset};characterTarget=null;galleryTarget=null;navigate('editor',true);}
   // V1 shell: an icon rail with the production workspaces; tools are grouped as tabs.
   const primary = [{id:'generation',label:'Créer',icon:'create'},{id:'casting',label:'Casting',icon:'casting'},{id:'gallery',label:'Galerie',icon:'gallery'},{id:'characters',label:'Persos',icon:'characters'},{id:'lora',label:'Modèles',icon:'models'},{id:'workflows',label:'Atelier',icon:'studio'}];
   const system = [{id:'data',label:'Données',icon:'data'},{id:'settings',label:'Réglages',icon:'settings'}];
+  // Developer mode: the « Dev » entry only exists while the devMode preference is on.
+  const devEntry = {id:'dev',label:'Dev',icon:'edit'};
+  let devMode = $state(false);
+  const systemItems = $derived(devMode ? [system[0],devEntry,system[1]] : system);
+  function setDevMode(prefs:Record<string,unknown>){devMode=prefs.devMode===true;}
   const studioTabs = [{id:'workflows',label:'Workflows'},{id:'graph',label:'Éditeur graphique'},{id:'pipelines',label:'Pipelines'},{id:'modules',label:'Modules'},{id:'scenes',label:'Scènes'},{id:'ablab',label:'Labo A/B'},{id:'assistant',label:'Agents & API'}];
   const characterTabs = [{id:'characters',label:'Fiches'},{id:'people',label:'Galerie personnages'}];
   const tools = [...studioTabs,...characterTabs.slice(1),{id:'engine',label:'Moteur'},...system];
   const fullBleed = new Set(['generation','casting','gallery','lora','graph','pipelines','modules','characters','scenes','workflows','ablab','assistant']);
   const railGroup = (id:string) => studioTabs.some(p=>p.id===id) ? 'workflows' : characterTabs.some(p=>p.id===id) ? 'characters' : id;
   const tabsFor = (id:string) => studioTabs.some(p=>p.id===id) ? studioTabs : characterTabs.some(p=>p.id===id) ? characterTabs : null;
+  // Turning the mode off (Settings or the preference editor) while on the page leaves it.
+  $effect(()=>{if(!devMode&&selected==='dev')void navigate('settings')});
   let help = $state(false), engine = $state<{connected:boolean;running:number|null;pending:number|null}|null>(null);
   onMount(() => { if (!native) return; const poll = async () => { try { engine = await call('connection'); } catch { engine = null; } }; void poll(); const timer = setInterval(poll, 10000); return () => clearInterval(timer); });
-  const pages = [...primary,...tools];
-  onMount(async () => { try { const prefs = await call<Record<string, unknown>>('preferences'); if (!navigated && prefs.selectedTab === 'browser') selected = 'gallery'; if (!navigated && pages.some(p => p.id === prefs.selectedTab)) selected = String(prefs.selectedTab); if (typeof prefs.language === 'string') applyLocale(prefs.language); else { preselectedLanguage = currentSystemLocale(); languageChoice = true; } } catch (e) { error = message(e); } if (!native) return; try { appVersion = parseBootstrap(await invoke('get_bootstrap')).appVersion; } catch { /* fallback: v0.1.0 */ } });
+  const pages = [...primary,...tools,devEntry];
+  // Once per start, silent: any failure (offline, unreadable answer) simply shows nothing.
+  async function startupUpdateCheck() { try { const prefs = await call<Record<string, unknown>>('preferences'); if (prefs.updateCheck !== false) await checkForUpdate(); } catch { /* silent */ } }
+  onMount(async () => { try { const prefs = await call<Record<string, unknown>>('preferences'); setDevMode(prefs); if (!navigated && prefs.selectedTab === 'browser') selected = 'gallery'; if (!navigated && pages.some(p => p.id === prefs.selectedTab)) selected = prefs.selectedTab === 'dev' && !devMode ? 'settings' : String(prefs.selectedTab); if (typeof prefs.language === 'string') applyLocale(prefs.language); else { preselectedLanguage = currentSystemLocale(); languageChoice = true; } } catch (e) { error = message(e); } if (!native) return; try { appVersion = parseBootstrap(await invoke('get_bootstrap')).appVersion; } catch { /* fallback: v0.1.0 */ } void startupUpdateCheck(); });
   async function confirmLanguage(){
     if(languageBusy)return;languageBusy=true;languageError='';
     try{await call('set_preference',{key:'language',value:preselectedLanguage});await call('set_preference',{key:'language_setup_completed',value:true});applyLocale(preselectedLanguage);languageChoice=false;}
@@ -60,25 +82,31 @@
   }
   // The shell banner only reports the last failed tab save: a later success clears it, so one
   // transient write error does not stay pinned above every page.
-  async function navigate(id: string, contextual=false) { navigated=true; if(!contextual){generationImage=null;characterTarget=null;galleryTarget=null;comparisonTarget=null;} selected = id; if (native) try { await call('set_preference', { key:'selectedTab',value:id }); error=''; } catch(e) { error = message(e); } }
+  async function navigate(id: string, contextual=false) { navigated=true; if(id==='dev'&&!devMode)id='settings'; if(!contextual){generationImage=null;characterTarget=null;galleryTarget=null;comparisonTarget=null;} selected = id; if (native) try { await call('set_preference', { key:'selectedTab',value:id }); error=''; } catch(e) { error = message(e); } }
 </script>
+<svelte:window oncontextmenu={event=>{if(!keepsNativeMenu(event.target,String(window.getSelection()??"")))event.preventDefault()}}/>
 <div class="shell v1">
   <nav class="rail" aria-label={$t("Navigation principale")}>
     <button class="rail-logo" title="Saya Studio" onclick={() => navigate('gallery')}><img src={appIcon} alt="Saya Studio"/></button>
     {#each primary as page}<button class="rail-item" class:active={railGroup(selected) === page.id} data-nav={page.id} aria-current={railGroup(selected) === page.id ? 'page' : undefined} onclick={() => navigate(page.id)}><Icon name={page.icon} size={18}/><span>{$t(page.label)}</span></button>{/each}
     <span class="rail-grow"></span>
     <button class="rail-item" class:active={selected==='engine'} data-nav="engine" title={engine?.connected ? $t("Connecté") : $t("Hors ligne")} onclick={() => navigate('engine')}><i class="engine-dot" class:off={!engine?.connected}></i><span>{$t("Moteur")}</span>{#if engine?.connected && (engine.running || engine.pending)}<b class="rail-badge">{(engine.running ?? 0) + (engine.pending ?? 0)}</b>{/if}</button>
-    {#each system as page}<button class="rail-item" class:active={selected === page.id} data-nav={page.id} aria-current={selected === page.id ? 'page' : undefined} onclick={() => navigate(page.id)}><Icon name={page.icon} size={18}/><span>{$t(page.label)}</span></button>{/each}
+    {#each systemItems as page}<button class="rail-item" class:active={selected === page.id} data-nav={page.id} aria-current={selected === page.id ? 'page' : undefined} onclick={() => navigate(page.id)}><Icon name={page.icon} size={18}/><span>{$t(page.label)}</span></button>{/each}
     {#if pageGuides[selected]}<button class="rail-item" class:active={help} data-page-guide-toggle onclick={() => help = !help}><Icon name="help" size={18}/><span>{$t("Aide")}</span></button>{/if}
     <small class="rail-version">v{appVersion}</small>
   </nav>
   <main id="main-content" class:full={fullBleed.has(selected)} class="workbench">
     {#if tabsFor(selected)}{@const tabs = tabsFor(selected)!}<div class="subtabs" role="tablist">{#each tabs as page}<button role="tab" class:on={selected === page.id} aria-selected={selected === page.id} data-nav={page.id} onclick={() => navigate(page.id)}>{$t(page.label)}</button>{/each}</div>{/if}
+    <UpdateBanner />
     {#if !native}<p class="notice" role="status">{$t("Aperçu navigateur : ouvrir le binaire Saya Studio pour lire les données locales.")}</p>{/if}
     {#if error}<p class="error" role="alert">{error}</p>{/if}
     {#if help && pageGuides[selected]}<aside class="guide-pop" aria-label={$t("Mode d’emploi")} data-page-guide={selected}><header><strong>{$t(pageGuides[selected].title)}</strong><button class="quiet icon-btn" aria-label={$t("Fermer")} onclick={() => help = false}><Icon name="close"/></button></header><p>{$t(pageGuides[selected].next)}</p></aside>{/if}
-    <div class="screen" class:page={!fullBleed.has(selected)} hidden={selected === 'generation'}>
-      {#if selected === 'gallery'}<Gallery target={galleryTarget} oncharacter={showCharacter} onedit={showEditor} oncompare={showComparison} />{:else if selected === 'lora'}<LoraManager />{:else if selected === 'generation'}{:else if selected === 'casting'}<Casting onconfigure={()=>navigate('generation')} onbrowse={()=>navigate('gallery')} />{:else if selected === 'people'}<CharacterGallery onimage={(character,asset)=>showGallery(character,asset)} />{:else if selected === 'characters'}<Characters initialId={characterTarget} onimage={(character,asset)=>showGallery(character,asset)} onbrowse={id=>showGallery(id)} />{:else if selected === 'engine'}<Engine />{:else if selected === 'workflows'}<Workflows />{:else if selected === 'scenes'}<SceneComposer />{:else if selected === 'modules'}<Modules />{:else if selected === 'ablab'}<AbLab />{:else if selected === 'data'}<DataMaintenance />{:else if selected === 'settings'}<Settings />{:else if selected === 'editor'}<ImageEditor target={editorTarget} onclose={()=>navigate('gallery')} />{:else if selected === 'graph'}<GraphEditor />{:else if selected === 'pipelines'}<Pipelines />{:else}<PromptEngine />{/if}
+    {#if visited.gallery}<div class="screen" class:page={!fullBleed.has('gallery')} hidden={selected!=='gallery'}>{#key galleryEpoch}<Gallery active={selected==='gallery'} target={galleryTarget} oncharacter={showCharacter} onedit={showEditor} onworkflow={showWorkflow} oncompare={showComparison} />{/key}</div>{/if}
+    {#if visited.casting}<div class="screen" class:page={!fullBleed.has('casting')} hidden={selected!=='casting'}><Casting active={selected==='casting'} onconfigure={()=>navigate('generation')} onbrowse={()=>navigate('gallery')} /></div>{/if}
+    {#if visited.characters}<div class="screen" class:page={!fullBleed.has('characters')} hidden={selected!=='characters'}>{#key charactersEpoch}<Characters initialId={characterTarget} onimage={(character,asset)=>showGallery(character,asset)} onbrowse={id=>showGallery(id)} />{/key}</div>{/if}
+    {#if visited.lora}<div class="screen" class:page={!fullBleed.has('lora')} hidden={selected!=='lora'}><LoraManager /></div>{/if}
+    <div class="screen" class:page={!fullBleed.has(selected)} hidden={selected === 'generation' || KEPT.includes(selected)}>
+      {#if KEPT.includes(selected) || selected === 'generation'}{:else if selected === 'people'}<CharacterGallery onimage={(character,asset)=>showGallery(character,asset)} />{:else if selected === 'engine'}<Engine />{:else if selected === 'workflows'}<Workflows />{:else if selected === 'scenes'}<SceneComposer />{:else if selected === 'modules'}<Modules />{:else if selected === 'ablab'}<AbLab />{:else if selected === 'data'}<DataMaintenance />{:else if selected === 'settings'}<Settings ondevmode={value=>{devMode=value}} />{:else if selected === 'dev' && devMode}<DevMode onprefs={setDevMode} />{:else if selected === 'editor'}<ImageEditor target={editorTarget} onclose={()=>navigate('gallery')} />{:else if selected === 'graph'}<GraphEditor />{:else if selected === 'pipelines'}<Pipelines />{:else}<PromptEngine />{/if}
     </div>
     {#if generationMounted}<div class="screen" hidden={selected!=='generation'}><Generation active={selected==='generation'} imagePath={generationImage} comparisonJob={comparisonTarget} oncloseComparison={()=>comparisonTarget=null} /></div>{/if}
   </main>

@@ -5,6 +5,8 @@
   import { onMount } from 'svelte';
   import { t, tn } from '../lib/i18n';
   import { call, message } from '../lib/api';
+  type Waiting = { name: string; famille: string; raison: string; testable: boolean; add?: string; lora?: string; refused?: { date: string; note: string } };
+  type Overview = { drafts: Draft[]; families: string[]; fields: Record<string, string>; engineMissing?: string; waiting?: Waiting[]; last?: { id: string; backup?: string } };
   type Draft = { id: string; famille: string; action: Record<string, unknown>; state: 'draft' | 'promoted'; updated?: string; promotedAt?: string; backup?: string };
   const backupName = (d: Draft) => String(d.backup ?? '').split('/').pop() ?? '';
   let { disabled = false, onlaunch = () => {} }: { disabled?: boolean; onlaunch?: (ids: string[], n: number) => void } = $props();
@@ -13,11 +15,30 @@
   let busy = $state(false), error = $state(''), note = $state('');
   let famille = $state(''), id = $state(''), add = $state(''), noteText = $state(''), extra = $state('');
   let editing = $state(''), confirmId = $state(''), checked = $state<string[]>([]), n = $state(4);
+  let waiting = $state<Waiting[]>([]), waitChecked = $state<string[]>([]), waitSearch = $state(''), waitN = $state(4);
+  let waitConfirm = $state(''), refuseNote = $state('');
+  function reasonLabel(r: string) {
+    switch (r) {
+      case 'hors_tirage': return $t("hors tirage");
+      case 'duo_seulement': return $t("duo seulement");
+      case 'lora_bloquee': return $t("LoRA bloquée");
+      case 'retiree': return $t("retirée");
+      case 'hors_ordre': return $t("hors ordre");
+      case 'filtre_perso': return $t("filtre perso");
+      default: return $t("non validée");
+    }
+  }
+  const reasonTitle = (w: Waiting) => w.testable ? '' : $t("Cette action ne peut jamais être tirée seule ({raison}) : test impossible.", { raison: reasonLabel(w.raison) });
+  const waitOpen = $derived(waiting.filter(w => !w.refused && (!waitSearch.trim() || (w.name + ' ' + (w.add ?? '')).toLowerCase().includes(waitSearch.trim().toLowerCase()))));
+  const waitFamilies = $derived([...new Set(waitOpen.map(w => w.famille))].sort());
+  const waitRefused = $derived(waiting.filter(w => w.refused));
   const pending = $derived(drafts.filter(d => d.state === 'draft'));
   const promoted = $derived(drafts.filter(d => d.state === 'promoted'));
   const extraFields = $derived(Object.keys(fields).filter(k => !['add', 'note', 'valide', '_note'].includes(k)));
 
-  function apply(r: { drafts: Draft[]; families: string[]; fields: Record<string, string>; engineMissing?: string }) {
+  function apply(r: Overview) {
+    waiting = r.waiting ?? [];
+    waitChecked = waitChecked.filter(c => waiting.some(w => w.name === c && w.testable && !w.refused));
     drafts = r.drafts; families = r.families; fields = r.fields; engineMissing = r.engineMissing ?? '';
     if (!famille && families.length) famille = families[0];
     checked = checked.filter(c => pending.some(d => d.id === c));
@@ -73,6 +94,27 @@
       note = $t("Copie de test refaite depuis le vrai moteur, brouillons rejoués.");
     });
   }
+  function toggleWait(w: Waiting) { waitChecked = waitChecked.includes(w.name) ? waitChecked.filter(c => c !== w.name) : [...waitChecked, w.name]; }
+  function testWaiting() {
+    return run(async () => {
+      apply(await call<Overview>('action_pending_test', { ids: waitChecked }));
+      onlaunch(waitChecked, Math.max(1, Number(waitN) || 1));
+    });
+  }
+  function validateWaiting(w: Waiting) {
+    return run(async () => {
+      const r = await call<Overview>('action_pending_validate', { id: w.name });
+      waitConfirm = '';
+      apply(r);
+      note = $t("« {id} » est maintenant dans le pull réel (famille {famille}). Pour annuler : solo rollback --backup {backup}", { id: w.name, famille: w.famille, backup: String(r.last?.backup ?? '') });
+    });
+  }
+  function refuseWaiting(w: Waiting) {
+    return run(async () => { apply(await call<Overview>('action_pending_refuse', { id: w.name, note: refuseNote.trim() })); waitConfirm = ''; refuseNote = ''; });
+  }
+  function unrefuseWaiting(w: Waiting) {
+    return run(async () => apply(await call<Overview>('action_pending_unrefuse', { id: w.name })));
+  }
   function toggle(d: Draft) { checked = checked.includes(d.id) ? checked.filter(c => c !== d.id) : [...checked, d.id]; }
 </script>
 
@@ -80,9 +122,53 @@
   <p class="small muted">{$t("Écris une action, teste-la au casting, puis dis Oui pour l'ajouter au vrai pull. Rien n'entre dans le moteur réel sans ton Oui.")}</p>
 
   {#if engineMissing}<p class="small" role="status" data-draft-engine-missing>{$t("Moteur de tirage introuvable dans {path}. Les brouillons d'actions ont besoin du moteur (dossier configurable dans saya studio config ou par SAYA_ENGINE_DIR).", { path: engineMissing })}</p>{/if}
+  {#if waiting.length}
+    <section class="waiting" data-pending>
+      <h4>{$t("Actions en attente de validation")}</h4>
+      <p class="small muted">{$t("Actions de la banque pas encore tirées au hasard. Le test se fait dans la copie : le vrai moteur ne change que si tu confirmes une validation.")}</p>
+      <input data-pending-search type="search" aria-label={$t("Chercher une action en attente")} placeholder={$t("Chercher une action en attente")} bind:value={waitSearch} disabled={busy} />
+      {#each waitFamilies as f (f)}
+        <details open={!!waitSearch.trim()}><summary class="small">{f} ({waitOpen.filter(w => w.famille === f).length})</summary>
+          <ul class="list">
+            {#each waitOpen.filter(w => w.famille === f) as w (w.name)}
+              <li data-pending-row={w.name}>
+                <label class="pick" title={reasonTitle(w)}><input type="checkbox" data-pending-check={w.name} checked={waitChecked.includes(w.name)} onchange={() => toggleWait(w)} disabled={busy || !w.testable} />
+                  <span class="name">{w.name}</span><span class="badge" data-pending-reason={w.raison}>{reasonLabel(w.raison)}</span></label>
+                {#if w.add}<span class="muted small add">{w.add}</span>{/if}
+                <div class="actions">
+                  {#if waitConfirm === w.name}
+                    <input class="grow" aria-label={$t("Note (facultative)")} placeholder={$t("Note (facultative)")} bind:value={refuseNote} disabled={busy} />
+                    <button class="primary" data-pending-confirm={w.name} onclick={() => validateWaiting(w)} disabled={busy}>{$t("Confirmer : valider dans le vrai moteur")}</button>
+                    <button class="quiet danger" data-pending-refuse={w.name} onclick={() => refuseWaiting(w)} disabled={busy}>{$t("Refuser")}</button>
+                    <button class="quiet" onclick={() => { waitConfirm = ''; refuseNote = ''; }} disabled={busy}>{$t("Annuler")}</button>
+                  {:else}
+                    <button data-pending-decide={w.name} onclick={() => (waitConfirm = w.name)} disabled={busy || !w.testable} title={reasonTitle(w)}>{$t("Décider…")}</button>
+                  {/if}
+                </div>
+              </li>
+            {/each}
+          </ul>
+        </details>
+      {/each}
+      {#if !waitOpen.length}<p class="small muted">{$t("Aucune action en attente ne correspond.")}</p>{/if}
+      <div class="row">
+        <input class="num n" type="number" min="1" max="200" aria-label={$t("Nombre d'essais")} data-pending-n bind:value={waitN} disabled={busy || disabled} />
+        <button class="primary" data-pending-test disabled={busy || disabled || !waitChecked.length} onclick={testWaiting}>{$tn("Tester {n} action", "Tester {n} actions", waitChecked.length)}</button>
+      </div>
+      <p class="small muted">{$t("« Décider… » propose de valider (écrit dans le vrai moteur, avec sauvegarde) ou de refuser (n'écrit rien dans le moteur).")}</p>
+      {#if waitRefused.length}
+        <details><summary class="small">{$tn("{n} action refusée", "{n} actions refusées", waitRefused.length)}</summary>
+          <ul class="list done">{#each waitRefused as w (w.name)}<li data-pending-refused={w.name}><span class="name">{w.name}</span><span class="muted small">{w.famille}</span><span class="badge">{$t("Refusée")}</span>{#if w.refused?.note}<span class="muted small">{w.refused.note}</span>{/if}<button class="quiet small" data-pending-unrefuse={w.name} onclick={() => unrefuseWaiting(w)} disabled={busy}>{$t("Remettre en attente")}</button></li>{/each}</ul>
+        </details>
+      {/if}
+    </section>
+  {/if}
+
+  <h4>{$t("Nouvelle action")}</h4>
   <form class="form" onsubmit={e => { e.preventDefault(); save(); }}>
     <div class="row">
-      <select data-draft-famille aria-label={$t("Famille d'actions")} bind:value={famille} disabled={busy || !!editing}>{#each families as f}<option value={f}>{f}</option>{/each}</select>
+      <label class="field small muted">{$t("Catégorie de la nouvelle action")}
+        <select data-draft-famille bind:value={famille} disabled={busy || !!editing}>{#each families as f}<option value={f}>{f}</option>{/each}</select></label>
       <input data-draft-id aria-label={$t("Identifiant")} placeholder={$t("identifiant_action")} bind:value={id} disabled={busy || !!editing} />
     </div>
     <textarea data-draft-add rows="3" aria-label={$t("Texte de l'action (add)")} placeholder={$t("Texte de l'action (tags ajoutés au prompt)")} bind:value={add} disabled={busy}></textarea>
@@ -157,6 +243,12 @@
   .actions{display:flex;flex-wrap:wrap;gap:4px}
   .actions button{flex:1 1 auto}
   .danger{color:var(--danger)}
+  .field{display:flex;flex-direction:column;gap:2px}
+  .waiting{display:flex;flex-direction:column;gap:6px}
+  h4{margin:4px 0 0;font-size:13px}
+  .badge{font-size:11px;padding:0 6px;border:1px solid var(--line);border-radius:8px;color:var(--muted);white-space:nowrap}
+  .add{overflow-wrap:anywhere}
+  .actions .grow{flex:1 1 100%}
   .small{font-size:12px}
   .muted{color:var(--muted)}
   .error{color:var(--danger)}

@@ -1,5 +1,5 @@
 """Fake `solo_cli.py` for action-draft tests (Rust unit test and native smoke): implements
-`sandbox create`, `action add` and `action validate` on the engine folder it lives in,
+`sandbox create`, `action add`, `action patch` and `action validate` on the engine folder it lives in,
 with the real CLI's JSON contract ({"ok": ...}, non-zero exit on refusal). No GPU, no ComfyUI."""
 import json
 import shutil
@@ -40,6 +40,17 @@ if a[:2] == ["action", "add"]:
     order = json.loads((bank / "_ordre.json").read_text()) + [ident]
     (bank / "_ordre.json").write_text(json.dumps(order))
     out({"ok": True, "id": ident, "backup": "_backups/fake-" + ident})
+if a[:2] == ["action", "patch"]:
+    ident = a[2]
+    for path in bank.glob("*.actions.json"):
+        data = json.loads(path.read_text())
+        if ident in data["actions"]:
+            if "--dry-run" in a:
+                out({"ok": True, "dry_run": True, "id": ident})
+            data["actions"][ident].update(json.loads(Path(opt("--file")).read_text()))
+            path.write_text(json.dumps(data, ensure_ascii=False))
+            out({"ok": True, "id": ident, "backup": "_backups/fake-patch-" + ident})
+    out({"ok": False, "code": "introuvable", "message": "action introuvable: " + ident}, 1)
 if a[:2] == ["action", "validate"]:
     out({"ok": True, "id": a[2]})
 out({"ok": False, "message": "commande inconnue"}, 2)

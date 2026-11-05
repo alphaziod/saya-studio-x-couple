@@ -17,9 +17,9 @@ from saya_installer.cli import choose_what
 
 with tempfile.TemporaryDirectory(prefix='saya-release-test-') as tmp:
     root = Path(tmp)
-    archive, launcher = build(root / 'output', 'studio-v1.0.0')
+    archive, launcher = build(root / 'output', 'studio-v1.0.1')
     first = archive.read_bytes()
-    build(root / 'output', 'studio-v1.0.0')
+    build(root / 'output', 'studio-v1.0.1')
     assert first == archive.read_bytes(), 'archive must be reproducible'
     with tarfile.open(archive) as tar:
         members = tar.getmembers()
@@ -43,7 +43,9 @@ with tempfile.TemporaryDirectory(prefix='saya-release-test-') as tmp:
     env = dict(os.environ, PATH=str(bindir)+os.pathsep+os.environ['PATH'], TMPDIR=str(tempdir),
                TEST_ARCHIVE=str(archive), TEST_ARGS=str(argsfile))
     for args, expected in [([], ['install']), (['--what','both','--comfyui','/example/Comfy UI'],
-        ['install','--what','both','--comfyui','/example/Comfy UI']), (['studio','--dry-run'],['studio','--dry-run'])]:
+        ['install','--what','both','--comfyui','/example/Comfy UI']), (['studio','--dry-run'],['studio','--dry-run']),
+        (['--update'],['update']), (['--update','--dry-run','--force-update'],['update','--dry-run','--force-update']),
+        (['update','--yes'],['update','--yes'])]:
         result = subprocess.run(['sh', str(launcher), *args], env=env, capture_output=True, text=True)
         assert result.returncode == 0, result.stderr
         forwarded = argsfile.read_text().splitlines()
@@ -55,7 +57,7 @@ with tempfile.TemporaryDirectory(prefix='saya-release-test-') as tmp:
     assert result.returncode != 0 and not argsfile.exists(), 'checksum mismatch must prevent execution'
     assert not list(tempdir.iterdir())
     with patch('sys.stdin.isatty', return_value=True):
-        for choice, expected in [('1','nodes'), ('2','app'), ('3','both')]:
+        for choice, expected in [('1','nodes'), ('2','app'), ('3','both'), ('4','update')]:
             with patch('builtins.input', return_value=choice):
                 assert choose_what('ask') == expected
     with patch('sys.stdin.isatty', return_value=False):

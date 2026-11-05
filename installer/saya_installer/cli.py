@@ -553,15 +553,21 @@ def choose_what(what: str, assume_yes: bool = False) -> str:
     say("  1) Saya Couple nodes into ComfyUI")
     say("  2) Saya Studio desktop app (Linux)")
     say("  3) both")
+    say("  4) Update Saya Studio (latest release)")
     try:
-        answer = input("Choice [1/2/3] (default 1): ").strip()
+        answer = input("Choice [1/2/3/4] (default 1): ").strip()
     except EOFError:
         answer = ""
-    return {"2": "app", "3": "both"}.get(answer, "nodes")
+    return {"2": "app", "3": "both", "4": "update"}.get(answer, "nodes")
 
 
-def cmd_studio(args) -> int:
-    return studio_app.install(say, ask, True if args.yes else None, args.dry_run, args.format)
+def cmd_studio(args, system_shown: bool = False) -> int:
+    return studio_app.install(say, ask, True if args.yes else None, args.dry_run, args.format, system_shown)
+
+
+def cmd_update(args, system_shown: bool = False) -> int:
+    return studio_app.update(say, ask, True if args.yes else None, args.dry_run, args.format,
+                             getattr(args, "force_update", False), getattr(args, "appimage", None), system_shown=system_shown)
 
 
 def main(argv=None) -> int:
@@ -574,13 +580,21 @@ def main(argv=None) -> int:
         return p
 
     p = common(sub.add_parser("install", help="install the Saya Couple nodes and/or the Saya Studio app (asks which)"))
-    p.add_argument("--what", choices=("ask", "nodes", "app", "both"), default="ask",
-                   help="what to install: the ComfyUI nodes, the desktop app, or both (default: ask)")
+    p.add_argument("--what", choices=("ask", "nodes", "app", "both", "update"), default="ask",
+                   help="what to do: install the ComfyUI nodes, the desktop app, both, or update the app only (default: ask)")
     p.add_argument("--format", choices=studio_app.FORMATS, help="app package format (default: detected from the distribution)")
     p.add_argument("--yes", action="store_true", help="no questions (AMD patch follows the recommendation)")
     p.add_argument("--amd", choices=("ask", "yes", "no"), default="ask")
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--full", action="store_true", help="also run the pack's full test suite")
+    p.add_argument("--force-update", action="store_true", help="with --what update: replace a local dev build")
+    p.add_argument("--appimage", help="with --what update: path of the installed AppImage")
+    p = sub.add_parser("update", help="update the Saya Studio desktop app only (not the Couple nodes)")
+    p.add_argument("--format", choices=studio_app.FORMATS, help="package format (default: detected from the distribution)")
+    p.add_argument("--yes", action="store_true", help="no confirmation question")
+    p.add_argument("--dry-run", action="store_true", help="show what would be downloaded and run")
+    p.add_argument("--force-update", action="store_true", help="replace a local dev build (e.g. 1.0.0.dev...)")
+    p.add_argument("--appimage", help="path of the installed AppImage (to read its version and replace it)")
     p = sub.add_parser("studio", help="install the Saya Studio desktop app only (Linux)")
     p.add_argument("--format", choices=studio_app.FORMATS, help="package format (default: detected from the distribution)")
     p.add_argument("--yes", action="store_true", help="no confirmation question")
@@ -599,15 +613,21 @@ def main(argv=None) -> int:
     p.add_argument("--force", action="store_true")
     args = ap.parse_args(argv)
     if args.cmd == "install":
+        fmt = args.format or studio_app.detect_format(studio_app.os_release())
+        ok = studio_app.show_system(say, fmt) if sys.platform.startswith("linux") else True
         what = choose_what(args.what, args.yes)
+        if not ok and what in ("app", "both", "update"):
+            return 1
+        if what == "update":
+            return cmd_update(args, True)
         code = 0
         if what in ("nodes", "both"):
             code = cmd_install(args)
             if code != 0:
                 return code
         if what in ("app", "both"):
-            code = cmd_studio(args)
+            code = cmd_studio(args, True)
         elif sys.stdin.isatty() and args.what == "ask":
             say("\nThe Saya Studio desktop app can be installed later with: ./saya studio")
         return code
-    return {"studio": cmd_studio, "install": cmd_install, "verify": cmd_verify, "restore": cmd_restore, "check-compat": cmd_check_compat, "amd": cmd_amd}[args.cmd](args)
+    return {"studio": cmd_studio, "update": cmd_update, "install": cmd_install, "verify": cmd_verify, "restore": cmd_restore, "check-compat": cmd_check_compat, "amd": cmd_amd}[args.cmd](args)

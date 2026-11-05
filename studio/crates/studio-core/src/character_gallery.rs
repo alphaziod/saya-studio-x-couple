@@ -24,9 +24,11 @@ fn identity_text(identity: &Value, keys: &[&str]) -> String {
 
 impl Database {
     /// Keep the recorded portrait even when missing; replacement is an explicit user choice.
+    /// Starts from the character's links (indexed) rather than scanning every asset: the scan
+    /// cost ~5 ms per character on a real library (the card list took most of a second).
     fn character_portrait(&self, character: &str) -> Result<Option<String>> {
         let mut q = self.connection.prepare(
-            "SELECT a.id FROM assets a JOIN libraries l ON l.id=a.library_id WHERE EXISTS(SELECT 1 FROM asset_characters ac WHERE ac.asset_id=a.id AND ac.character_id=?1) ORDER BY CASE WHEN EXISTS(SELECT 1 FROM character_references r WHERE r.character_id=?1 AND r.asset_id=a.id AND r.variant_id='' AND r.is_primary=1) THEN 0 WHEN EXISTS(SELECT 1 FROM character_references r WHERE r.character_id=?1 AND r.asset_id=a.id) THEN 1 ELSE 2 END, (SELECT coalesce(min(r.position),999999) FROM character_references r WHERE r.character_id=?1 AND r.asset_id=a.id), a.relative_path, a.id LIMIT 1"
+            "SELECT a.id FROM asset_characters ac JOIN assets a ON a.id=ac.asset_id JOIN libraries l ON l.id=a.library_id WHERE ac.character_id=?1 ORDER BY CASE WHEN EXISTS(SELECT 1 FROM character_references r WHERE r.character_id=?1 AND r.asset_id=a.id AND r.variant_id='' AND r.is_primary=1) THEN 0 WHEN EXISTS(SELECT 1 FROM character_references r WHERE r.character_id=?1 AND r.asset_id=a.id) THEN 1 ELSE 2 END, (SELECT coalesce(min(r.position),999999) FROM character_references r WHERE r.character_id=?1 AND r.asset_id=a.id), a.relative_path, a.id LIMIT 1"
         )?;
         let portrait = q
             .query_row([character], |r| r.get::<_, String>(0))

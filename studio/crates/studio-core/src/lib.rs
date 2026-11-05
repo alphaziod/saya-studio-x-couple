@@ -24,6 +24,7 @@ mod proposals;
 pub mod live;
 
 pub mod live_transport;
+pub mod updates;
 
 mod jobs;
 
@@ -100,6 +101,7 @@ pub mod saya;
 pub mod saya_preset;
 pub mod universal_prepare;
 pub mod vram_policy;
+pub mod workflow_check;
 pub mod workflow_ui_api;
 
 mod image_cleanup;

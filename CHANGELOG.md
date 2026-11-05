@@ -1,5 +1,26 @@
 # Changelog
 
+## Saya Studio 1.0.1 — 2026-11-05
+
+Saya Couple nodes unchanged (2.3.0).
+
+- **Speed on real libraries:** run listing cached per file (1.5 s → 5 ms), gallery opening 1.8 s → 22 ms,
+  character cards 845 → 79 ms; the background runner no longer holds the run lock while re-reading every
+  manifest. Gallery, Casting, Characters and Models stay open in memory: coming back takes ~50 ms and keeps
+  filters, scroll, the open image and selections.
+- **Casting:** six-pass finishes are queued (Full, kept in gallery, saved character) and run one at a time
+  after every pass-1 trial; « Images manquantes » walks characters without a picture; Brouillons lists pending
+  bank actions to test in the isolated engine copy and validate or refuse one by one; a failed trial no longer
+  freezes its batch; picker tiles and rotation pictures fixed.
+- **Gallery and menus:** character names on casting images; right-click menus on images, batches, trials and
+  models; « Envoyer au workflow complet »; the WebView's own menu is gone outside text fields.
+- **Workflows:** node check (`workflow_check`, `studio-maintenance check-workflow`) with a 30-workflow corpus
+  and 30 invented nodes; Primitive nodes, Notes and rgthree helpers no longer make a workflow incomplete;
+  developer mode in Settings.
+- **Updates:** the app checks GitHub at startup and installs a newer release after verifying its checksum and
+  asking for permission; `install.sh` detects the system and has `--update`.
+
+
 ## Saya Studio 1.0.0 — 2026-11-04
 
 First stable release. Saya Couple nodes unchanged (2.3.0).

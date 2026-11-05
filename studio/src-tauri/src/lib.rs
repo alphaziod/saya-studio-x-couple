@@ -182,6 +182,18 @@ enum Request {
     OpenDirectory {
         path: String,
     },
+    UpdateCheck,
+    UpdateDownload {
+        name: String,
+        url: String,
+    },
+    UpdateInstall {
+        path: String,
+        confirmed: bool,
+    },
+    UpdateOpenNotes {
+        url: String,
+    },
     IndexStatus,
     CancelIndex,
     IndexErrors {
@@ -588,6 +600,11 @@ enum Request {
     SayaRestart {
         run: String,
     },
+    /// Developer mode: which node classes a workflow file needs and which the running ComfyUI
+    /// lacks (`studio_core::workflow_check`). Read-only.
+    WorkflowCheck {
+        path: String,
+    },
     /// Crash recovery: resubmits the first unfinished phase with the same master seed.
     SayaResume {
         run: String,
@@ -658,6 +675,24 @@ enum Request {
     },
     /// Rebuild the test copy from the real engine and replay pending drafts.
     ActionDraftsRefresh,
+    /// Test waiting (not validated) bank actions: flagged drawable in the test copy only.
+    ActionPendingTest {
+        ids: Vec<String>,
+    },
+    /// The user's YES on a waiting action: real engine `solo action patch` (backup kept).
+    ActionPendingValidate {
+        id: String,
+    },
+    /// The user's NO: recorded in the drafts store, nothing written to the engine.
+    ActionPendingRefuse {
+        id: String,
+        #[serde(default)]
+        note: String,
+    },
+    /// Undo a refusal.
+    ActionPendingUnrefuse {
+        id: String,
+    },
     /// Step-by-step casting: release the next trial of this run's batch.
     CastingNext {
         run: String,
@@ -1235,6 +1270,12 @@ fn action_drafts_request(s: &AppState, request: Request) -> Result<Value> {
             action_drafts::ensure_sandbox(&root, &engine, true)?;
             action_drafts::overview(&root, &engine)?
         }
+        Request::ActionPendingTest { ids } => action_drafts::prepare_pending_test(&root, &engine, &ids)?,
+        Request::ActionPendingValidate { id } => action_drafts::validate_pending(&root, &engine, &id)?,
+        Request::ActionPendingRefuse { id, note } => {
+            action_drafts::refuse_pending(&root, &engine, &id, &note)?
+        }
+        Request::ActionPendingUnrefuse { id } => action_drafts::unrefuse_pending(&root, &engine, &id)?,
         _ => unreachable!("action_drafts_request receives action-draft requests only"),
     })
 }
@@ -1273,6 +1314,16 @@ fn handle_inner(s: &AppState, request: Request) -> Result<Value> {
         }
     }
     match request {
+        Request::UpdateCheck => return update_check(),
+        Request::UpdateDownload { name, url } => return update_download(s, &name, &url),
+        Request::UpdateInstall { path, confirmed } => return update_install(s, &path, confirmed),
+        Request::UpdateOpenNotes { url } => {
+            if !studio_core::updates::is_project_url(&url) {
+                return Err("Adresse refusée".into());
+            }
+            open_detached(std::path::Path::new(&url))?;
+            return Ok(Value::Null);
+        }
         Request::CastingPreparationStatus => {
             let progress = s
                 .casting_preparation
@@ -2861,6 +2912,17 @@ fn handle_inner(s: &AppState, request: Request) -> Result<Value> {
                 &s.directory.join("results"),
             );
         }
+        Request::WorkflowCheck { path } => {
+            let metadata = std::fs::metadata(&path)?;
+            if metadata.len() > 32 * 1024 * 1024 {
+                return Err("Workflow trop volumineux (32 Mo maximum)".into());
+            }
+            let source = std::fs::read_to_string(&path)?;
+            let info = Comfy::loopback(s.comfy_port)?.get("/object_info")?;
+            let mut report = studio_core::workflow_check::check_workflow(&source, &info)?;
+            report["file"] = json!(path);
+            return Ok(report);
+        }
         Request::SayaResume { run } => {
             let _operation = s
                 .saya_operations
@@ -2890,7 +2952,11 @@ fn handle_inner(s: &AppState, request: Request) -> Result<Value> {
                 .saya_operations
                 .lock()
                 .map_err(|_| "Saya operation lock")?;
-            return Database::open(&s.directory.join("studio.sqlite3"))?.casting_publish(&runs);
+            return Database::open(&s.directory.join("studio.sqlite3"))?.casting_publish(
+                &runs,
+                &Comfy::loopback(s.comfy_port)?,
+                &s.directory.join("results"),
+            );
         }
         Request::CastingDeleteLot { run } => {
             let _operation = s
@@ -3095,6 +3161,10 @@ fn handle_inner(s: &AppState, request: Request) -> Result<Value> {
         Request::ActionDraftDelete { .. } => return action_drafts_request(s, request),
         Request::ActionDraftPromote { .. } => return action_drafts_request(s, request),
         Request::ActionDraftsRefresh => return action_drafts_request(s, request),
+        Request::ActionPendingTest { .. } => return action_drafts_request(s, request),
+        Request::ActionPendingValidate { .. } => return action_drafts_request(s, request),
+        Request::ActionPendingRefuse { .. } => return action_drafts_request(s, request),
+        Request::ActionPendingUnrefuse { .. } => return action_drafts_request(s, request),
         Request::CastingLancer {
             graine,
             nombre,
@@ -3882,6 +3952,7 @@ fn handle_inner(s: &AppState, request: Request) -> Result<Value> {
         | Request::SayaContinue { .. }
         | Request::SayaRestart { .. }
         | Request::SayaResume { .. }
+        | Request::WorkflowCheck { .. }
         | Request::SayaStop { .. }
         | Request::CastingHistory { .. }
         | Request::CastingDecide { .. }
@@ -3891,6 +3962,10 @@ fn handle_inner(s: &AppState, request: Request) -> Result<Value> {
         | Request::GalleryCleanup
         | Request::CastingCapabilities
         | Request::CastingPreparationStatus
+        | Request::UpdateCheck
+        | Request::UpdateDownload { .. }
+        | Request::UpdateInstall { .. }
+        | Request::UpdateOpenNotes { .. }
         | Request::CastingPause { .. }
         | Request::CastingResume { .. }
         | Request::CastingNext { .. }
@@ -3903,6 +3978,10 @@ fn handle_inner(s: &AppState, request: Request) -> Result<Value> {
         | Request::ActionDraftDelete { .. }
         | Request::ActionDraftPromote { .. }
         | Request::ActionDraftsRefresh
+        | Request::ActionPendingTest { .. }
+        | Request::ActionPendingValidate { .. }
+        | Request::ActionPendingRefuse { .. }
+        | Request::ActionPendingUnrefuse { .. }
         | Request::GenerationBrowser
         | Request::ComfyOutputInfo
         | Request::GenerationBrowserImage { .. }
@@ -4280,6 +4359,127 @@ fn open_detached(path: &std::path::Path) -> Result<()> {
         let _ = child.wait();
     });
     Ok(())
+}
+
+/// Runs `curl` for one HTTPS GET (the app's HTTP client has no TLS). Only the fixed User-Agent is
+/// sent: no cookie, token or personal data. Returns the body, or writes it to `out`.
+fn curl_get(url: &str, max_seconds: u32, out: Option<&std::path::Path>) -> Result<Vec<u8>> {
+    if !url.starts_with("https://") {
+        return Err("Adresse refusée".into());
+    }
+    let mut command = std::process::Command::new("curl");
+    command
+        .args(["--fail", "--silent", "--show-error", "--location", "--proto", "=https", "--proto-redir", "=https"])
+        .args(["--max-time", &max_seconds.to_string(), "--user-agent", "saya-studio"])
+        .args(["--header", "Accept: application/vnd.github+json"]);
+    if let Some(out) = out {
+        command.arg("--output").arg(out);
+    }
+    let output = command
+        .arg("--")
+        .arg(url)
+        .stdin(std::process::Stdio::null())
+        .output()
+        .map_err(|_| "curl est introuvable")?;
+    if !output.status.success() {
+        return Err("Réseau indisponible ou réponse refusée".into());
+    }
+    Ok(output.stdout)
+}
+
+fn update_check() -> Result<Value> {
+    use studio_core::updates::{self, Status};
+    let current = env!("CARGO_PKG_VERSION");
+    let answer = |status: Status, latest: Option<&str>, asset: Option<&updates::Asset>, notes: &str| {
+        json!({"current": current, "latest": latest, "status": status, "asset": asset, "notesUrl": notes})
+    };
+    // A local build is never compared and never contacts GitHub.
+    if updates::is_local_build(current) {
+        return Ok(answer(Status::LocalBuild, None, None, updates::RELEASES_PAGE));
+    }
+    let body = match curl_get(updates::RELEASE_API, 10, None) {
+        Ok(body) => body,
+        Err(_) => return Ok(answer(Status::Offline, None, None, updates::RELEASES_PAGE)),
+    };
+    let release = updates::parse_release(&String::from_utf8_lossy(&body))?;
+    let status = updates::compare(current, &release.version)?;
+    let release_text = std::fs::read_to_string("/etc/os-release").unwrap_or_default();
+    let asset = (status == Status::Available)
+        .then(|| updates::choose_asset(&release.assets, std::env::consts::OS, std::env::consts::ARCH, &release_text))
+        .flatten();
+    Ok(answer(status, Some(&release.version), asset, &release.notes_url))
+}
+
+fn updates_dir(s: &AppState) -> PathBuf {
+    s.directory.join("updates")
+}
+
+fn update_download(s: &AppState, name: &str, url: &str) -> Result<Value> {
+    use studio_core::updates as u;
+    if !u::is_safe_file_name(name) || !u::is_project_url(url) || !url.ends_with(&format!("/{name}")) {
+        return Err("Fichier de mise à jour refusé".into());
+    }
+    let format = u::format_of(name).ok_or("Format de mise à jour inconnu")?;
+    let dir = updates_dir(s);
+    std::fs::create_dir_all(&dir)?;
+    let sums_url = format!("{}/SHA256SUMS", url.rsplit_once('/').map(|(head, _)| head).unwrap_or(url));
+    let sums = String::from_utf8_lossy(&curl_get(&sums_url, 30, None)?).into_owned();
+    let expected = u::parse_sums(&sums, name).ok_or("Somme de contrôle introuvable : mise à jour refusée")?;
+    let target = dir.join(name);
+    let partial = dir.join(format!("{name}.part"));
+    let _ = std::fs::remove_file(&partial);
+    curl_get(url, 1800, Some(&partial))?;
+    if let Err(e) = u::verify_sha256(&partial, &expected) {
+        let _ = std::fs::remove_file(&partial);
+        return Err(e);
+    }
+    std::fs::rename(&partial, &target)?;
+    // Install re-checks the file against this digest, so a file swapped afterwards is refused.
+    std::fs::write(dir.join(format!("{name}.verified")), &expected)?;
+    let file = target.to_string_lossy().into_owned();
+    let plan = u::install_plan(format, &file);
+    Ok(json!({"path": file, "command": u::display_command(&plan, &file)}))
+}
+
+fn update_install(s: &AppState, path: &str, confirmed: bool) -> Result<Value> {
+    use studio_core::updates as u;
+    if !confirmed {
+        return Err("Confirmation requise".into());
+    }
+    let dir = updates_dir(s).canonicalize().map_err(|_| "Aucune mise à jour téléchargée")?;
+    let file = std::path::Path::new(path).canonicalize().map_err(|_| "Fichier de mise à jour introuvable")?;
+    let name = file.file_name().and_then(|n| n.to_str()).ok_or("Fichier de mise à jour refusé")?.to_owned();
+    if file.parent() != Some(dir.as_path()) || !u::is_safe_file_name(&name) {
+        return Err("Fichier de mise à jour refusé".into());
+    }
+    let expected = std::fs::read_to_string(dir.join(format!("{name}.verified"))).map_err(|_| "Fichier non vérifié")?;
+    u::verify_sha256(&file, &expected)?;
+    let format = u::format_of(&name).ok_or("Format de mise à jour inconnu")?;
+    let file_text = file.to_string_lossy().into_owned();
+    let plan = u::install_plan(format, &file_text);
+    let command = u::display_command(&plan, &file_text);
+    match plan {
+        u::Plan::SavedOnly => Ok(json!({"manual": true, "saved": true, "path": file_text, "command": command})),
+        u::Plan::Open => {
+            open_detached(&file)?;
+            Ok(json!({"manual": false, "opened": true, "path": file_text, "command": command}))
+        }
+        u::Plan::Privileged(argv) => {
+            let has_pkexec = std::process::Command::new("pkexec").arg("--version").stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).status().is_ok();
+            if !cfg!(target_os = "linux") || !has_pkexec {
+                return Ok(json!({"manual": true, "path": file_text, "command": command}));
+            }
+            let status = std::process::Command::new("pkexec")
+                .args(&argv)
+                .stdin(std::process::Stdio::null())
+                .status()
+                .map_err(|e| format!("Installation impossible : {e}"))?;
+            if !status.success() {
+                return Err("Installation annulée ou refusée".into());
+            }
+            Ok(json!({"manual": false, "installed": true, "path": file_text, "command": command}))
+        }
+    }
 }
 
 /// Download folders of the Civitai bridge, canonicalized (missing ones are skipped): the
