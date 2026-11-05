@@ -48,11 +48,17 @@ bash scripts/build-arch-worktree.sh
 
 - Packs the **current files** of the worktree (tracked + untracked, not ignored; uncommitted
   changes included, nothing committed) into `test-results/arch-package-worktree-<stamp>-XXXX/`.
-- Version `0.2.0.dev.wt<stamp>`; `SOURCE-COMMIT` records `HEAD` plus a "worktree" note.
+- Version `<pkgver>.dev.wt<stamp>` (for example `1.0.1.dev.wt202611051401`); `SOURCE-COMMIT` records `HEAD`
+  plus a "worktree" note. The app's update check treats this version as a local build.
 - Runs `makepkg` with `packaging/arch/PKGBUILD`: offline `npm ci`, `tauri build --no-bundle`,
   the `studio-maintenance` binary, then `check()` (Rust tests, JS tests, subgraph test,
   desktop file validation).
 - `RUSTFLAGS --remap-path-prefix` keeps build-machine paths out of the binaries.
+
+**With your own presets** (never published): `bash scripts/build-arch-private.sh PRESETS_DIR` packs the
+**committed** sources with `presets/` replaced by `PRESETS_DIR` (for example the `workflows/` folder of your
+config folder), into `test-results/arch-package-private-<stamp>-XXXX/stage/`, then checks that the packed presets
+are identical to `PRESETS_DIR`.
 
 `scripts/build-arch.sh` does the same from a committed Git snapshot.
 

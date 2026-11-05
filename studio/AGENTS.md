@@ -57,7 +57,8 @@ npm run build && cargo build -p saya-studio --features custom-protocol   # stand
 ```
 
 Arch package: `bash scripts/build-arch-worktree.sh`, then `python3 scripts/verify-arch-package.py`
-(details: `docs/PACKAGING.md`, end-user install: `docs/INSTALLATION-ARCH.md`).
+(details: `docs/PACKAGING.md`, end-user install: `docs/INSTALLATION-ARCH.md`). The owner's own package, with
+their private presets: `bash scripts/build-arch-private.sh "<config>/workflows"` (§12.4).
 
 The app starts without ComfyUI and without the draw engine; those pages then say what is missing.
 To generate images you need:
@@ -124,7 +125,7 @@ never write there: the mirror is off unless the app calls `user_config::enable()
 ## 5. Tests
 
 ```bash
-cargo test -p studio-core                 # ~450 tests, no GPU, no network
+cargo test -p studio-core                 # ~500 tests, no GPU, no network
 node --test scripts/*.test.mjs            # IPC contract, frontend logic, i18n parity
 npx svelte-check                          # types (also run by npm run build)
 npm run build && cargo build -p saya-studio --features custom-protocol,smoke-test
@@ -172,8 +173,9 @@ SFW prompts and fresh seeds.
 
 - Release notes: `CHANGELOG.md` at the repository root (Saya Couple + Saya Studio) and the GitHub releases
   (`studio-v*` tags).
-- Keep your own resume file `RESUME.local.md` at the root of `studio/` (git-ignored): what is done, what is
-  open, decisions, exact paths of backups and test runs. The next agent starts from it.
+- Keep your own resume file `RESUME.local.md` at the root of `studio/` (git-ignored, like every `*.local.md`):
+  what is done, what is open, decisions, exact paths of backups and test runs. The next agent starts from it.
+  Update it **while** working (after each step), not only at the end: sessions can stop at any moment.
 
 ## 9. How-to for agents
 
@@ -257,6 +259,11 @@ order in `_ordre.json`, fields in `schema.json`; an action is mostly `{"add": "<
   `solo_cli.py action add --apply` on the real engine, with a backup and a printed rollback command.
 - **Directly in the engine:** only with the owner's consent: `python3 solo_cli.py action add
   --famille F --id ID --file action.json --dry-run --json`, then `--apply --yes`.
+- **Pending actions** (bank actions with `valide` not true, listed in Brouillons with the reason): the owner
+  tests one in the sandbox (`action_pending_test`), then clicks **Valider** (`action_pending_validate`:
+  `solo_cli.py action patch <id> --file {"valide":true}`, dry run then apply, with backup) or **Refuser**
+  (`action_pending_refuse`, stored in the drafts store, no engine write). **Never validate or refuse for
+  the owner, and never let pending actions into the casting automatically.**
 
 Prompt style that works with this engine: short Danbooru tags in the order of the act, weights
 around 1.1-1.3, one object per tag, no long sentences. Never edit the user's existing characters or
@@ -460,3 +467,57 @@ for lasting settings, in the config folder (`parametres/`). Do not re-ask what i
 16. Real GPU tests: who launches them, with which prompts, and how many images per test?
 17. What is the first thing you want improved, and what does "done" look like for you?
 
+## 12. Working with the original owner (learned the hard way)
+
+These come from long sessions with the maintainer. They complete §6, §10 and §11; for another user, ask the
+questionnaire first and keep only what they confirm.
+
+### 12.1 How to talk
+
+- French, short, the next action first. Numbered steps, one bounded action each; the exact command in its own
+  code block. The owner often reads on a phone and does not read long reports.
+- State what now works in concrete terms, what was **not** verified, and the one thing to do next.
+- One question at a time, with a concrete example ("Tifa: yes or no?"). Never re-ask a decision already
+  recorded (resume file, memory); act on it.
+- When the owner is angry, do not apologise at length: name the cause, fix it, show the proof.
+- When the owner gives one example ("deleting a batch is slow", "no right-click in the gallery"), they mean
+  **the whole app**: find every place with the same problem, not only the example.
+- "At 1:25" means schedule it for 1:25, not run it now.
+
+### 12.2 What the owner does, what you do
+
+- The owner runs: anything with `sudo`, package installs, logins and passwords (give a command that reads the
+  secret from the clipboard, never ask for it in chat), real GPU tests on their own prompts, Codex (you write
+  the prompt, ending with "Work alone. Do not create, spawn, delegate to, or use subagents.").
+- You run: builds, unit and frontend tests, data fixes on a **backup copy first** (app closed, dry run, then
+  apply, backup path written in the resume file), release work once asked.
+- **Native smokes: ask first, then run exactly once.** If a task needs a smoke, stop there and ask. For README
+  screenshots, reuse an already prepared smoke profile and capture without moving the mouse; no rotations,
+  no re-runs.
+- Never open generated images. Only images the owner sends and smoke captures may be read.
+- Subagents only when they are worth it (a self-contained patch, a wide search), on a mid-size model; check
+  their result yourself before reporting it: a subagent's PASS is not proof.
+
+### 12.3 Things that made the owner lose time
+
+- **A feature removed or hidden by a refactor** (for example "Envoyer au workflow complet" in the gallery).
+  Before moving or removing any option, check the README feature list and the old UI; keep every entry point.
+- **Validated and pending lists mixed up**: a list must show what its title says (pending actions only in the
+  pending section; a family `<select>` must not look like a list of actions).
+- **Labels that need explanation**: one short label plus a one-line tooltip, in all 14 locales.
+- **Slow pages**: measure on a copy of the real data (`crates/studio-core/tests/perf_owner_data.rs`, reflink
+  copy, never the live database) before and after; the usual cause is re-reading large files on every call.
+- **Data generated with a wrong model stack**: when a preset bug is fixed, also fix what is already queued or
+  saved with it (backup first), and tell the owner if the source file is theirs.
+
+### 12.4 Releases and the owner's local package
+
+- A release means a real GitHub **release** marked Latest, not only a tag. Notes in English, without any
+  "Generated with" line. After publishing, download every asset, check it against `SHA256SUMS` and the GitHub
+  digests, and confirm Latest is the new version.
+- The Nix `npmDepsHash` changes with every `package-lock.json` version: take the value from the CI "got:" line.
+- macOS CI jobs can be cancelled for runner capacity: publish the release, then attach the DMGs from a re-run.
+- The owner also wants a **local package with their private presets**, rebuilt after each release:
+  `bash scripts/build-arch-private.sh "<config>/workflows"`. Never commit or publish it. Verify the presets are
+  identical, then give the owner the `sudo pacman -U <package>` command (app closed).
+- Commit, push, merge, tag and publish only when the owner asks; one PR per topic; CI green before merging.

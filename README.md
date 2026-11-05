@@ -27,7 +27,7 @@ Current version: **2.3.0** ([CHANGELOG.md](CHANGELOG.md)). Tested on ComfyUI `41
 RDNA4 16 GB. It is first and foremost **a backup of my own ComfyUI setup**, made public in case it helps someone
 with the same problem. Take what you need.
 
-> #Download the **[unified install.sh](https://github.com/alphaziod/saya-studio-x-couple/releases/download/studio-v1.0.1/install.sh)**
+> Download the **[unified install.sh](https://github.com/alphaziod/saya-studio-x-couple/releases/download/studio-v1.0.1/install.sh)**
 and run `sh install.sh`: choose the **Couple nodes**, the **Studio app**, or **both**.
 The **[standalone Couple archive](https://github.com/alphaziod/saya-studio-x-couple/releases/download/studio-v1.0.1/saya-couple-2.3.0.tar.gz)**
 is available in the same release as the app packages.
@@ -44,9 +44,10 @@ is available in the same release as the app packages.
 > Back up your ComfyUI folder anyway. The installer keeps its own backup and can restore, but your copy is the one
 > you can trust. **Use at your own risk.**
 
-> ### New: Saya Studio 1.0 (Linux, Windows and macOS)
+> ### New: Saya Studio 1.0.1 (Linux, Windows and macOS)
 > A local desktop app that drives ComfyUI and these nodes. Packages for Debian/Ubuntu, Fedora, openSUSE, Arch
-> (+ AUR), Nix, AppImage, Flatpak, Windows EXE and Mac DMG. See [Saya Studio](#saya-studio-desktop-app) below.
+> (+ AUR), Nix, AppImage, Flatpak, Snap, Windows EXE and Mac DMG. 1.0.1 is fast on large libraries, resumes
+> runs after a crash and updates itself from GitHub. See [Saya Studio](#saya-studio-desktop-app) below.
 >
 > ![Saya Studio](docs/images/studio-generation.webp)
 
@@ -501,11 +502,16 @@ Saya Couple nodes. ComfyUI renders, Saya Studio organizes; nothing runs in the c
 - **Generation**: open a ComfyUI workflow, check its faithful API conversion, edit inputs, submit, follow.
 - **Saya preset**: six passes (composition, hires fix, HiDream, post, detailers, final upscale) with memory
   released between passes, one GPU job at a time.
-- **Casting**: N characters from a draw engine, pass 1 only, keep the good ones and finish them; action drafts
-  tested in an isolated copy of the engine before they are added for real.
+- **Crash resume**: a run stopped by a ComfyUI or app crash continues from its last finished pass, same seed.
+- **Casting**: N characters from a draw engine, pass 1 only, keep the good ones and finish them once the batch's
+  pass 1 is done; action drafts and pending actions are tested in an isolated copy of the engine and validated or
+  refused by you, never automatically. *The draw engine is not distributed.*
 - **Gallery**: indexes your folders (SHA-256, ComfyUI metadata), filters by checkpoint, LoRA, character; files
-  deliveries by day and family.
-- **Characters, LoRA manager, graph editor, pipelines, A/B lab, scenes**; 14 interface languages.
+  deliveries by day and family; right-click menu, send an image back to its full workflow.
+- **Node check**: lists the nodes a workflow needs and those missing from your ComfyUI (also from a script).
+- **Characters, LoRA manager, graph editor, pipelines, A/B lab, scenes, developer mode**; 14 interface languages.
+- **Updates**: the app checks GitHub at startup, verifies the package against `SHA256SUMS` and asks before
+  installing; on Linux `sh install.sh --update` does the same from a terminal. Your data is kept.
 
 It needs a running ComfyUI with the **Saya Couple nodes 2.3.0+**. Packages are attached to the
 [`studio-v1.0.1` release](https://github.com/alphaziod/saya-studio-x-couple/releases):
@@ -520,10 +526,13 @@ It needs a running ComfyUI with the **Saya Couple nodes 2.3.0+**. Packages are a
 | openSUSE | `sudo zypper install ./saya-studio-1.0.1.opensuse.x86_64.rpm` |
 | Arch, EndeavourOS | `sudo pacman -U ./saya-studio-1.0.1-x86_64.pkg.tar.zst` |
 | Nix | `nix run github:alphaziod/saya-studio-x-couple?dir=studio` |
-| Any Linux distribution | AppImage or Flatpak from the release (Snap when its CI build succeeds) |
+| Snap | `sudo snap install --dangerous ./saya-studio_1.0.1_amd64.snap` |
+| Any Linux distribution | AppImage or Flatpak from the release |
 
-On Linux, let the installer pick the right package for your distribution, check its SHA256 and install it after asking:
-`./saya studio` (add `--dry-run` to only see what it would do).
+On Linux, let the installer pick the right package for your distribution, check its SHA256 and install it after
+asking: `sh install.sh` (choice 2), or `./saya studio` from an unpacked Couple bundle; add `--dry-run` to only see
+what it would do. Windows and macOS builds are not signed or notarized: the first launch may need *More info →
+Run anyway* (Windows) or right-click → *Open* (macOS).
 
 Back up your data before upgrading. Full details (requirements, your data, known limitations, building from source):
 [studio/README.md](studio/README.md) · release notes: [studio/RELEASE_NOTES.md](studio/RELEASE_NOTES.md) ·
