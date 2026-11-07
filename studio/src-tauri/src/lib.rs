@@ -656,6 +656,10 @@ enum Request {
         /// `actions`), one trial each, instead of N copies of one pose.
         #[serde(default)]
         all_actions: bool,
+        /// Duo casting: pair type drawn by the engine (`futa_x_girl`…). Each trial shows two
+        /// validated characters; exclusive with every solo option above.
+        #[serde(default)]
+        duo: Option<String>,
     },
     /// Action drafts (Casting "Brouillons"): list, families and schema fields.
     ActionDrafts,
@@ -3180,6 +3184,7 @@ fn handle_inner(s: &AppState, request: Request) -> Result<Value> {
             step,
             drafts,
             all_actions,
+            duo,
         } => {
             // One casting at a time (the engine always rewrites output/casting/) and
             // one Saya operation in flight: same lock as the 6-pass runs.
@@ -3291,7 +3296,27 @@ fn handle_inner(s: &AppState, request: Request) -> Result<Value> {
             if drafts && (selected_subfamily.is_some() || mode.is_some() || !deduped.is_empty()) {
                 return Err("Test de brouillons : ni sous-famille, ni rotation, ni persos ciblés".into());
             }
-            let outcome = if let Some(subfamily) = selected_subfamily {
+            let duo_pair = duo.as_deref().map(str::trim).filter(|p| !p.is_empty());
+            let is_set = |value: &Option<String>| value.as_deref().is_some_and(|v| !v.trim().is_empty());
+            if duo_pair.is_some()
+                && (mode.is_some()
+                    || !deduped.is_empty()
+                    || !seen_actions.is_empty()
+                    || !exclusions.is_empty()
+                    || step
+                    || drafts
+                    || all_actions
+                    || is_set(&famille)
+                    || is_set(&genre)
+                    || is_set(&subfamily))
+            {
+                return Err(
+                    "Duo : ni famille, ni genre, ni ciblage, ni rotation, ni mode une par une".into(),
+                );
+            }
+            let outcome = if let Some(pair) = duo_pair {
+                studio_core::engine_runtime::casting_duo(seed_u64, pair, nombre)?
+            } else if let Some(subfamily) = selected_subfamily {
                 studio_core::engine_runtime::casting_subfamily(
                     seed_u64,
                     nombre,
@@ -3383,6 +3408,11 @@ fn handle_inner(s: &AppState, request: Request) -> Result<Value> {
                 for shot in &shots {
                     studio_core::casting::validate_shot(shot)?;
                 }
+            }
+            // Only freshly invented characters: targets and rotations keep the name they have.
+            if deduped.is_empty() && !matches!(mode, Some(("perso", _))) {
+                let taken = db.casting_taken_names(&studio_core::engine_runtime::engine_dir())?;
+                studio_core::casting_names::assign_names(&mut shots, seed_u64, &taken);
             }
             let source = std::fs::read_to_string(&source_path)?;
             let client = Comfy::loopback(s.comfy_port)?;

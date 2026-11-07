@@ -115,6 +115,10 @@ pub fn save_metadata(path: &str, metadata: &Value) -> Result<Value> {
     {
         return Err("Fichier LoRA .safetensors absolu requis".into());
     }
+    // The sidecar only ever sits beside a real model file, never at a free path.
+    if !std::fs::symlink_metadata(path).is_ok_and(|m| m.is_file()) {
+        return Err("Fichier LoRA introuvable".into());
+    }
     if !metadata.is_object() || metadata.to_string().len() > 64 * 1024 {
         return Err("Métadonnées LoRA invalides".into());
     }

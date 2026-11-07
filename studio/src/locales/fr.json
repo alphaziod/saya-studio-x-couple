@@ -2356,5 +2356,12 @@
   "Saya Studio {version} est disponible": "Saya Studio {version} est disponible",
   "Téléchargement de la mise à jour…": "Téléchargement de la mise à jour…",
   "Vérifier les mises à jour au démarrage": "Vérifier les mises à jour au démarrage",
-  "Vérifier maintenant": "Vérifier maintenant"
+  "Vérifier maintenant": "Vérifier maintenant",
+  "Duo : deux persos validés sur une même image, tirés par le moteur. Expérimental : à juger sur tes images.": "Duo : deux persos validés sur une même image, tirés par le moteur. Expérimental : à juger sur tes images.",
+  "Duo en passe 1 seule · {n} essai(s) · {paire} · graine moteur {seed} · config « {config} »": "Duo en passe 1 seule · {n} essai(s) · {paire} · graine moteur {seed} · config « {config} »",
+  "Femme × Femme": "Femme × Femme",
+  "Futa × Femme": "Futa × Femme",
+  "Futa × Futa": "Futa × Futa",
+  "Type de duo": "Type de duo",
+  "Un duo n'a pas de fiche à lui : chaque perso garde la sienne.": "Un duo n'a pas de fiche à lui : chaque perso garde la sienne."
 }

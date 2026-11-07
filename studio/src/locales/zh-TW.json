@@ -2356,5 +2356,12 @@
   "Saya Studio {version} est disponible": "Saya Studio {version} 現已推出",
   "Téléchargement de la mise à jour…": "正在下載更新…",
   "Vérifier les mises à jour au démarrage": "啟動時檢查更新",
-  "Vérifier maintenant": "立即檢查"
+  "Vérifier maintenant": "立即檢查",
+  "Duo : deux persos validés sur une même image, tirés par le moteur. Expérimental : à juger sur tes images.": "雙人：由引擎抽取兩個已驗證角色，同在一張圖中。實驗功能：請根據你自己的圖片判斷。",
+  "Duo en passe 1 seule · {n} essai(s) · {paire} · graine moteur {seed} · config « {config} »": "雙人，僅第 1 階段 · {n} 次嘗試 · {paire} · 引擎種子 {seed} · 設定「{config}」",
+  "Femme × Femme": "女性 × 女性",
+  "Futa × Femme": "Futa × 女性",
+  "Futa × Futa": "Futa × Futa",
+  "Type de duo": "雙人類型",
+  "Un duo n'a pas de fiche à lui : chaque perso garde la sienne.": "雙人沒有自己的檔案：每個角色保留各自的檔案。"
 }

@@ -2596,5 +2596,12 @@
   "Saya Studio {version} est disponible": "Saya Studio {version} متاح",
   "Téléchargement de la mise à jour…": "جارٍ تنزيل التحديث…",
   "Vérifier les mises à jour au démarrage": "التحقق من التحديثات عند البدء",
-  "Vérifier maintenant": "تحقق الآن"
+  "Vérifier maintenant": "تحقق الآن",
+  "Duo : deux persos validés sur une même image, tirés par le moteur. Expérimental : à juger sur tes images.": "ثنائي: شخصيتان معتمدتان في صورة واحدة يختارهما المحرك. تجريبي: احكم عليه من صورك.",
+  "Duo en passe 1 seule · {n} essai(s) · {paire} · graine moteur {seed} · config « {config} »": "ثنائي، المرحلة 1 فقط · {n} محاولة · {paire} · بذرة المحرك {seed} · الإعداد «{config}»",
+  "Femme × Femme": "امرأة × امرأة",
+  "Futa × Femme": "Futa × امرأة",
+  "Futa × Futa": "Futa × Futa",
+  "Type de duo": "نوع الثنائي",
+  "Un duo n'a pas de fiche à lui : chaque perso garde la sienne.": "ليس للثنائي بطاقة خاصة: تحتفظ كل شخصية ببطاقتها."
 }

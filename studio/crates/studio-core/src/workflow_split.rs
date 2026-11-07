@@ -246,26 +246,22 @@ fn build(
     })
 }
 fn reachable(reference: &Value, output: &str) -> BTreeSet<String> {
-    fn walk(graph: &Value, node: &str, seen: &mut BTreeSet<String>) {
-        if !seen.insert(node.to_owned()) {
-            return;
+    // Iterative: a long chain in an imported graph must not overflow the stack.
+    let mut seen = BTreeSet::new();
+    let mut pending = vec![output.to_owned()];
+    while let Some(node) = pending.pop() {
+        if !seen.insert(node.clone()) {
+            continue;
         }
-        let Some(node_value) = graph.get(node) else {
-            return;
+        let Some(node_value) = reference.get(&node) else {
+            continue;
         };
-        for value in node_value["inputs"]
-            .as_object()
-            .into_iter()
-            .flatten()
-            .map(|(_, v)| v)
-        {
+        for value in node_value["inputs"].as_object().into_iter().flatten().map(|(_, v)| v) {
             if let Some(link) = link(value) {
-                walk(graph, &link.node, seen);
+                pending.push(link.node);
             }
         }
     }
-    let mut seen = BTreeSet::new();
-    walk(reference, output, &mut seen);
     seen
 }
 

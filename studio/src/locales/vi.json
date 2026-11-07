@@ -2356,5 +2356,12 @@
   "Saya Studio {version} est disponible": "Saya Studio {version} đã có",
   "Téléchargement de la mise à jour…": "Đang tải bản cập nhật…",
   "Vérifier les mises à jour au démarrage": "Kiểm tra cập nhật khi khởi động",
-  "Vérifier maintenant": "Kiểm tra ngay"
+  "Vérifier maintenant": "Kiểm tra ngay",
+  "Duo : deux persos validés sur une même image, tirés par le moteur. Expérimental : à juger sur tes images.": "Đôi: hai nhân vật đã xác nhận trong một ảnh, do công cụ chọn. Thử nghiệm: hãy tự đánh giá trên ảnh của bạn.",
+  "Duo en passe 1 seule · {n} essai(s) · {paire} · graine moteur {seed} · config « {config} »": "Đôi, chỉ lượt 1 · {n} lần thử · {paire} · seed công cụ {seed} · cấu hình “{config}”",
+  "Femme × Femme": "Nữ × Nữ",
+  "Futa × Femme": "Futa × Nữ",
+  "Futa × Futa": "Futa × Futa",
+  "Type de duo": "Loại đôi",
+  "Un duo n'a pas de fiche à lui : chaque perso garde la sienne.": "Đôi không có hồ sơ riêng: mỗi nhân vật giữ hồ sơ của mình."
 }

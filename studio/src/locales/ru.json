@@ -2476,5 +2476,12 @@
   "Saya Studio {version} est disponible": "Доступна Saya Studio {version}",
   "Téléchargement de la mise à jour…": "Загрузка обновления…",
   "Vérifier les mises à jour au démarrage": "Проверять обновления при запуске",
-  "Vérifier maintenant": "Проверить сейчас"
+  "Vérifier maintenant": "Проверить сейчас",
+  "Duo : deux persos validés sur une même image, tirés par le moteur. Expérimental : à juger sur tes images.": "Дуэт: два проверенных персонажа на одном изображении, выбранные движком. Экспериментально: оценивайте по своим изображениям.",
+  "Duo en passe 1 seule · {n} essai(s) · {paire} · graine moteur {seed} · config « {config} »": "Дуэт, только проход 1 · попыток: {n} · {paire} · сид движка {seed} · конфигурация «{config}»",
+  "Femme × Femme": "Женщина × Женщина",
+  "Futa × Femme": "Futa × Женщина",
+  "Futa × Futa": "Futa × Futa",
+  "Type de duo": "Тип дуэта",
+  "Un duo n'a pas de fiche à lui : chaque perso garde la sienne.": "У дуэта нет своей карточки: каждый персонаж сохраняет свою."
 }

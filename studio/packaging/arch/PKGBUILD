@@ -1,6 +1,6 @@
 # Local source package. scripts/build-arch.sh supplies the Git snapshot and checksums.
 pkgname=saya-studio
-pkgver=1.0.1
+pkgver=1.1.0
 pkgrel=1
 pkgdesc='Local image, character and ComfyUI workflow manager (development/validation build)'
 arch=('x86_64')

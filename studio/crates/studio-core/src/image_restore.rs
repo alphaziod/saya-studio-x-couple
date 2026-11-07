@@ -3,18 +3,40 @@ use crate::Result;
 use serde_json::{json, Value};
 use std::path::Path;
 
+/// Decoded metadata allowed in one PNG or one text chunk. Real ones hold a workflow of a few MB.
+const MAX_PNG_METADATA: usize = 64 * 1024 * 1024;
+
+pub(crate) fn metadata_decoder(path: &Path) -> Result<png::Decoder<std::io::BufReader<std::fs::File>>> {
+    let mut decoder = png::Decoder::new(std::io::BufReader::new(std::fs::File::open(path)?));
+    decoder.set_limits(png::Limits { bytes: MAX_PNG_METADATA });
+    Ok(decoder)
+}
+
+/// `get_text` inflates without any limit: a few bytes of compressed text can reach gigabytes.
+pub(crate) fn latin1_text(chunk: &png::text_metadata::ZTXtChunk) -> Result<String> {
+    let mut chunk = chunk.clone();
+    chunk.decompress_text_with_limit(MAX_PNG_METADATA)?;
+    Ok(chunk.get_text()?)
+}
+
+pub(crate) fn utf8_text(chunk: &png::text_metadata::ITXtChunk) -> Result<String> {
+    let mut chunk = chunk.clone();
+    chunk.decompress_text_with_limit(MAX_PNG_METADATA)?;
+    Ok(chunk.get_text()?)
+}
+
 pub(crate) fn text_chunks(info: &png::Info) -> Vec<(String, String)> {
     let mut out = Vec::new();
     for t in &info.uncompressed_latin1_text {
         out.push((t.keyword.clone(), t.text.clone()));
     }
     for z in &info.compressed_latin1_text {
-        if let Ok(text) = z.get_text() {
+        if let Ok(text) = latin1_text(z) {
             out.push((z.keyword.clone(), text));
         }
     }
     for t in &info.utf8_text {
-        if let Ok(text) = t.get_text() {
+        if let Ok(text) = utf8_text(t) {
             out.push((t.keyword.clone(), text));
         }
     }
@@ -35,8 +57,7 @@ pub fn inspect(path: &Path) -> Result<Value> {
     if meta.len() > 64 * 1024 * 1024 {
         return Err("Image trop volumineuse".into());
     }
-    let decoder = png::Decoder::new(std::io::BufReader::new(std::fs::File::open(path)?));
-    let reader = decoder.read_info()?;
+    let reader = metadata_decoder(path)?.read_info()?;
     let info = reader.info();
     let width = info.width;
     let height = info.height;

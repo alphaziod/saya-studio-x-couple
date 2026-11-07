@@ -12,7 +12,8 @@
 //! and only erases files inside Studio's own folders.
 //! Previews (captures of passes 2-5, ComfyUI-side copies of finished runs) are deleted
 //! physically at every start; the phase-1 state in ComfyUI is kept so a run can be resumed.
-//! The app owns the kept images (capture root); nothing else is kept on the ComfyUI side.
+//! The app owns the kept images (capture root); nothing else is kept on the ComfyUI side: a saved
+//! image is dropped there as soon as it is delivered (`remove_delivered_comfy_copy`).
 
 use crate::{
     saya::{read_run, write_run},
@@ -20,6 +21,7 @@ use crate::{
 };
 use serde_json::{json, Value};
 use std::collections::HashSet;
+use std::io::Write;
 use std::path::{Component, Path, PathBuf};
 
 /// Phase states ComfyUI may still be executing. `submission_unknown` is an accepted POST
@@ -220,6 +222,54 @@ impl Database {
         value["compactedJobs"] = json!(all);
         write_run(self, run_id, &value)?;
         Ok(removed)
+    }
+
+    /// Deletes ComfyUI's own copy of an image once the library holds the same bytes. Only an image
+    /// saved inside a Studio run folder (`casting-tests/…/image/`, `saya-tests/…/image/`), never
+    /// the user's other ComfyUI outputs nor the `phase_*` files a resume needs. Journaled.
+    pub(crate) fn remove_delivered_comfy_copy(
+        &self,
+        output: &Path,
+        image: &Value,
+        kept: &Path,
+    ) -> Result<bool> {
+        let (Some(subfolder), Some(filename)) = (image["subfolder"].as_str(), image["filename"].as_str()) else {
+            return Ok(false);
+        };
+        let folder = Path::new(subfolder);
+        let plain = |path: &Path| path.components().all(|c| matches!(c, Component::Normal(_)));
+        let in_run_folder = image["type"] == "output"
+            && plain(folder)
+            && folder.components().any(|c| c.as_os_str() == "image")
+            && ["casting-tests", "saya-tests"].iter().any(|root| folder.starts_with(root));
+        if !in_run_folder || !plain(Path::new(filename)) {
+            return Ok(false);
+        }
+        let copy = output.join(folder).join(filename);
+        if !copy.is_file() || !output.is_dir() {
+            return Ok(false);
+        }
+        let copy = crate::fsutil::ensure_within(output, &copy)?;
+        if crate::fsutil::file_sha256(&copy)? != crate::fsutil::file_sha256(kept)? {
+            return Ok(false);
+        }
+        std::fs::remove_file(&copy)?;
+        let journal_dir = self.pass_state_root()?.join("preview-cleanup");
+        std::fs::create_dir_all(&journal_dir)?;
+        let mut journal = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(journal_dir.join("delivered-comfy-copies.log"))?;
+        writeln!(journal, "{}", copy.display())?;
+        // The dated folder goes with its last file; `image/` itself stays for the nodes.
+        let mut parent = copy.parent();
+        while let Some(dir) = parent.filter(|d| d.file_name().is_some_and(|n| n != "image")) {
+            if std::fs::remove_dir(dir).is_err() {
+                break;
+            }
+            parent = dir.parent();
+        }
+        Ok(true)
     }
 
     /// Physically deletes disposable previews (called at application start): captures of
@@ -478,6 +528,45 @@ mod tests {
         b.db.compact_lineage("run-cccc-0001").unwrap();
         assert!(fav.exists(), "favourite never deleted");
         assert!(shared.exists(), "asset shown by another run never deleted");
+    }
+
+    #[test]
+    fn delivered_comfy_copy_goes_only_when_identical_and_in_a_run_folder() {
+        let b = bench();
+        let output = b._dir.join("comfy-output");
+        let kept = b._dir.join("kept.png");
+        std::fs::write(&kept, b"render").unwrap();
+        let place = |sub: &str, name: &str, content: &[u8]| {
+            std::fs::create_dir_all(output.join(sub)).unwrap();
+            let path = output.join(sub).join(name);
+            std::fs::write(&path, content).unwrap();
+            path
+        };
+        let image = |sub: &str, name: &str, kind: &str| json!({"subfolder":sub,"filename":name,"type":kind});
+        let run = "casting-tests/1/2/image/2026-11-06";
+
+        let copy = place(run, "a.png", b"render");
+        let state = place("casting-tests/1/2", "phase_1_base.candidate.png", b"render");
+        assert!(b.db.remove_delivered_comfy_copy(&output, &image(run, "a.png", "output"), &kept).unwrap());
+        assert!(!copy.exists(), "the delivered copy is gone");
+        assert!(!output.join(run).exists(), "its dated folder too");
+        assert!(output.join("casting-tests/1/2/image").is_dir(), "image/ stays for the nodes");
+        assert!(state.exists(), "the phase state a resume needs stays");
+        let journal = std::fs::read_to_string(
+            b.db.pass_state_root().unwrap().join("preview-cleanup/delivered-comfy-copies.log")).unwrap();
+        assert!(journal.contains("a.png"), "journaled");
+
+        let refused = [
+            (place(run, "other.png", b"different"), image(run, "other.png", "output")),
+            (place("image/2026-11-06", "mine.png", b"render"), image("image/2026-11-06", "mine.png", "output")),
+            (place("casting-tests/1/2", "phase_1_base.png", b"render"), image("casting-tests/1/2", "phase_1_base.png", "output")),
+            (place(run, "temp.png", b"render"), image(run, "temp.png", "temp")),
+            (place(run, "up.png", b"render"), image("casting-tests/../casting-tests/1/2/image/2026-11-06", "up.png", "output")),
+        ];
+        for (path, descriptor) in &refused {
+            assert!(!b.db.remove_delivered_comfy_copy(&output, descriptor, &kept).unwrap(), "{descriptor}");
+            assert!(path.exists(), "{descriptor}");
+        }
     }
 
     /// Regression: a delivery deduplicated onto an image of the user's own library shares

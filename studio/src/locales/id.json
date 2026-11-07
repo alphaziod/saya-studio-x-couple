@@ -2356,5 +2356,12 @@
   "Saya Studio {version} est disponible": "Saya Studio {version} tersedia",
   "Téléchargement de la mise à jour…": "Mengunduh pembaruan…",
   "Vérifier les mises à jour au démarrage": "Periksa pembaruan saat dimulai",
-  "Vérifier maintenant": "Periksa sekarang"
+  "Vérifier maintenant": "Periksa sekarang",
+  "Duo : deux persos validés sur une même image, tirés par le moteur. Expérimental : à juger sur tes images.": "Duo: dua karakter tervalidasi dalam satu gambar, dipilih oleh mesin. Eksperimental: nilai dari gambarmu sendiri.",
+  "Duo en passe 1 seule · {n} essai(s) · {paire} · graine moteur {seed} · config « {config} »": "Duo, hanya tahap 1 · {n} percobaan · {paire} · seed mesin {seed} · konfigurasi “{config}”",
+  "Femme × Femme": "Wanita × Wanita",
+  "Futa × Femme": "Futa × Wanita",
+  "Futa × Futa": "Futa × Futa",
+  "Type de duo": "Jenis duo",
+  "Un duo n'a pas de fiche à lui : chaque perso garde la sienne.": "Duo tidak punya lembar sendiri: setiap karakter tetap memakai lembarnya."
 }

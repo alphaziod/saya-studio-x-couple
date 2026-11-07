@@ -46,3 +46,14 @@ fn owned_metadata_sidecar_does_not_touch_model_or_existing_json() {
     assert_eq!(std::fs::read(&existing).unwrap(), b"{\"old\":true}");
     std::fs::remove_dir_all(dir).unwrap();
 }
+
+#[test]
+fn metadata_is_only_written_beside_a_real_model_file() {
+    let dir = std::env::temp_dir().join(format!("saya-lora-free-{}", uuid::Uuid::new_v4()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let absent = dir.join("absent.safetensors");
+    let refused = studio_core::lora_inventory::save_metadata(absent.to_str().unwrap(), &serde_json::json!({}));
+    assert!(refused.is_err());
+    assert!(!dir.join("absent.metadata.json").exists());
+    std::fs::remove_dir_all(dir).unwrap();
+}

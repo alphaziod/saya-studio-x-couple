@@ -22,7 +22,6 @@
 use crate::engine_runtime::engine_dir;
 use crate::image_restore::text_chunks;
 use crate::Result;
-use png::Decoder;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -320,8 +319,8 @@ fn model_from_stem(stem: &str) -> Option<&'static str> {
 /// Chunk tEXt/zTXt/iTXt `saya_family` of the PNG (written by SayaFamilySave,
 /// see `moteur/comfy.py:463`), parsed JSON, or `None`.
 fn chunk_saya_family(file_path: &Path) -> Option<Value> {
-    let file = std::fs::File::open(file_path).ok()?;
-    let lecteur = Decoder::new(std::io::BufReader::new(file))
+    let lecteur = crate::image_restore::metadata_decoder(file_path)
+        .ok()?
         .read_info()
         .ok()?;
     text_chunks(lecteur.info())

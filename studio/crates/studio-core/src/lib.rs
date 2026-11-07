@@ -87,6 +87,7 @@ pub mod workflow_split;
 
 pub mod actions_bank;
 pub mod casting;
+pub mod casting_names;
 pub mod civitai;
 pub mod comparators;
 pub mod downloads;

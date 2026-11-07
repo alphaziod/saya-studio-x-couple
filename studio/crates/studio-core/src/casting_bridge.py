@@ -82,10 +82,45 @@ def run_poses(root, perso, graine, actions):
     print(f"CASTING POSES {perso} — {len(shots)} actions, rien envoyé", flush=True)
 
 
+def duo_pairs(root):
+    """Pair types the engine can draw (`POPULATIONS` of moteur/duo.py), none without that module."""
+    path = root / "moteur/duo.py"
+    if not path.is_file():
+        return []
+    for node in ast.parse(path.read_text()).body:
+        if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "POPULATIONS" for t in node.targets):
+            return [pair for pair in ast.literal_eval(node.value) if isinstance(pair, str)]
+    return []
+
+
+def run_duo(root, pair, graine, nombre):
+    """N duos (the engine's own `tirer_duo`) as a pass-1 casting catalogue in sortie/casting/.
+    Same widgets as a solo trial, plus P2 (engine `fill_workflow_duo`). Nothing is submitted."""
+    if pair not in duo_pairs(root):
+        raise ValueError(f"Type de duo non fourni par le moteur : {pair}")
+    sys.path[:0] = [str(root), str(root / "moteur")]
+    import duo
+    from comfy import casting_passe_un
+    shots = []
+    for index in range(int(nombre)):
+        shot = duo.tirer_duo(pair, int(graine) + index)
+        shot["stem"] = f"{shot['stem']}-{index + 1:02d}"
+        shot["duo"] = True
+        shot["anatomy"] = shot.get("p1_anatomy") or ""
+        shot["casting"] = {**casting_passe_un(shot), "duo": True, "p2": shot.get("p2") or "",
+                           "p2_anatomy": shot.get("p2_anatomy") or ""}
+        shots.append(shot)
+    folder = root / "sortie" / "casting"
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "catalogue.json").write_text(json.dumps(shots, ensure_ascii=False, indent=2) + "\n")
+    print(f"CASTING DUO {pair} — {len(shots)} essais, rien envoyé", flush=True)
+
+
 def capabilities(root):
     return {"families": literal(root / "moteur/registre_ids.py", "FAMILLES"),
             "modes": literal(root / "moteur/generateur_femme_wiring.py", "_MODES"),
-            "subfamilies": subfamilies(root)}
+            "subfamilies": subfamilies(root),
+            "duoPairs": duo_pairs(root)}
 
 
 def prepare(root, mode, shots):
@@ -107,6 +142,9 @@ if __name__ == "__main__":
         sys.exit(0)
     if len(sys.argv) > 2 and sys.argv[2] == "--poses-all":
         run_poses(root, sys.argv[3], sys.argv[4], [a for a in sys.argv[5].split(",") if a] if len(sys.argv) > 5 else [])
+        sys.exit(0)
+    if len(sys.argv) > 2 and sys.argv[2] == "--duo":
+        run_duo(root, sys.argv[3], sys.argv[4], sys.argv[5])
         sys.exit(0)
     result = capabilities(root) if len(sys.argv) == 2 else prepare(root, sys.argv[2], json.load(sys.stdin))
     print(json.dumps(result, ensure_ascii=False))

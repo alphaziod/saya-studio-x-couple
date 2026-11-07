@@ -270,6 +270,17 @@ pub fn fill_source(source: &str, shot: &Value) -> Result<String> {
         )?;
     }
 
+    // A duo keeps both people (engine `fill_workflow_duo`): P2 above is filled, the couple node live.
+    let solo = pass_one.get("duo").and_then(Value::as_bool) != Some(true);
+    // In the real presets the couple node's `solo` input is wired to this toggle: the widget set
+    // further down is not read, so a duo left on OFF would render solo and ignore P2.
+    if let Some(toggles) = root.get_mut("nodes").and_then(Value::as_array_mut) {
+        for node in toggles.iter_mut() {
+            if node.get("type").and_then(Value::as_str) == Some("saya-couple-mode-toggle") {
+                widget(node, "Couple Mode", json!(if solo { "OFF" } else { "ON" }))?;
+            }
+        }
+    }
     if let Some(definitions) = root
         .get_mut("definitions")
         .and_then(|d| d.get_mut("subgraphs"))
@@ -281,7 +292,7 @@ pub fn fill_source(source: &str, shot: &Value) -> Result<String> {
             };
             for node in nodes.iter_mut() {
                 if node.get("type").and_then(Value::as_str) == Some("SayaMultiCouple") {
-                    widget(node, "solo", json!(true))?;
+                    widget(node, "solo", json!(solo))?;
                 }
             }
         }
@@ -382,6 +393,54 @@ impl crate::Database {
             return Err(unreadable("aucun perso validé lisible".into()).into());
         }
         Ok(out)
+    }
+
+    /// Names a new invented character must not take: the app's sheets, past casting trials, the
+    /// engine's validated characters and its bank. A registry that cannot be read only narrows the
+    /// list: the engine has already refused its own reserved names when it drew the batch.
+    pub fn casting_taken_names(&self, engine: &Path) -> Result<std::collections::HashSet<String>> {
+        let mut query = self.connection.prepare("SELECT name FROM characters")?;
+        let mut taken = query
+            .query_map([], |r| r.get::<_, String>(0))?
+            .collect::<std::result::Result<std::collections::HashSet<_>, _>>()?;
+        for run in self.saya_runs()? {
+            if let Some(name) = run["casting"]["shot"]["name"].as_str() {
+                taken.insert(name.to_owned());
+            }
+        }
+        for row in self.available_characters(engine).unwrap_or_default() {
+            if let Some(name) = row["nom"].as_str() {
+                taken.insert(name.to_owned());
+            }
+        }
+        let bank = engine
+            .parent()
+            .map(|root| root.join("PACKAGE FOR BIG PROMPT/characters_ready.json"))
+            .and_then(|path| std::fs::read(path).ok())
+            .and_then(|raw| serde_json::from_slice::<Value>(&raw).ok());
+        if let Some(bank) = bank {
+            let rows: Vec<&Value> = match &bank["characters"] {
+                Value::Array(rows) => rows.iter().collect(),
+                Value::Object(rows) => rows.values().collect(),
+                _ => Vec::new(),
+            };
+            taken.extend(rows.iter().filter_map(|row| row["name"].as_str().map(str::to_owned)));
+        }
+        Ok(taken)
+    }
+
+    /// Name of the character sheet saved from a casting run, if any: it wins over the drawn name
+    /// in the history, the gallery and the file name of the images still to come.
+    pub(crate) fn casting_sheet_name(&self, run: &str) -> Result<Option<String>> {
+        Ok(self
+            .connection
+            .query_row(
+                "SELECT c.name FROM import_records ir JOIN characters c ON c.id=ir.character_id \
+                 WHERE ir.source_path=?1 AND c.archived=0 LIMIT 1",
+                [format!("casting-run:{run}")],
+                |r| r.get(0),
+            )
+            .optional()?)
     }
 
     /// Persists a casting YES (Saya keeps the OC). Written by the Database struct,
@@ -795,6 +854,9 @@ impl crate::Database {
         }
         let manifest = crate::saya::read_run(self, run)?;
         let shot = &manifest["casting"]["shot"];
+        if shot["duo"] == json!(true) {
+            return Err("Un duo n'a pas de fiche à lui : chaque perso garde la sienne".into());
+        }
         if shot["stem"].as_str() != Some(stem) {
             return Err(format!(
                 "Ce run casting ne porte pas le stem « {stem} » : sauvegarde refusée"
@@ -883,7 +945,7 @@ fn complete_anatomy(p1: &str, anatomy: &str) -> (String, Option<String>) {
 }
 
 /// Hair colour key of a P1 (engine `hair_key`, plus the shades it does not know).
-fn hair_colour(p1: &str) -> &'static str {
+pub(crate) fn hair_colour(p1: &str) -> &'static str {
     const BASE: [&str; 14] = ["black", "brown", "blonde", "red", "pink", "blue", "aqua", "green", "purple", "white", "grey", "gray", "silver", "orange"];
     const EXTRA: [(&str, &str); 10] = [("chestnut", "brown"), ("honey", "blonde"), ("platinum", "white"), ("lavender", "purple"), ("violet", "purple"), ("magenta", "pink"), ("copper", "red"), ("auburn", "red"), ("apricot", "orange"), ("peach", "orange")];
     let hairy = ["hair", "bob", "curls", "ponytail", "twintails", "braid", "waves", "bun", "locks"];
