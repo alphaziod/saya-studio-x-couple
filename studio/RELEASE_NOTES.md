@@ -11,9 +11,8 @@ per render.** Updating keeps your database, images, characters and settings.
 
 ### Casting
 
-- **Duo trials (experimental):** when your draw engine provides pair types (Futa × Futa, Femme × Femme,
-  Futa × Femme), Casting offers a Solo / Duo choice. A duo shows two validated characters on one image, at
-  pass 1. A duo has no character sheet of its own: each character keeps hers.
+- **Duo trials (experimental):** when your draw engine provides pair types, Casting offers a Solo / Duo choice.
+  A duo shows two validated characters on one image, at pass 1, and has no character sheet of its own.
 - **Names that suit the character:** a character invented by a batch is renamed at launch, in a style that
   follows her family and P1 tags. A name already taken is never reused; existing characters keep theirs.
 - **Saving a sheet:** the name field starts from the trial's name and stays editable. A saved sheet's name then
