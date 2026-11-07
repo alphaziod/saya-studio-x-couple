@@ -27,6 +27,16 @@ HERE = Path(__file__).resolve().parent
 # unset, every output is a tiny synthetic PNG.
 # MOCK_COMFY_OUTPUT_DIR: behave like a real Saya run on disk (saved file + review gate copy).
 OUTPUT_DIR = os.environ.get('MOCK_COMFY_OUTPUT_DIR')
+
+
+def output_path(*parts):
+    """A path from a submitted prompt, or ValueError when it leaves the output folder."""
+    root = os.path.realpath(OUTPUT_DIR)
+    path = os.path.realpath(os.path.join(root, *parts))
+    if path != root and not path.startswith(root + os.sep):
+        raise ValueError('path outside the output folder')
+    return path
+
 REAL_IMAGES = sorted(os.path.join(os.environ['MOCK_COMFY_IMAGES'], n) for n in os.listdir(os.environ['MOCK_COMFY_IMAGES'])
                      if n.lower().endswith('.png')) if os.environ.get('MOCK_COMFY_IMAGES') else []
 REAL_NEXT = [0]
@@ -237,14 +247,19 @@ def handler(state, object_info):
                         subfolder, _, stem = prefix.rpartition('/')
                         name = f'{stem}_{prompt_id[:8]}_00001_.png'
                         data = png(8, 8, (digest[0], digest[1], digest[2]))
-                        folder = os.path.join(OUTPUT_DIR, subfolder)
+                        root = subfolder.split('/image')[0]
+                        try:
+                            folder = output_path(subfolder)
+                            saved_path = output_path(subfolder, name)
+                            state_path = output_path(root, 'phase_1_base.candidate.png')
+                        except ValueError:
+                            continue
                         os.makedirs(folder, exist_ok=True)
-                        with open(os.path.join(folder, name), 'wb') as saved:
+                        with open(saved_path, 'wb') as saved:
                             saved.write(data)
                         # The phase state a run keeps for its next passes.
-                        root = subfolder.split('/image')[0]
                         if '/image' in subfolder:
-                            with open(os.path.join(OUTPUT_DIR, root, 'phase_1_base.candidate.png'), 'wb') as state_file:
+                            with open(state_path, 'wb') as state_file:
                                 state_file.write(data)
                         with state.lock:
                             state.files[name] = data

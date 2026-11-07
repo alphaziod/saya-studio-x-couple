@@ -1,6 +1,7 @@
 """The bridge refuses what could leak the Civitai token or open it to anyone."""
 import importlib.util
 import json
+import os
 from pathlib import Path
 import stat
 import tempfile
@@ -54,7 +55,9 @@ with tempfile.TemporaryDirectory() as directory:
     path = Path(directory) / "token"
     bridge.TOKEN_FILE = str(path)
     first = bridge.bridge_token()
-    assert first and stat.S_IMODE(path.stat().st_mode) == 0o600
+    assert first
+    if os.name == "posix":
+        assert stat.S_IMODE(path.stat().st_mode) == 0o600
     assert bridge.bridge_token() == first
     path.write_text("")
     second = bridge.bridge_token()
