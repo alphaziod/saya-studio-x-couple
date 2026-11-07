@@ -107,8 +107,11 @@ def output_directory() -> Path:
         return (Path.cwd() / "output").resolve()
 
 
-def checkpoint_directory(checkpoint_root: str) -> Path:
-    """Resolve a user-visible relative checkpoint directory under output."""
+def checkpoint_directory(checkpoint_root: str, create: bool = True) -> Path:
+    """Resolve a user-visible relative checkpoint directory under output.
+
+    ``create=False`` for what only reads or removes: a status request creates nothing.
+    """
     raw = str(checkpoint_root or "image/checkpoints").strip().replace("\\", "/")
     if not raw:
         raw = "image/checkpoints"
@@ -119,15 +122,16 @@ def checkpoint_directory(checkpoint_root: str) -> Path:
     target = (base / relative).resolve()
     if target != base and base not in target.parents:
         raise ValueError("checkpoint_root escapes the output directory.")
-    target.mkdir(parents=True, exist_ok=True)
+    if create:
+        target.mkdir(parents=True, exist_ok=True)
     return target
 
 
-def checkpoint_paths(phase: int, checkpoint_root: str) -> CheckpointPaths:
+def checkpoint_paths(phase: int, checkpoint_root: str, create: bool = True) -> CheckpointPaths:
     """Build candidate and validated paths for one phase."""
     if phase not in PHASE_STEMS:
         raise ValueError(f"No checkpoint for phase {phase}.")
-    directory = checkpoint_directory(checkpoint_root)
+    directory = checkpoint_directory(checkpoint_root, create)
     stem = PHASE_STEMS[phase]
     return CheckpointPaths(
         directory=directory,
@@ -609,7 +613,9 @@ def discard_candidate(phase: int, checkpoint_root: str) -> dict[str, Any]:
     Takes promote_lock so it can never land between a save_and_promote_candidate
     call's candidate write and its promotion.
     """
-    paths = checkpoint_paths(phase, checkpoint_root)
+    paths = checkpoint_paths(phase, checkpoint_root, create=False)
+    if not paths.directory.is_dir():
+        return {"removed": []}
     with promote_lock():
         removed: list[str] = []
         for path in (paths.candidate_image, paths.candidate_manifest):
@@ -647,7 +653,9 @@ def invalidate_phase(phase: int, checkpoint_root: str) -> dict[str, Any]:
     Takes promote_lock like discard_candidate: a redo must never delete files
     in the middle of a concurrent promotion of the same phase.
     """
-    paths = checkpoint_paths(phase, checkpoint_root)
+    paths = checkpoint_paths(phase, checkpoint_root, create=False)
+    if not paths.directory.is_dir():
+        return {"removed": []}
     with promote_lock():
         removed: list[str] = []
         for path in (
@@ -828,7 +836,7 @@ def phase_status(phase: int, detailer: str, checkpoint_root: str) -> dict[str, A
         "memory": memory_snapshot(),
     }
     if phase in PHASE_STEMS:
-        paths = checkpoint_paths(phase, checkpoint_root)
+        paths = checkpoint_paths(phase, checkpoint_root, create=False)
         result["candidate"] = str(paths.candidate_image) if paths.candidate_image.exists() else ""
         result["validated"] = ""
         if phase == 1 and (paths.validated_image.exists() or paths.validated_manifest.exists()):

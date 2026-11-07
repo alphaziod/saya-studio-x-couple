@@ -2356,5 +2356,12 @@
   "Saya Studio {version} est disponible": "Saya Studio {version} พร้อมใช้งานแล้ว",
   "Téléchargement de la mise à jour…": "กำลังดาวน์โหลดการอัปเดต…",
   "Vérifier les mises à jour au démarrage": "ตรวจหาการอัปเดตเมื่อเริ่มต้น",
-  "Vérifier maintenant": "ตรวจสอบตอนนี้"
+  "Vérifier maintenant": "ตรวจสอบตอนนี้",
+  "Duo : deux persos validés sur une même image, tirés par le moteur. Expérimental : à juger sur tes images.": "คู่: ตัวละครที่ตรวจสอบแล้วสองตัวในภาพเดียว เลือกโดยเอนจิน ทดลองใช้: ตัดสินจากภาพของคุณเอง",
+  "Duo en passe 1 seule · {n} essai(s) · {paire} · graine moteur {seed} · config « {config} »": "คู่ เฉพาะพาส 1 · {n} ครั้ง · {paire} · ซีดเอนจิน {seed} · การตั้งค่า “{config}”",
+  "Femme × Femme": "หญิง × หญิง",
+  "Futa × Femme": "Futa × หญิง",
+  "Futa × Futa": "Futa × Futa",
+  "Type de duo": "ประเภทคู่",
+  "Un duo n'a pas de fiche à lui : chaque perso garde la sienne.": "คู่ไม่มีแผ่นข้อมูลของตัวเอง ตัวละครแต่ละตัวใช้แผ่นข้อมูลของตน"
 }

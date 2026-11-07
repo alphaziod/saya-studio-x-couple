@@ -2356,5 +2356,12 @@
   "Saya Studio {version} est disponible": "Saya Studio {version} kullanıma hazır",
   "Téléchargement de la mise à jour…": "Güncelleme indiriliyor…",
   "Vérifier les mises à jour au démarrage": "Başlangıçta güncellemeleri denetle",
-  "Vérifier maintenant": "Şimdi denetle"
+  "Vérifier maintenant": "Şimdi denetle",
+  "Duo : deux persos validés sur une même image, tirés par le moteur. Expérimental : à juger sur tes images.": "Düo: motorun seçtiği iki onaylı karakter tek görselde. Deneysel: kendi görsellerinde değerlendir.",
+  "Duo en passe 1 seule · {n} essai(s) · {paire} · graine moteur {seed} · config « {config} »": "Düo, yalnızca 1. geçiş · {n} deneme · {paire} · motor tohumu {seed} · yapılandırma “{config}”",
+  "Femme × Femme": "Kadın × Kadın",
+  "Futa × Femme": "Futa × Kadın",
+  "Futa × Futa": "Futa × Futa",
+  "Type de duo": "Düo türü",
+  "Un duo n'a pas de fiche à lui : chaque perso garde la sienne.": "Düonun kendi kartı yoktur: her karakter kendi kartını korur."
 }

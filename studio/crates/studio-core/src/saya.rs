@@ -889,7 +889,12 @@ impl Database {
                     .as_str()
                     .map(str::to_owned)
             });
-            rows.push(json!({"run":run["id"],"stem":shot["stem"],"name":shot["name"],"famille":shot["famille"],"model":shot["model"],
+            let sheet_name = match run["id"].as_str() {
+                Some(id) => self.casting_sheet_name(id)?,
+                None => None,
+            };
+            let name = sheet_name.map_or_else(|| shot["name"].clone(), Value::String);
+            rows.push(json!({"run":run["id"],"stem":shot["stem"],"name":name,"famille":shot["famille"],"model":shot["model"],
                 "seed":run["masterSeed"],"graine":metadata.get("graine").or_else(|| kept.and_then(|k|k.get("graine"))),
                 "catalogue":metadata.get("catalogue").or_else(|| kept.and_then(|k|k.get("catalogue"))),
                 "state":phase["state"],"asset":phase["asset"],"decision":decision,"shot":shot,
@@ -1078,6 +1083,10 @@ impl Database {
         // the pause forbids any NEW queueing, so we enforce it.
         if value["state"] == "paused" {
             return Err("Run casting en pause : le reprendre avant de décider".into());
+        }
+        // Duo trials stop at pass 1: passes 2-6 have never been validated with two people here.
+        if keep && value["casting"]["shot"]["duo"] == json!(true) {
+            return Err("Un duo s'arrête à la passe 1 : pas de 6 passes".into());
         }
         let metadata = value["casting"].clone();
         if !metadata.is_object() {
@@ -2396,6 +2405,25 @@ mod casting_recovery_tests {
             .unwrap_err()
             .to_string()
             .contains("déjà enregistré"));
+    }
+}
+
+#[cfg(test)]
+mod casting_duo_tests {
+    use super::*;
+    #[test]
+    fn a_duo_trial_never_starts_the_six_passes() {
+        let root = std::env::temp_dir().join(format!("casting-duo-keep-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&root).unwrap();
+        let mut db = Database::open(&root.join("db.sqlite3")).unwrap();
+        let id = "casting-duo-keep-001";
+        write_run(&db, id, &json!({"id":id,"state":"running","phases":{"1":{"state":"succeeded"}},
+            "casting":{"shot":{"duo":true,"stem":"duo-one","name":"A x B"}}})).unwrap();
+        let client = Comfy::loopback(1).unwrap();
+        let error = db.casting_decide(id, true, &client, &root).unwrap_err().to_string();
+        assert!(error.contains("passe 1"), "{error}");
+        db.casting_decide(id, false, &client, &root).unwrap();
+        std::fs::remove_dir_all(&root).unwrap();
     }
 }
 

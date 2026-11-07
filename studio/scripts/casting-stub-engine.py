@@ -173,6 +173,7 @@ else:
             "p1": P1_STUB,
             "anatomy": "(small wings:1.25), cute_tail",
             "pose": pose,
+            "action_name": "stub_debout",
             "bg": "night club, neon signs",
             "lazy": True,
             "casting": passe_un(P1_STUB, pose, NOOBAI if pair else ILLU),

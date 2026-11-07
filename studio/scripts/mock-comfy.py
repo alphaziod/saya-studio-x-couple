@@ -11,6 +11,7 @@ Never a GPU, never a network beyond 127.0.0.1.
 import argparse
 import os
 import json
+import re
 import struct
 import threading
 import uuid
@@ -24,6 +25,8 @@ HERE = Path(__file__).resolve().parent
 
 # MOCK_COMFY_IMAGES=<folder>: SaveImage outputs cycle through that folder's real PNGs (screenshots);
 # unset, every output is a tiny synthetic PNG.
+# MOCK_COMFY_OUTPUT_DIR: behave like a real Saya run on disk (saved file + review gate copy).
+OUTPUT_DIR = os.environ.get('MOCK_COMFY_OUTPUT_DIR')
 REAL_IMAGES = sorted(os.path.join(os.environ['MOCK_COMFY_IMAGES'], n) for n in os.listdir(os.environ['MOCK_COMFY_IMAGES'])
                      if n.lower().endswith('.png')) if os.environ.get('MOCK_COMFY_IMAGES') else []
 REAL_NEXT = [0]
@@ -169,6 +172,7 @@ def handler(state, object_info):
                 return self.reply(200, data)
             if url.path == '/view':
                 name = parse_qs(url.query).get('filename', [''])[0]
+                state.log({'method': 'GET', 'path': '/view', 'filename': name})
                 with state.lock:
                     body = state.files.get(name)
                 return self.reply(200, body, 'image/png') if body else self.reply(404, {'error': 'not found'})
@@ -219,6 +223,33 @@ def handler(state, object_info):
                         with state.lock:
                             state.files[name] = latent_bytes(digest)
                         outputs[node_id] = {'latents': [{'filename': name, 'subfolder': '', 'type': 'output'}]}
+                    if OUTPUT_DIR and node.get('class_type') == 'SayaImageGenerationReview':
+                        # Like the real gate: a temp copy of the pass, without metadata, plus its decision data.
+                        name = f'review_{prompt_id[:8]}_{node_id}.png'
+                        with state.lock:
+                            state.files[name] = png(8, 8, (digest[3], digest[4], digest[5]))
+                        outputs[node_id] = {'images': [{'filename': name, 'subfolder': '', 'type': 'temp'}],
+                                            'saya_review': [{'phase': 1, 'transaction_uuid': prompt_id, 'checkpoint_root': 'image/checkpoints'}]}
+                        continue
+                    if OUTPUT_DIR and node.get('class_type') in ('SaveImage', 'DaSiWa_MetadataImageSaver'):
+                        # Like the real saver: the file really lands in ComfyUI's output folder.
+                        prefix = re.sub(r'%date:[^%]*%', '2000-01-01', str(node.get('inputs', {}).get('filename_prefix', 'mock')))
+                        subfolder, _, stem = prefix.rpartition('/')
+                        name = f'{stem}_{prompt_id[:8]}_00001_.png'
+                        data = png(8, 8, (digest[0], digest[1], digest[2]))
+                        folder = os.path.join(OUTPUT_DIR, subfolder)
+                        os.makedirs(folder, exist_ok=True)
+                        with open(os.path.join(folder, name), 'wb') as saved:
+                            saved.write(data)
+                        # The phase state a run keeps for its next passes.
+                        root = subfolder.split('/image')[0]
+                        if '/image' in subfolder:
+                            with open(os.path.join(OUTPUT_DIR, root, 'phase_1_base.candidate.png'), 'wb') as state_file:
+                                state_file.write(data)
+                        with state.lock:
+                            state.files[name] = data
+                        outputs[node_id] = {'images': [{'filename': name, 'subfolder': subfolder, 'type': 'output'}]}
+                        continue
                     if node.get('class_type') in ('SaveImage', 'DaSiWa_MetadataImageSaver'):
                         name = f'mock_{prompt_id[:8]}_{node_id}.png'
                         with state.lock:
@@ -257,7 +288,7 @@ def handler(state, object_info):
                     for pid in payload.get('delete') or []:
                         state.pending.pop(pid, None)
                 return self.reply(200, {})
-            if url.path in ('/interrupt', '/free'):
+            if url.path in ('/interrupt', '/free', '/saya/image-phases/validate'):
                 return self.reply(200, {})
             return self.reply(404, {'error': 'mock: unknown endpoint ' + url.path})
     return Handler

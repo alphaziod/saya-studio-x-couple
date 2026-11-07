@@ -221,7 +221,7 @@ pub fn metadata(path: &Path) -> Result<Metadata> {
             }
         }
         for item in &info.compressed_latin1_text {
-            match item.get_text() {
+            match crate::image_restore::latin1_text(item) {
                 Ok(s) => {
                     text.insert(
                         item.keyword.clone(),
@@ -232,7 +232,7 @@ pub fn metadata(path: &Path) -> Result<Metadata> {
             }
         }
         for item in &info.utf8_text {
-            match item.get_text() {
+            match crate::image_restore::utf8_text(item) {
                 Ok(s) => {
                     text.insert(
                         item.keyword.clone(),
@@ -1097,7 +1097,7 @@ impl Database {
     /// chunk (only engine-submitted shots get the SayaFamilySave node). Only a plain
     /// folder-safe name is accepted.
     /// Also returns the trial's character name, used in readable file names.
-    fn casting_job_identity(&self, job: &str) -> Result<(Option<String>, Option<String>)> {
+    fn casting_job_identity(&self, job: &str) -> Result<JobIdentity> {
         for run in self.saya_runs()? {
             if (1..=6).any(|phase| run["phases"][phase.to_string()]["job"].as_str() == Some(job)) {
                 let shot = &run["casting"]["shot"];
@@ -1109,10 +1109,32 @@ impl Database {
                                 .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
                     })
                     .map(str::to_owned);
-                return Ok((family, shot["name"].as_str().map(str::to_owned)));
+                // A saved sheet's name wins: it is the one the user chose for this character.
+                let sheet = match run["id"].as_str() {
+                    Some(id) => self.casting_sheet_name(id)?,
+                    None => None,
+                };
+                let name = sheet.or_else(|| shot["name"].as_str().map(str::to_owned));
+                let pose = shot["action_name"].as_str().map(str::to_owned);
+                return Ok(JobIdentity { family, name, pose });
             }
         }
-        Ok((None, None))
+        Ok(JobIdentity::default())
+    }
+
+    /// Local date and time for capture folders and file names, read from SQLite's calendar: the
+    /// user's day, not the UTC one (a render at 00:30 in Paris belongs to the new day).
+    fn local_stamp(&self) -> (String, String) {
+        self.connection
+            .query_row(
+                "SELECT strftime('%Y-%m-%d','now','localtime'),strftime('%H-%M-%S','now','localtime')",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .unwrap_or_else(|_| {
+                let now = std::time::SystemTime::now();
+                (capture_day(now), capture_clock(now))
+            })
     }
 
     /// Language of the folder and file names the app writes: preference
@@ -1220,9 +1242,8 @@ pub fn file_digest(path: &Path) -> Result<String> {
     crate::fsutil::file_sha256(path)
 }
 
-/// Generation day `YYYY-MM-DD` (UTC): the engine also dates its batches by
-/// day; no local calendar is available without an added dependency, the
-/// UTC day is written as-is and never re-guessed.
+/// Generation day `YYYY-MM-DD` (UTC), without any database at hand. Deliveries use the local
+/// day (`Database::local_stamp`) and fall back on this one.
 pub fn capture_day(now: std::time::SystemTime) -> String {
     let days = now
         .duration_since(UNIX_EPOCH)
@@ -1285,7 +1306,19 @@ fn file_word(text: &str) -> String {
         .map(|c| if c.is_alphanumeric() { c } else { '-' })
         .collect();
     let word: String = word.split('-').filter(|s| !s.is_empty()).collect::<Vec<_>>().join("-");
-    word.chars().take(40).collect()
+    let word: String = word.chars().take(FILE_WORD_MAX).collect();
+    word.trim_end_matches('-').to_owned()
+}
+
+/// Long enough for both names of a duo.
+const FILE_WORD_MAX: usize = 80;
+
+/// What a job's image shows, known for casting runs only.
+#[derive(Default)]
+struct JobIdentity {
+    family: Option<String>,
+    name: Option<String>,
+    pose: Option<String>,
 }
 
 /// `a_b_c.png` from the non-empty parts.
@@ -1310,14 +1343,20 @@ fn unique_path(folder: &Path, name: &str) -> PathBuf {
 /// Family read from the `saya_family` chunk of the PNG (written by SayaFamilySave, same
 /// reader as `generation_browser`). `"sans-famille"` for captures
 /// without a chunk: no family is ever invented.
+/// The family comes from the PNG and names a folder: a value that is not one plain folder name
+/// (`../..`, an absolute path) would send the delivery outside the capture root.
+fn is_family_folder(famille: &str) -> bool {
+    (1..=64).contains(&famille.len())
+        && famille.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+}
+
 pub fn capture_family(path: &Path) -> Result<String> {
-    let file = File::open(path)?;
-    let reader = png::Decoder::new(BufReader::new(file)).read_info()?;
+    let reader = crate::image_restore::metadata_decoder(path)?.read_info()?;
     for (keyword, value) in crate::image_restore::text_chunks(reader.info()) {
         if keyword == "saya_family" {
             if let Ok(chunk) = serde_json::from_str::<Value>(&value) {
                 if let Some(famille) = chunk.get("famille").and_then(Value::as_str) {
-                    if !famille.is_empty() {
+                    if is_family_folder(famille) {
                         return Ok(famille.to_owned());
                     }
                 }
@@ -1411,7 +1450,7 @@ impl Database {
                 return Ok((placements, None));
             }
         };
-        let day = capture_day(std::time::SystemTime::now());
+        let (day, clock) = self.local_stamp();
         let (phase, total) = self.capture_phase(job)?;
         let capture = DeliveryCapture {
             role: match total {
@@ -1423,9 +1462,10 @@ impl Database {
             total,
             day: day.clone(),
         };
-        let (job_family, job_name) = self.casting_job_identity(job)?;
+        let identity = self.casting_job_identity(job)?;
+        let character = identity.name.as_deref().map(file_word).filter(|word| !word.is_empty());
+        let pose = identity.pose.as_deref().map(file_word).unwrap_or_default();
         let words = naming_words(&self.naming_language());
-        let clock = capture_clock(std::time::SystemTime::now());
         let mut ordinal = 0;
         let mut organized_any = false;
         for name in names {
@@ -1453,7 +1493,7 @@ impl Database {
                     });
                 let mut famille = capture_family(&source)?;
                 if famille == "sans-famille" {
-                    if let Some(known) = &job_family {
+                    if let Some(known) = &identity.family {
                         famille = known.clone();
                     }
                 }
@@ -1479,13 +1519,22 @@ impl Database {
                     (_, Some(phase)) => format!("p{phase}"),
                     _ => "p1".to_owned(),
                 };
-                let destination = unique_path(&folder, &readable_name(&[
-                    &format!("{day}_{clock}"),
-                    family_dir,
-                    &job_name.as_deref().map(file_word).unwrap_or_default(),
-                    &pass,
-                    &format!("{}{}", &job[..job.len().min(8)], if ordinal > 1 { format!("-{ordinal}") } else { String::new() }),
-                ]));
+                // `<date>_<character>_<pose>.png` for a finished casting image, with the pass
+                // added before it is finished. Without a known character, what identifies the file
+                // is its time and job.
+                let file_name = match &character {
+                    Some(character) => {
+                        let step = if capture.role == "final" { "" } else { pass.as_str() };
+                        readable_name(&[&day, character, &pose, step])
+                    }
+                    None => readable_name(&[
+                        &format!("{day}_{clock}"),
+                        family_dir,
+                        &pass,
+                        &format!("{}{}", &job[..job.len().min(8)], if ordinal > 1 { format!("-{ordinal}") } else { String::new() }),
+                    ]),
+                };
+                let destination = unique_path(&folder, &file_name);
                 // Same filesystem: atomic rename; otherwise copy
                 // then delete (the content is already validated on the buffer side).
                 if std::fs::rename(&source, &destination).is_err() {
@@ -1719,7 +1768,7 @@ mod capture_tests {
         let organized = placements[0].organized.clone().unwrap();
         assert!(organized.parent().unwrap().ends_with("trials/hum"), "{organized:?}");
         let name = organized.file_name().unwrap().to_string_lossy().into_owned();
-        assert!(name.ends_with("_hum_Kira-Brook_p1_2d71cc9f.png"), "{name}");
+        assert!(name.ends_with("_Kira-Brook_p1.png"), "{name}");
         assert_eq!(placements[0].famille, "hum", "database keeps the family code");
         // French (default) keeps the historical folder names.
         assert_eq!(naming_words("fr").pull, "pull");
@@ -1795,6 +1844,118 @@ mod capture_tests {
             again[0].organized.as_ref().unwrap().is_file(),
             "the new render is kept"
         );
+    }
+
+    /// Delivers one PNG for `job`, a phase of a casting run, and returns its file name.
+    fn delivered_name(db: &mut Database, dir: &Path, run: &str, job: &str, phase: &str, shot: Value) -> PathBuf {
+        crate::saya::write_run(db, run, &json!({"id":run,"phases":{phase:{"job":job}},"casting":{"shot":shot}})).unwrap();
+        let buffer = dir.join("results");
+        std::fs::create_dir_all(&buffer).unwrap();
+        png_with_family_seed(&buffer.join(format!("{job}-abcd1234ef56-0.png")), "hum", job);
+        let (placements, _) = db.organize_delivery(&buffer, job).unwrap();
+        placements[0].organized.clone().unwrap()
+    }
+
+    #[test]
+    fn a_family_from_the_png_never_leaves_the_capture_root() {
+        let dir = TempDir::new("family-escape");
+        let mut db = Database::open(&dir.path().join("studio.sqlite3")).unwrap();
+        let root = dir.path().join("captures/root");
+        db.set_preference("captureRoot", json!(root.to_str().unwrap())).unwrap();
+        let outside = dir.path().join("outside");
+        let hostile = ["../../../../outside", outside.to_str().unwrap(), "..", "a/b", "a\\b", "bad\0name", ""];
+        for (index, famille) in hostile.iter().enumerate() {
+            let job = format!("2d71cc9f-2222-4333-8444-{index:012x}");
+            let buffer = dir.path().join(format!("results-{index}"));
+            std::fs::create_dir_all(&buffer).unwrap();
+            png_with_family_seed(&buffer.join(format!("{job}-abcd1234ef56-0.png")), famille, &job);
+            let run = format!("44444444-2222-4333-8444-{index:012x}");
+            crate::saya::write_run(&db, &run, &json!({"id":run,"phases":{"1":{"job":job}},"casting":{"shot":{"name":"Test","action_name":"pose"}}})).unwrap();
+            let (placements, _) = db.organize_delivery(&buffer, &job).unwrap();
+            let organized = placements[0].organized.clone().unwrap();
+            assert!(organized.canonicalize().unwrap().starts_with(root.canonicalize().unwrap()), "{famille:?} -> {organized:?}");
+            assert_eq!(placements[0].famille, "sans-famille", "{famille:?}");
+        }
+        assert!(!outside.exists());
+        for good in ["hum", "girl_x_girl", "my-family"] {
+            let path = dir.path().join(format!("{good}.png"));
+            png_with_family_seed(&path, good, "1");
+            assert_eq!(capture_family(&path).unwrap(), good);
+        }
+    }
+
+    #[test]
+    fn a_compressed_metadata_bomb_is_refused() {
+        let dir = TempDir::new("metadata-bomb");
+        let path = dir.path().join("bomb.png");
+        let mut encoder = png::Encoder::new(std::fs::File::create(&path).unwrap(), 2, 2);
+        encoder.set_color(png::ColorType::Rgb);
+        encoder.set_depth(png::BitDepth::Eight);
+        encoder.add_ztxt_chunk("saya_family".into(), format!("{{\"famille\":\"hum\",\"x\":\"{}\"}}", "A".repeat(80 * 1024 * 1024))).unwrap();
+        encoder.write_header().unwrap().write_image_data(&[9; 12]).unwrap();
+        assert!(std::fs::metadata(&path).unwrap().len() < 2 * 1024 * 1024, "small on disk");
+        // Above the limit the chunk is not inflated: its family is never read.
+        assert_eq!(capture_family(&path).unwrap(), "sans-famille");
+        // A normal compressed chunk is still read.
+        let small = dir.path().join("small.png");
+        let mut encoder = png::Encoder::new(std::fs::File::create(&small).unwrap(), 2, 2);
+        encoder.set_color(png::ColorType::Rgb);
+        encoder.set_depth(png::BitDepth::Eight);
+        encoder.add_ztxt_chunk("saya_family".into(), json!({"famille":"hum"}).to_string()).unwrap();
+        encoder.write_header().unwrap().write_image_data(&[9; 12]).unwrap();
+        assert_eq!(capture_family(&small).unwrap(), "hum");
+    }
+
+    #[test]
+    fn finished_casting_image_is_named_date_character_pose() {
+        let dir = TempDir::new("final-name");
+        let mut db = Database::open(&dir.path().join("studio.sqlite3")).unwrap();
+        let root = dir.path().join("captures");
+        db.set_preference("captureRoot", json!(root.to_str().unwrap())).unwrap();
+        let shot = json!({"famille":"hum","name":"Élodie Frost","action_name":"bras_tete"});
+        let path = delivered_name(&mut db, dir.path(), "44444444-2222-4333-8444-0000000000a1",
+            "2d71cc9f-2222-4333-8444-0000000000a1", "6", shot.clone());
+        let (day, _) = db.local_stamp();
+        assert_eq!(path.file_name().unwrap().to_str().unwrap(), format!("{day}_Élodie-Frost_bras-tete.png"));
+        assert!(path.parent().unwrap().ends_with(format!("{day}/pull/Final")), "{path:?}");
+        // Same character, same pose, same day: the second image never overwrites the first.
+        let again = delivered_name(&mut db, dir.path(), "44444444-2222-4333-8444-0000000000a2",
+            "2d71cc9f-2222-4333-8444-0000000000a2", "6", shot.clone());
+        assert_eq!(again.file_name().unwrap().to_str().unwrap(), format!("{day}_Élodie-Frost_bras-tete-2.png"));
+        // A trial keeps its pass, so it reads apart from the finished image.
+        let trial = delivered_name(&mut db, dir.path(), "44444444-2222-4333-8444-0000000000a3",
+            "2d71cc9f-2222-4333-8444-0000000000a3", "1", shot);
+        assert_eq!(trial.file_name().unwrap().to_str().unwrap(), format!("{day}_Élodie-Frost_bras-tete_p1.png"));
+        // A duo carries both names.
+        let duo = delivered_name(&mut db, dir.path(), "44444444-2222-4333-8444-0000000000a4",
+            "2d71cc9f-2222-4333-8444-0000000000a4", "6",
+            json!({"famille":"girl_x_girl","name":"Alba Marin x Rhea Voss","action_name":"duo_calin"}));
+        assert_eq!(duo.file_name().unwrap().to_str().unwrap(), format!("{day}_Alba-Marin-x-Rhea-Voss_duo-calin.png"));
+    }
+
+    #[test]
+    fn delivery_day_is_the_local_calendar_day() {
+        let dir = TempDir::new("local-day");
+        let db = Database::open(&dir.path().join("studio.sqlite3")).unwrap();
+        let (day, clock): (String, String) = db.local_stamp();
+        let expected: String = db.connection
+            .query_row("SELECT date('now','localtime')", [], |r| r.get(0)).unwrap();
+        assert_eq!(day, expected);
+        assert_eq!(clock.len(), 8, "{clock}");
+    }
+
+    #[test]
+    fn a_saved_sheet_name_wins_in_the_file_name() {
+        let dir = TempDir::new("sheet-name");
+        let mut db = Database::open(&dir.path().join("studio.sqlite3")).unwrap();
+        let root = dir.path().join("captures");
+        db.set_preference("captureRoot", json!(root.to_str().unwrap())).unwrap();
+        let run = "44444444-2222-4333-8444-0000000000b1";
+        db.import_character(&format!("casting-run:{run}"), "digest", "stem", &json!({"name":"Mon Choix"})).unwrap();
+        let path = delivered_name(&mut db, dir.path(), run, "2d71cc9f-2222-4333-8444-0000000000b1", "6",
+            json!({"famille":"hum","name":"Nom Tiré","action_name":"assise"}));
+        let name = path.file_name().unwrap().to_str().unwrap();
+        assert!(name.ends_with("_Mon-Choix_assise.png"), "{name}");
     }
 
     #[test]

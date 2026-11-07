@@ -988,6 +988,36 @@ pub fn casting_character_actions_in_with_timeout(
     run_engine_selected(dir, &[], CASTING_CATALOGUE, timeout, graine, Some(&bridge))
 }
 
+/// N duos of the given pair type (`futa_x_girl`…), drawn by the engine's `moteur/duo.py` through
+/// the bridge, as a pass-1 catalogue. Nothing is submitted to ComfyUI.
+pub fn casting_duo(graine: u64, pair: &str, nombre: u32) -> Result<DryRunOutcome> {
+    casting_duo_in_with_timeout(
+        &engine_dir(),
+        graine,
+        pair,
+        nombre,
+        Duration::from_secs(DRY_RUN_TIMEOUT_SECS),
+    )
+}
+
+/// The same in an explicit engine directory (tests).
+pub fn casting_duo_in_with_timeout(
+    dir: &Path,
+    graine: u64,
+    pair: &str,
+    nombre: u32,
+    timeout: Duration,
+) -> Result<DryRunOutcome> {
+    if pair.is_empty() || !pair.chars().all(|c| c.is_ascii_lowercase() || c == '_') {
+        return Err(format!("Type de duo invalide ({pair})").into());
+    }
+    if nombre == 0 || nombre > CASTING_MAX {
+        return Err(format!("Nombre de duos invalide ({nombre})").into());
+    }
+    let bridge = ["--duo".to_owned(), pair.to_owned(), graine.to_string(), nombre.to_string()];
+    run_engine_selected(dir, &[], CASTING_CATALOGUE, timeout, graine, Some(&bridge))
+}
+
 pub(crate) fn run_engine(
     dir: &Path,
     args: &[String],

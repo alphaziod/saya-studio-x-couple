@@ -2356,5 +2356,12 @@
   "Saya Studio {version} est disponible": "O Saya Studio {version} está disponível",
   "Téléchargement de la mise à jour…": "Baixando a atualização…",
   "Vérifier les mises à jour au démarrage": "Verificar atualizações ao iniciar",
-  "Vérifier maintenant": "Verificar agora"
+  "Vérifier maintenant": "Verificar agora",
+  "Duo : deux persos validés sur une même image, tirés par le moteur. Expérimental : à juger sur tes images.": "Duo: dois personagens validados na mesma imagem, sorteados pelo motor. Experimental: avalie nas suas imagens.",
+  "Duo en passe 1 seule · {n} essai(s) · {paire} · graine moteur {seed} · config « {config} »": "Duo só na passagem 1 · {n} teste(s) · {paire} · semente do motor {seed} · config. “{config}”",
+  "Femme × Femme": "Mulher × Mulher",
+  "Futa × Femme": "Futa × Mulher",
+  "Futa × Futa": "Futa × Futa",
+  "Type de duo": "Tipo de duo",
+  "Un duo n'a pas de fiche à lui : chaque perso garde la sienne.": "Um duo não tem ficha própria: cada personagem mantém a sua."
 }

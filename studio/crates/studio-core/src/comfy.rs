@@ -3,7 +3,7 @@ use rusqlite::params;
 use serde_json::{json, Value};
 use std::{
     io::Read,
-    path::{Component, Path},
+    path::{Component, Path, PathBuf},
     time::Duration,
 };
 
@@ -370,6 +370,20 @@ fn validate_output(bytes: &[u8]) -> Result<()> {
     reader.decode()?;
     Ok(())
 }
+/// True for the image of a Saya review gate when another node of the same job saved an image: the
+/// gate's copy is the same render, without its metadata. Alone, it is the only image of the job.
+fn review_copy_is_redundant(snapshot: &Value, outputs: &Value, node: &str) -> bool {
+    fn class<'a>(snapshot: &'a Value, node: &str) -> Option<&'a str> {
+        snapshot["prompt"][node]["class_type"].as_str()
+    }
+    const REVIEW: &str = "SayaImageGenerationReview";
+    class(snapshot, node) == Some(REVIEW)
+        && outputs.as_object().into_iter().flatten().any(|(other, output)| {
+            class(snapshot, other) != Some(REVIEW)
+                && output["images"].as_array().is_some_and(|images| !images.is_empty())
+        })
+}
+
 impl Database {
     /// Latest 100 jobs, for display. Never use it as a lookup table: older jobs are absent.
     pub fn jobs(&self) -> Result<Vec<Value>> {
@@ -584,8 +598,15 @@ impl Database {
                                 out.get("saya_review").cloned().map(|v| (node.clone(), v))
                             })
                             .collect();
+                        let snapshot: String = self.connection.query_row(
+                            "SELECT request_snapshot_json FROM generation_jobs WHERE id=?",
+                            [&job],
+                            |r| r.get(0),
+                        )?;
+                        let snapshot: Value = serde_json::from_str(&snapshot)?;
                         let mut descriptors = Vec::new();
                         let mut latent_descriptors = Vec::new();
+                        let mut review_entries = Vec::new();
                         for (node, output) in entry["outputs"].as_object().into_iter().flatten() {
                             for (index, image) in output["images"]
                                 .as_array()
@@ -595,6 +616,17 @@ impl Database {
                             {
                                 if stopped() {
                                     return Ok(());
+                                }
+                                // One image per render: the review gate's copy is never downloaded
+                                // when the pass saved its own. Its decision data stays on the job.
+                                if review_copy_is_redundant(&snapshot, &entry["outputs"], node) {
+                                    let mut review = json!({"assetId":Value::Null,"source":image,"nodeId":node,
+                                        "outputIndex":index,"kind":"review"});
+                                    if let Some(data) = review_by_node.get(node) {
+                                        review["sayaReview"] = data.clone();
+                                    }
+                                    review_entries.push(review);
+                                    continue;
                                 }
                                 let name = format!(
                                     "{}-{}-{}.png",
@@ -681,12 +713,8 @@ impl Database {
                         };
                         let mut outputs = Vec::new();
                         let canonical = results.canonicalize()?;
-                        let snapshot: String = self.connection.query_row(
-                            "SELECT request_snapshot_json FROM generation_jobs WHERE id=?",
-                            [&job],
-                            |r| r.get(0),
-                        )?;
-                        let snapshot: Value = serde_json::from_str(&snapshot)?;
+                        let comfy_output = crate::generation_browser::comfy_output_dir();
+                        let mut delivered: Vec<(Value, PathBuf)> = Vec::new();
                         for (name, descriptor, node, index) in descriptors {
                             let placement = placements.iter().find(|p| p.buffer_name == *name);
                             // Asset resolution: content duplicate already
@@ -713,6 +741,11 @@ impl Database {
                                 Some("SayaImageGenerationReview") => "review",
                                 _ => "unknown",
                             };
+                            if placement.is_some_and(|p| p.error.is_none()) {
+                                if let Ok(kept) = self.asset_path(&asset) {
+                                    delivered.push((descriptor.clone(), kept));
+                                }
+                            }
                             let mut entry = json!({"assetId":asset,"source":descriptor,"nodeId":node,"outputIndex":index,"kind":kind});
                             if let Some(review) = review_by_node.get(&node) {
                                 entry["sayaReview"] = review.clone();
@@ -731,7 +764,17 @@ impl Database {
                                 "path":path.to_string_lossy()}),
                             );
                         }
+                        outputs.extend(review_entries);
                         self.complete_job(&job, &outputs)?;
+                        // The library holds the image now: ComfyUI's copy of it can go. A failure
+                        // only leaves an extra file, it never fails a finished render.
+                        if let Some(output) = comfy_output.as_deref() {
+                            for (descriptor, kept) in &delivered {
+                                if let Err(error) = self.remove_delivered_comfy_copy(output, descriptor, kept) {
+                                    eprintln!("Copie ComfyUI conservée : {error}");
+                                }
+                            }
+                        }
                     }
                 } else {
                     let contains = |key: &str| {
@@ -839,6 +882,21 @@ pub(crate) fn queue_contains(queue: &Value, key: &str, prompt: &str) -> Result<b
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn review_copy_is_dropped_only_when_the_pass_saved_its_own_image() {
+        let snapshot = json!({"prompt":{
+            "1":{"class_type":"DaSiWa_MetadataImageSaver"},
+            "2":{"class_type":"SayaImageGenerationReview"}}});
+        let both = json!({"1":{"images":[{"filename":"a.png"}]},"2":{"images":[{"filename":"b.png"}]}});
+        assert!(review_copy_is_redundant(&snapshot, &both, "2"));
+        assert!(!review_copy_is_redundant(&snapshot, &both, "1"), "the saved image stays");
+        let alone = json!({"2":{"images":[{"filename":"b.png"}]}});
+        assert!(!review_copy_is_redundant(&snapshot, &alone, "2"), "the job's only image stays");
+        let no_image = json!({"1":{"images":[]},"2":{"images":[{"filename":"b.png"}]}});
+        assert!(!review_copy_is_redundant(&snapshot, &no_image, "2"));
+    }
+
 
     #[test]
     fn closed_engine_reads_as_one_short_sentence() {

@@ -6,8 +6,8 @@ This repository holds two things, both local and built around ComfyUI:
 
 | | What it is | Version |
 |---|---|---|
-| **Saya Couple** | The ComfyUI custom node pack described on this page. | **2.3.0** |
-| **[Saya Studio](#saya-studio-desktop-app)** | A desktop app for Linux, Windows and macOS that drives ComfyUI and these nodes: casting, six-pass workflow, gallery, characters, LoRA manager. | **1.0.1** |
+| **Saya Couple** | The ComfyUI custom node pack described on this page. | **2.3.1** |
+| **[Saya Studio](#saya-studio-desktop-app)** | A desktop app for Linux, Windows and macOS that drives ComfyUI and these nodes: casting, six-pass workflow, gallery, characters, LoRA manager. | **1.1.0** |
 
 Saya Couple is a ComfyUI custom node pack. One generation gets separate prompts that actually work together:
 
@@ -23,13 +23,13 @@ One switch turns the whole pipeline into **Solo mode** (MAIN + ACTION + P1, one 
 | ![Couple: two characters, one scene](docs/images/demo_example.png) | ![Solo: one character, same scene](docs/images/solo_example.png) |
 | demo workflow, MAIN + P1 + P2 (1.x render) | full workflow, MAIN + ACTION + P1 only (1.x render) |
 
-Current version: **2.3.0** ([CHANGELOG.md](CHANGELOG.md)). Tested on ComfyUI `41db8f4f` (v0.34.0+77), Linux, AMD
+Current version: **2.3.1** ([CHANGELOG.md](CHANGELOG.md)). Tested on ComfyUI `41db8f4f` (v0.34.0+77), Linux, AMD
 RDNA4 16 GB. It is first and foremost **a backup of my own ComfyUI setup**, made public in case it helps someone
 with the same problem. Take what you need.
 
-> Download the **[unified install.sh](https://github.com/alphaziod/saya-studio-x-couple/releases/download/studio-v1.0.1/install.sh)**
+> Download the **[unified install.sh](https://github.com/alphaziod/saya-studio-x-couple/releases/download/studio-v1.1.0/install.sh)**
 and run `sh install.sh`: choose the **Couple nodes**, the **Studio app**, or **both**.
-The **[standalone Couple archive](https://github.com/alphaziod/saya-studio-x-couple/releases/download/studio-v1.0.1/saya-couple-2.3.0.tar.gz)**
+The **[standalone Couple archive](https://github.com/alphaziod/saya-studio-x-couple/releases/download/studio-v1.1.0/saya-couple-2.3.1.tar.gz)**
 is available in the same release as the app packages.
 
 ## 2.0: no ComfyUI core modification any more
@@ -44,10 +44,10 @@ is available in the same release as the app packages.
 > Back up your ComfyUI folder anyway. The installer keeps its own backup and can restore, but your copy is the one
 > you can trust. **Use at your own risk.**
 
-> ### New: Saya Studio 1.0.1 (Linux, Windows and macOS)
+> ### New: Saya Studio 1.1.0 (Linux, Windows and macOS)
 > A local desktop app that drives ComfyUI and these nodes. Packages for Debian/Ubuntu, Fedora, openSUSE, Arch
-> (+ AUR), Nix, AppImage, Flatpak, Windows EXE and Mac DMG. 1.0.1 is fast on large libraries, resumes
-> runs after a crash and updates itself from GitHub. See [Saya Studio](#saya-studio-desktop-app) below.
+> (+ AUR), Nix, AppImage, Flatpak, Windows EXE and Mac DMG. 1.1.0 adds duo casting and character names that
+> suit the character; it stays fast on large libraries, resumes runs after a crash and updates itself from GitHub. See [Saya Studio](#saya-studio-desktop-app) below.
 >
 > ![Saya Studio](docs/images/studio-generation.webp)
 
@@ -490,7 +490,7 @@ Full story: [docs/DEVELOPMENT_HISTORY.md](docs/DEVELOPMENT_HISTORY.md).
 
 ## Saya Studio (desktop app)
 
-**Saya Studio 1.0.1** is a local desktop app (Tauri 2, Rust, Svelte, SQLite) that drives ComfyUI and the
+**Saya Studio 1.1.0** is a local desktop app (Tauri 2, Rust, Svelte, SQLite) that drives ComfyUI and the
 Saya Couple nodes. ComfyUI renders, Saya Studio organizes; nothing runs in the cloud.
 
 ![Saya Studio: the six-pass generation, with the session on the right](docs/images/studio-generation.webp)
@@ -514,17 +514,17 @@ Saya Couple nodes. ComfyUI renders, Saya Studio organizes; nothing runs in the c
   installing; on Linux `sh install.sh --update` does the same from a terminal. Your data is kept.
 
 It needs a running ComfyUI with the **Saya Couple nodes 2.3.0+**. Packages are attached to the
-[`studio-v1.0.1` release](https://github.com/alphaziod/saya-studio-x-couple/releases):
+[`studio-v1.1.0` release](https://github.com/alphaziod/saya-studio-x-couple/releases):
 
 | Distribution | Install |
 |---|---|
-| Windows x64 | [Download EXE](https://github.com/alphaziod/saya-studio-x-couple/releases/download/studio-v1.0.1/saya-studio-1.0.1-windows-x64.exe) |
-| Mac Apple Silicon | [Download DMG](https://github.com/alphaziod/saya-studio-x-couple/releases/download/studio-v1.0.1/saya-studio-1.0.1-macos-arm64.dmg) |
-| Mac Intel | [Download DMG](https://github.com/alphaziod/saya-studio-x-couple/releases/download/studio-v1.0.1/saya-studio-1.0.1-macos-x64.dmg) |
-| Debian, Ubuntu | `sudo apt install ./saya-studio_1.0.1_amd64.deb` |
-| Fedora | `sudo dnf install ./saya-studio-1.0.1.fedora.x86_64.rpm` |
-| openSUSE | `sudo zypper install ./saya-studio-1.0.1.opensuse.x86_64.rpm` |
-| Arch, EndeavourOS | `sudo pacman -U ./saya-studio-1.0.1-x86_64.pkg.tar.zst` |
+| Windows x64 | [Download EXE](https://github.com/alphaziod/saya-studio-x-couple/releases/download/studio-v1.1.0/saya-studio-1.1.0-windows-x64.exe) |
+| Mac Apple Silicon | [Download DMG](https://github.com/alphaziod/saya-studio-x-couple/releases/download/studio-v1.1.0/saya-studio-1.1.0-macos-arm64.dmg) |
+| Mac Intel | [Download DMG](https://github.com/alphaziod/saya-studio-x-couple/releases/download/studio-v1.1.0/saya-studio-1.1.0-macos-x64.dmg) |
+| Debian, Ubuntu | `sudo apt install ./saya-studio_1.1.0_amd64.deb` |
+| Fedora | `sudo dnf install ./saya-studio-1.1.0.fedora.x86_64.rpm` |
+| openSUSE | `sudo zypper install ./saya-studio-1.1.0.opensuse.x86_64.rpm` |
+| Arch, EndeavourOS | `sudo pacman -U ./saya-studio-1.1.0-x86_64.pkg.tar.zst` |
 | Nix | `nix run github:alphaziod/saya-studio-x-couple?dir=studio` |
 | Any Linux distribution | AppImage or Flatpak from the release |
 

@@ -193,6 +193,91 @@ fn fill_source_copies_pass_1_without_reinterpreting() {
 }
 
 #[test]
+fn fill_source_keeps_both_people_for_a_duo() {
+    let mut shot = shot_bny_fixture();
+    shot["casting"]["duo"] = json!(true);
+    shot["casting"]["p2"] = json!("1girl, short hair");
+    shot["casting"]["p2_anatomy"] = json!("second anatomy");
+    let filled = casting::fill_source(&source_fixture(), &shot).unwrap();
+    assert_eq!(named_node(&filled, 808, "value"), json!("1girl, short hair"));
+    assert_eq!(named_node(&filled, 100302, "value"), json!("second anatomy"));
+    let doc: Value = serde_json::from_str(&filled).unwrap();
+    let couple = doc["definitions"]["subgraphs"][0]["nodes"].as_array().unwrap()
+        .iter().find(|n| n["type"] == "SayaMultiCouple").unwrap();
+    assert_eq!(couple["widgets_values_named"]["solo"], json!(false));
+    // A solo trial stays solo.
+    let solo = casting::fill_source(&source_fixture(), &shot_bny_fixture()).unwrap();
+    let doc: Value = serde_json::from_str(&solo).unwrap();
+    let couple = doc["definitions"]["subgraphs"][0]["nodes"].as_array().unwrap()
+        .iter().find(|n| n["type"] == "SayaMultiCouple").unwrap();
+    assert_eq!(couple["widgets_values_named"]["solo"], json!(true));
+}
+
+/// `Couple Mode` feeds the couple node's `solo` input in the real preset, whatever its widget says.
+#[test]
+fn real_preset_turns_the_couple_toggle_on_for_a_duo_only() {
+    let preset = concat!(env!("CARGO_MANIFEST_DIR"), "/../../presets/passes/ILUSTCOUPLE_00_MAITRE_CONFIG.json");
+    let source = std::fs::read_to_string(preset).unwrap();
+    let toggle = |filled: &str| {
+        let doc: Value = serde_json::from_str(filled).unwrap();
+        doc["nodes"].as_array().unwrap().iter()
+            .find(|n| n["type"] == "saya-couple-mode-toggle").unwrap()["widgets_values_named"]["Couple Mode"].clone()
+    };
+    // What ComfyUI actually receives: the couple node's `solo` input, resolved through the toggle.
+    let solo_sent = |filled: &str| {
+        let converted = studio_core::workflow_ui_api::convert_ui(filled, None).unwrap();
+        let api = &converted["api"];
+        let couple = api.as_object().unwrap().values()
+            .find(|n| n["class_type"] == "SayaMultiCouple").unwrap();
+        let link = &couple["inputs"]["solo"];
+        let compare = &api[link[0].as_str().unwrap()]["inputs"];
+        let choice = &api[compare["string_a"][0].as_str().unwrap()]["inputs"]["choice"];
+        *choice == compare["string_b"]
+    };
+    let mut duo = shot_bny_fixture();
+    duo["casting"]["duo"] = json!(true);
+    let filled_duo = casting::fill_source(&source, &duo).unwrap();
+    let filled_solo = casting::fill_source(&source, &shot_bny_fixture()).unwrap();
+    assert_eq!(toggle(&filled_duo), json!("ON"));
+    assert_eq!(toggle(&filled_solo), json!("OFF"));
+    assert!(!solo_sent(&filled_duo), "a duo reaches ComfyUI with solo off");
+    assert!(solo_sent(&filled_solo), "a solo trial stays solo");
+}
+
+#[test]
+fn duo_is_drawn_through_the_bridge_with_both_people() {
+    let dir = std::env::temp_dir().join(format!("casting-duo-{}", uuid::Uuid::new_v4()));
+    std::fs::create_dir_all(dir.join("moteur")).unwrap();
+    std::fs::write(dir.join("test_solo.py"), "").unwrap();
+    std::fs::write(dir.join("moteur/duo.py"), r#"
+POPULATIONS = {"girl_x_girl": "x", "futa_x_girl": "y"}
+def tirer_duo(famille, seed, index_action=None):
+    return {"stem": "duo-gg-calin", "name": "Alba Marin x Rhea Voss", "famille": famille, "model": "noobai",
+            "seed": seed, "action_name": "calin", "p1": "p1", "p1_anatomy": "a1", "p2": "p2", "p2_anatomy": "a2"}
+"#).unwrap();
+    std::fs::write(dir.join("moteur/comfy.py"), r#"
+def casting_passe_un(shot):
+    return {"prefixe": "q", "p1": shot["p1"], "anatomy": shot["anatomy"], "p2": "", "p2_anatomy": "", "lora_loaders": {}}
+"#).unwrap();
+    let outcome = studio_core::engine_runtime::casting_duo_in_with_timeout(
+        &dir, 10, "girl_x_girl", 2, std::time::Duration::from_secs(30)).unwrap();
+    let shots = casting::read_catalogue(&outcome.catalogue).unwrap();
+    assert_eq!(shots.len(), 2);
+    assert_eq!(shots[0]["stem"], "duo-gg-calin-01");
+    assert_eq!(shots[1]["stem"], "duo-gg-calin-02", "stems stay unique in a batch");
+    assert_eq!(shots[1]["seed"], 11);
+    assert_eq!(shots[0]["duo"], true);
+    assert_eq!(shots[0]["casting"]["duo"], true);
+    assert_eq!(shots[0]["casting"]["p2"], "p2");
+    assert_eq!(shots[0]["casting"]["p2_anatomy"], "a2");
+    assert_eq!(shots[0]["casting"]["anatomy"], "a1");
+    let unknown = studio_core::engine_runtime::casting_duo_in_with_timeout(
+        &dir, 10, "autre", 1, std::time::Duration::from_secs(30));
+    assert!(unknown.is_err(), "a pair the engine does not declare is refused");
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
 fn fill_source_rejects_a_non_saya_source() {
     let error = casting::fill_source(r#"{"nodes":[]}"#, &shot_bny_fixture())
         .expect_err("une source sans node Saya doit être refusée");

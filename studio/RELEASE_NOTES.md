@@ -1,13 +1,44 @@
-# Saya Studio 1.0.1 × Saya Couple 2.3.0
+# Saya Studio 1.1.0 × Saya Couple 2.3.1
 
 Saya Studio is a local desktop app that drives **ComfyUI** for anime-style character images. ComfyUI renders,
 Saya Studio organizes: casting, a six-pass workflow, gallery, character sheets, LoRA manager, graph editor.
 Nothing runs in the cloud.
 
-**1.0.1 makes the app fast on large libraries, finishes the casting workflow and checks every workflow's
-nodes.** Updating keeps your database, images, characters and settings.
+**1.1.0 adds duo casting, gives invented characters names that suit them and delivers one clearly named file
+per render.** Updating keeps your database, images, characters and settings.
 
-## What's new in 1.0.1
+## What's new in 1.1.0
+
+### Casting
+
+- **Duo trials (experimental):** when your draw engine provides pair types (Futa × Futa, Femme × Femme,
+  Futa × Femme), Casting offers a Solo / Duo choice. A duo shows two validated characters on one image, at
+  pass 1. A duo has no character sheet of its own: each character keeps hers.
+- **Names that suit the character:** a character invented by a batch is renamed at launch, in a style that
+  follows her family and P1 tags. A name already taken is never reused; existing characters keep theirs.
+- **Saving a sheet:** the name field starts from the trial's name and stays editable. A saved sheet's name then
+  wins in the history, the gallery and the file names of the images still to come.
+
+### Files and gallery
+
+- Delivered images are named `<local date>_<character>_<pose>.png` (finished) and `…_p<N>.png` (earlier passes).
+- One image per render: the review gate's copy is no longer downloaded when the pass saved its own, and
+  ComfyUI's copy in the run folder is removed once delivered and hash-checked.
+- Dates use your local day, not UTC.
+
+### Security
+
+This release follows a full security audit of the app and the nodes. Nothing was known to be exploited.
+
+- A crafted PNG can no longer write an image outside your output folder, nor use gigabytes of memory.
+- A crafted workflow can no longer crash the app, and an unreadable one is refused instead of reported complete.
+- The Civitai bridge sends your token to Civitai only, refuses non-Civitai and local addresses, checks every id,
+  and never downloads another file than the one requested. An empty token file no longer opens it.
+- Saya Couple 2.3.1: its HTTP routes refuse DNS rebinding and malformed bodies, and a status request creates no folder.
+  A machine reached by its own name on a LAN lists that name in `SAYA_ALLOWED_HOSTS`.
+- A duo stops at pass 1 everywhere: the app no longer offers the six passes on a duo trial.
+
+## What was new in 1.0.1
 
 ### Fast on real libraries
 
@@ -76,7 +107,7 @@ sh install.sh --what both --comfyui /path/to/ComfyUI
 ```
 
 For the **nodes as a separate download**, use
-**[saya-couple-2.3.0.tar.gz](https://github.com/alphaziod/saya-studio-x-couple/releases/download/studio-v1.0.1/saya-couple-2.3.0.tar.gz)**:
+**[saya-couple-2.3.1.tar.gz](https://github.com/alphaziod/saya-studio-x-couple/releases/download/studio-v1.0.1/saya-couple-2.3.1.tar.gz)**:
 extract it and run `./saya install`.
 
 ## Install
@@ -130,7 +161,7 @@ the first launch. Updating keeps your database, images, characters and settings.
 
 ## Also in this repository
 
-The **Saya Couple 2.3.0** node pack is unchanged. See
+The **Saya Couple 2.3.1** node pack only hardens its HTTP routes (see above). See
 [CHANGELOG.md](https://github.com/alphaziod/saya-studio-x-couple/blob/main/CHANGELOG.md).
 
 ## Documentation

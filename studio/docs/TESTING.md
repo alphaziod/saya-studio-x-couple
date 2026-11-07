@@ -9,7 +9,7 @@ Every command runs from the `studio/` directory.
 | Rust core + shell | `cargo test --workspace --no-fail-fast` |
 | Frontend logic, IPC contract, i18n parity | `node --test scripts/*.test.mjs` |
 | Svelte / TypeScript | `npx svelte-check` (also part of `npm run build`) |
-| Python helpers | `python3 -I scripts/purge-mock-artifacts.test.py`, `python3 -I scripts/casting-bridge.test.py` |
+| Python helpers | `python3 -I scripts/purge-mock-artifacts.test.py`, `python3 -I scripts/casting-bridge.test.py`, `python3 -I scripts/civitai-bridge.test.py` |
 
 Ignored Rust tests need a real ComfyUI, the GPU or the installed Prompt Engine; run them only on purpose
 with `--ignored`.

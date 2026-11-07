@@ -1,0 +1,123 @@
+{
+  "_lire": "Feminine names of invented casting characters, per style. Add names at the end of a list. Names must read as adult women: nothing diminutive or childish, no name tied to a known fictional character.",
+  "familles": {
+    "hum": "humain", "lcs": "humain", "lra": "humain",
+    "cute": "cute", "edgy": "edgy", "sop": "sop", "elf": "elf", "cat": "cat", "bny": "bny",
+    "kmn": "kmn", "slm": "slm", "dem": "dem", "hor": "hor", "div": "div", "ard": "ard"
+  },
+  "motifs_forts": [
+    {"style": "egypte", "tags": ["egyptian goddess", "egyptian", "pharaoh"]},
+    {"style": "japon", "tags": ["miko", "shrine maiden", "onmyoji", "kimono", "yukata", "oni"]},
+    {"style": "insecte", "tags": ["moth girl", "butterfly girl", "bee girl", "insect girl"]}
+  ],
+  "motifs": [
+    {"style": "slm", "tags": ["slime girl"]},
+    {"style": "ard", "tags": ["android", "cyborg", "robot girl", "gynoid"]},
+    {"style": "div", "tags": ["angel", "goddess", "seraph", "priestess", "valkyrie", "deity", "buddhist nun"]},
+    {"style": "dem", "tags": ["demon girl", "succubus", "archdemon"]},
+    {"style": "hor", "tags": ["undead", "ghoul", "zombie", "monster girl"]},
+    {"style": "elf", "tags": ["elf", "high elf", "wood elf", "snow elf", "dark elf", "half elf", "sea elf"]},
+    {"style": "cat", "tags": ["cat girl", "tiger girl"]},
+    {"style": "bny", "tags": ["bunny girl", "rabbit ears", "bunny ears"]},
+    {"style": "kmn", "tags": ["fox girl", "wolf girl", "dog girl", "raccoon girl", "bear girl", "deer girl", "squirrel girl", "mouse girl"]},
+    {"style": "edgy", "tags": ["gothic", "goth", "punk", "emo"]},
+    {"style": "sop", "tags": ["victorian lady", "aristocrat", "noblewoman", "ojou sama", "heiress", "regal"]},
+    {"style": "cute", "tags": ["pastel colors", "blush stickers", "bow hairband"]}
+  ],
+  "styles": {
+    "humain": {
+      "teintes": true,
+      "prenoms": ["Adèle", "Agathe", "Alexandra", "Alice", "Alicia", "Amandine", "Anaïs", "Andrea", "Angela", "Anna", "Annabel", "Audrey", "Aurélie", "Beatrice", "Bérénice", "Camille", "Carla", "Carmen", "Caroline", "Cassandra", "Cécile", "Charlotte", "Chiara", "Claire", "Clara", "Constance", "Diane", "Elena", "Eliza", "Emilia", "Emma", "Eva", "Fiona", "Gabrielle", "Giulia", "Hannah", "Helena", "Ines", "Ingrid", "Irina", "Isabel", "Jade", "Jasmine", "Joanna", "Julia", "Juliette", "Katarina", "Laura", "Léa", "Leila", "Lena", "Lucia", "Madeleine", "Maya", "Mélanie", "Mia", "Nadia", "Naomi", "Natalia", "Nina", "Noémie", "Olivia", "Paula", "Rachel", "Rebecca", "Renata", "Rosa", "Sabrina", "Salomé", "Sarah", "Sofia", "Stella", "Tania", "Valentina", "Vanessa", "Vera", "Victoria", "Yasmine", "Zoé"],
+      "noms": ["Adler", "Alvarez", "Bauer", "Bellamy", "Bennett", "Berger", "Blanchard", "Brennan", "Cardoso", "Carver", "Castillo", "Chevalier", "Costa", "Dubois", "Duval", "Ferrand", "Fischer", "Fontaine", "Garnier", "Hartmann", "Hayes", "Keller", "Laurent", "Leclerc", "Lindqvist", "Lombardi", "Marchand", "Mendes", "Moreau", "Navarro", "Novak", "Okafor", "Olsen", "Petrov", "Ramos", "Reyes", "Rossi", "Santos", "Sinclair", "Sorel", "Vasquez", "Vidal", "Weber", "Werner"]
+    },
+    "cute": {
+      "teintes": true,
+      "prenoms": ["Amélie", "Aurore", "Bianca", "Blanche", "Capucine", "Célia", "Clémence", "Clémentine", "Coralie", "Cosette", "Daisy", "Delphine", "Éloïse", "Emmeline", "Estelle", "Fanny", "Félicie", "Fleur", "Flora", "Florence", "Gaëlle", "Hélène", "Iris", "Isaline", "Jolie", "Justine", "Laetitia", "Lilas", "Lily", "Lise", "Lisette", "Louise", "Lucille", "Lumi", "Mabel", "Maëlle", "Manon", "Margot", "Marguerite", "Marion", "Mathilde", "Mélodie", "Mireille", "Noëlle", "Ombeline", "Ophélie", "Pauline", "Perrine", "Philippine", "Prudence", "Rosalie", "Rosine", "Sandrine", "Séraphine", "Solène", "Sylvie", "Tiphaine", "Valérie", "Violette", "Vivienne", "Yvette", "Zélie"],
+      "noms": ["Ambrose", "Beaumont", "Bellerose", "Belmont", "Bonheur", "Clairmont", "Clover", "Dawn", "Delacourt", "Doucet", "Fleury", "Florent", "Gentil", "Honeywell", "Joliet", "Joy", "Lavande", "Lightfoot", "Lovell", "Meadows", "Merriweather", "Mirabel", "Muguet", "Primrose", "Rosier", "Sablé", "Sunford", "Sweetwater", "Tulipe", "Valmont", "Vanille", "Bellefleur", "Clairefontaine", "Maywood", "Marais", "Rivoli"]
+    },
+    "edgy": {
+      "teintes": true,
+      "prenoms": ["Alecto", "Astrid", "Blair", "Cassia", "Corvina", "Dagny", "Dahlia", "Darcy", "Electra", "Ember", "Eris", "Esmée", "Gwyneth", "Hecate", "Indigo", "Ione", "Isolde", "Jett", "Juno", "Kali", "Keira", "Lenore", "Lux", "Maeve", "Mara", "Moira", "Morgana", "Nyx", "Odessa", "Onyx", "Ophelia", "Persephone", "Raven", "Reina", "Rhiannon", "Sable", "Salem", "Scarlet", "Selene", "Sloane", "Sorcha", "Stormy", "Tempest", "Veda", "Vesper", "Vex", "Willow", "Winter", "Xenia", "Zephyrine", "Zola"],
+      "noms": ["Ashgrove", "Bane", "Black", "Blackthorn", "Cain", "Crane", "Crow", "Darkmoor", "Dusk", "Graves", "Grimm", "Hollow", "Kane", "Knox", "Locke", "Maddox", "Marrow", "Mortimer", "Nightshade", "Noir", "Payne", "Pyre", "Quill", "Ravenscroft", "Rook", "Rust", "Shade", "Sharpe", "Slate", "Storm", "Thorne", "Vane", "Voss", "Ward", "Wolfe", "Wraith"]
+    },
+    "sop": {
+      "teintes": false,
+      "prenoms": ["Adélaïde", "Alexandrine", "Anastasia", "Antoinette", "Apolline", "Arabella", "Aurelia", "Beatrix", "Bernadette", "Blanchefleur", "Cordelia", "Cornelia", "Constance", "Désirée", "Eléonore", "Elisabeth", "Emmanuelle", "Eugénie", "Evangeline", "Georgiana", "Geneviève", "Gwendoline", "Henriette", "Hortense", "Isabeau", "Joséphine", "Léonie", "Léopoldine", "Louisa", "Marianne", "Maximilienne", "Octavia", "Philomène", "Rosamund", "Sibylle", "Theodora", "Valentine", "Victoire", "Vittoria", "Wilhelmina"],
+      "noms": ["de Beauvoir", "de Montclair", "de Valois", "de Lancourt", "von Hohenberg", "von Adler", "Ashworth", "Beaumont", "Blackwell", "Carlisle", "Cavendish", "Devereux", "Fairfax", "Harcourt", "Kensington", "Lancaster", "Lennox", "Montague", "Montrose", "Pemberton", "Rochefort", "St-Clair", "Thornbury", "Wellesley", "Westmoreland", "Whitmore", "Winchester"]
+    },
+    "elf": {
+      "teintes": true,
+      "prenoms": ["Aelindra", "Aelys", "Alwen", "Anwyn", "Caelia", "Celestine", "Cirelle", "Elara", "Elowyn", "Elyssia", "Erynna", "Faelia", "Faelwen", "Filaura", "Galenya", "Ilyana", "Iselin", "Ithara", "Kaelith", "Liathe", "Lirael", "Lunaria", "Lysandra", "Maelis", "Melianne", "Merewen", "Mirelle", "Myrielle", "Nimue", "Nymeria", "Oriel", "Phaedria", "Rhiannel", "Saelis", "Serewyn", "Shaelyn", "Sylvaine", "Sylwen", "Talindra", "Tanwen", "Thalindra", "Valoria", "Veyla", "Vianne", "Ysilwen", "Yllana", "Zephyra"],
+      "noms": ["Aldermere", "Amberleaf", "Brightwood", "Dawnwhisper", "Duskwillow", "Elderbough", "Evenfall", "Fernshade", "Goldenbough", "Greenmantle", "Highbough", "Ivywind", "Leafsong", "Lightbrook", "Moonbrook", "Moonshadow", "Mossvale", "Nightbloom", "Riverwind", "Rowanleaf", "Silverbough", "Silverleaf", "Songweaver", "Starfall", "Starwhisper", "Sunmeadow", "Thistledown", "Whisperwood", "Willowmere", "Wintermere"]
+    },
+    "cat": {
+      "teintes": true,
+      "prenoms": ["Anouk", "Ayla", "Azra", "Catalina", "Caterina", "Célestine", "Chantal", "Cléo", "Felicia", "Félicité", "Felina", "Freyja", "Ginger", "Katarina", "Katherine", "Katja", "Leona", "Leonie", "Lynx", "Mika", "Minerva", "Misha", "Panthea", "Pantera", "Saffron", "Sasha", "Selina", "Shira", "Tabitha", "Tallulah", "Tamara", "Tigra", "Tigrine", "Tora", "Yuki", "Zibeline"],
+      "noms": ["Amberpaw", "Ashpaw", "Catesby", "Catrell", "Felis", "Felton", "Lynwood", "Marlowe", "Moonclaw", "Nightprowl", "Prowler", "Quickstep", "Shadowfoot", "Silk", "Silverpaw", "Softfoot", "Softpaw", "Swift", "Sylvest", "Tomlin", "Velours", "Velvet", "Whiskerwood"]
+    },
+    "bny": {
+      "teintes": true,
+      "prenoms": ["Belinda", "Bethany", "Bettina", "Cicely", "Clarabelle", "Dorothea", "Eloise", "Fern", "Harriet", "Haru", "Hazel", "Heather", "Honor", "Ivy", "Juniper", "Laurel", "Lavinia", "Meadow", "Melissa", "Nell", "Odette", "Posy", "Primrose", "Rosalind", "Rosemarie", "Rowena", "Saffron", "Sorrel", "Tansy", "Thea", "Wren", "Yarrow"],
+      "noms": ["Barley", "Bramble", "Briar", "Burroughs", "Burrow", "Clover", "Cloverfield", "Cottontail", "Dewberry", "Fennel", "Fields", "Harefield", "Harewood", "Hayfield", "Hopewell", "Hopkins", "Lapin", "Lepine", "Longmeadow", "Marchbanks", "Meadowsweet", "Moonhare", "Oatley", "Parsley", "Softear", "Springfield", "Sweetgrass", "Swiftfoot", "Thistle", "Velvetear", "Warren", "Whitetail"]
+    },
+    "kmn": {
+      "teintes": true,
+      "prenoms": ["Aiyana", "Akane", "Amber", "Aspen", "Autumn", "Brenna", "Briar", "Dakota", "Dasha", "Fauna", "Freya", "Ginevra", "Inari", "Kaede", "Kaya", "Kohana", "Luna", "Lupa", "Lyra", "Maple", "Mirren", "Nadine", "Nara", "Nayeli", "Oksana", "Renna", "Ronja", "Rowan", "Runa", "Sakari", "Senna", "Sequoia", "Shiori", "Sienna", "Sierra", "Sylva", "Tala", "Talia", "Tova", "Ulrike", "Wilda", "Wynona", "Yuna", "Zorya"],
+      "noms": ["Ashfur", "Birchwood", "Bjornsen", "Brushtail", "Copperfield", "Fernhollow", "Foxglove", "Foxworth", "Greymane", "Hartwell", "Hollowpine", "Lowell", "Lupin", "Mapleton", "Moonhowl", "Mossback", "Nightfang", "Oakhollow", "Pinecrest", "Redfern", "Rowanwood", "Russet", "Silverfur", "Silvermane", "Snowpelt", "Stagwood", "Tanner", "Thicket", "Ursine", "Whitmane", "Wildwood", "Wolfram", "Woodhaven"]
+    },
+    "insecte": {
+      "teintes": false,
+      "prenoms": ["Actias", "Aglaia", "Althea", "Amaranta", "Antheia", "Apollonia", "Aurelia", "Callisto", "Cecropia", "Clio", "Cynthia", "Danaë", "Deborah", "Diana", "Io", "Ismene", "Lavinia", "Luna", "Mariposa", "Melissa", "Mellona", "Morpha", "Nymphalia", "Papillia", "Parnassia", "Psyche", "Selene", "Thais", "Vanessa", "Zerynthia"],
+      "noms": ["Amberwing", "Apiary", "Duskwing", "Elderhive", "Featherdust", "Fritillary", "Goldenwing", "Gossamer", "Hawkmoth", "Hiveward", "Honeycomb", "Lanthorn", "Lightwing", "Meadowhive", "Monarch", "Moonwing", "Morpho", "Mothwood", "Pollen", "Silkmoor", "Silkwing", "Swallowtail", "Thistlewing", "Wildhive"]
+    },
+    "slm": {
+      "teintes": true,
+      "prenoms": ["Aqualine", "Aquilina", "Azura", "Bleue", "Brina", "Cascade", "Cerulea", "Coralia", "Galatée", "Hydra", "Isla", "Kelda", "Laguna", "Lagune", "Marina", "Maris", "Meri", "Mizuki", "Morwenna", "Muriel", "Naiade", "Nerida", "Neriah", "Nerine", "Nixie", "Océane", "Ondine", "Pearl", "Perle", "Rivelle", "Sirena", "Tethys", "Thetis", "Undine", "Wavelle", "Zale"],
+      "noms": ["Brooks", "Cascades", "Clearwater", "Deepwell", "Dewfall", "Drift", "Gelée", "Glaze", "Lacuna", "Lake", "Lustre", "Marsh", "Mirewell", "Mistral", "Ondée", "Rainwater", "Reef", "Ripple", "Riverstone", "Seaborn", "Seafoam", "Shallows", "Sheen", "Silt", "Spring", "Tide", "Torrent", "Vitreous", "Waters", "Wellspring"]
+    },
+    "dem": {
+      "teintes": true,
+      "prenoms": ["Agrat", "Alecta", "Asmodea", "Azazelle", "Baalith", "Belladonna", "Beleth", "Carmilla", "Demona", "Eisheth", "Hecate", "Inanna", "Jezebel", "Kasdeya", "Lamia", "Leviatha", "Lilim", "Lilith", "Malphia", "Malvina", "Mephista", "Morrigan", "Naamah", "Nahemah", "Nocticula", "Samara", "Sathanis", "Seirine", "Succoria", "Tiamat", "Vinea", "Xaphania", "Zaleska", "Zariel"],
+      "noms": ["Ashborne", "Ashenveil", "Bloodmoon", "Brimstone", "Cinderborn", "Crimson", "Darkflame", "Duskbane", "Emberfall", "Fellmoor", "Hellfire", "Infernia", "Malakar", "Malgrave", "Mortis", "Nethermoor", "Nox", "Obsidian", "Ravenhell", "Scarlatti", "Sinborne", "Soulbane", "Thornheart", "Umbra", "Vermillion", "Vile", "Wickedmoor"]
+    },
+    "hor": {
+      "teintes": false,
+      "prenoms": ["Agnes", "Ambrosia", "Annis", "Beatrice", "Berenice", "Constance", "Dolores", "Drusilla", "Griselda", "Hester", "Ingeborg", "Isobel", "Lenora", "Ligeia", "Lucretia", "Madeline", "Mercy", "Morella", "Nephele", "Ofelia", "Ophira", "Ottilie", "Perdita", "Rosamund", "Sepulcra", "Silence", "Sybil", "Temperance", "Tenebra", "Thanatia", "Ursula", "Vashti", "Wilhelmine", "Zillah"],
+      "noms": ["Ashgrave", "Barrowmere", "Bonewright", "Coffin", "Deadmoor", "Dreadmoor", "Gallows", "Gravesend", "Grimsby", "Grimwald", "Hollowell", "Hush", "Lazarus", "Lichmoor", "Mortlake", "Mourne", "Nightgaunt", "Pale", "Pallor", "Ravenhurst", "Rotwell", "Sepulchre", "Shroud", "Stitchwell", "Tombs", "Underhill", "Vault", "Weep", "Whisper", "Wither", "Wormwood", "Yew"]
+    },
+    "div": {
+      "teintes": false,
+      "prenoms": ["Aletheia", "Ambrosine", "Anahita", "Andromeda", "Angelica", "Arianrhod", "Artemisia", "Astraea", "Athanasia", "Aurora", "Brynhild", "Celestia", "Celestine", "Dione", "Eir", "Elysia", "Eos", "Evangelina", "Freyja", "Gabriella", "Gunnhild", "Hemera", "Hypatia", "Ianthe", "Irene", "Kyrie", "Luciana", "Lucina", "Minerva", "Mnemosyne", "Nyssa", "Olympia", "Pallas", "Phoebe", "Rafaela", "Serafine", "Seraphina", "Sigrun", "Sophia", "Thaleia", "Theia", "Themis", "Urania", "Uriela", "Valeria", "Vesta", "Zarya"],
+      "noms": ["Aether", "Alabaster", "Aureus", "Dawnbringer", "Empyrean", "Everlight", "Evermorn", "Graceborn", "Halcyon", "Hallowell", "Haloran", "Highmoor", "Lightbearer", "Luminara", "Mercy", "Morningstar", "Olympos", "Paragon", "Radiance", "Sainte-Claire", "Sanctus", "Seraphis", "Skyward", "Solaris", "Starborn", "Sunspear", "Vigil", "Virtue", "Whitewing", "Zenith"]
+    },
+    "ard": {
+      "teintes": false,
+      "prenoms": ["Ada", "Aida", "Andromeda", "Aria", "Ariadne", "Astra", "Cassiopeia", "Ciela", "Cyra", "Cyrene", "Daedala", "Electra", "Eve", "Galatea", "Ionia", "Iris", "Juno", "Kaida", "Lumen", "Lyra", "Minerva", "Neona", "Nova", "Nyxa", "Octavia", "Pandora", "Quanta", "Rhea", "Rosetta", "Selene", "Sirenia", "Stella", "Synthia", "Talia", "Tesla", "Vega", "Vera", "Xenia", "Xylia", "Zenobia", "Zeta", "Zoe"],
+      "noms": ["Argent", "Axiom", "Binary", "Chrome", "Cipher", "Cobalt", "Cortex", "Daedalus", "Ferrum", "Helix", "Hopper", "Kernel", "Lovelace", "Mainframe", "MK-7", "MK-IX", "Neumann", "Nexus", "Protocol", "Quantum", "Series-9", "Servo", "Silicon", "Socket", "Steele", "Sterling", "Titanium", "Tungsten", "Turing", "Type-0", "Unit-12", "Vector", "Volta", "Voltaire", "Zero"]
+    },
+    "japon": {
+      "teintes": false,
+      "prenoms": ["Akemi", "Ayaka", "Ayame", "Chihiro", "Chiyo", "Emiko", "Etsuko", "Fumiko", "Hanae", "Haruka", "Hikari", "Hisako", "Izumi", "Kaede", "Kaori", "Kasumi", "Kazuha", "Keiko", "Kiyomi", "Kyoko", "Mai", "Mariko", "Masami", "Michiko", "Midori", "Mio", "Misaki", "Mitsuko", "Miyako", "Nanami", "Naoko", "Natsuki", "Noriko", "Reiko", "Rin", "Rumi", "Ryoko", "Sachiko", "Sakura", "Sayuri", "Setsuko", "Shizuka", "Sumire", "Tamaki", "Tomoe", "Tsubaki", "Yoko", "Yoshino", "Yukari", "Yumiko"],
+      "noms": ["Aoyama", "Arai", "Fujimoto", "Fujiwara", "Hasegawa", "Hayashi", "Inoue", "Ishikawa", "Kagami", "Kamiya", "Kaneko", "Kanzaki", "Kimura", "Kobayashi", "Kuroda", "Kurosawa", "Matsuda", "Mizuno", "Morita", "Murakami", "Nakamura", "Nishimura", "Ogawa", "Okada", "Sakamoto", "Sasaki", "Shimizu", "Shiraishi", "Tachibana", "Takahashi", "Tanaka", "Tsukishiro", "Yamada", "Yamamoto", "Yoshida"]
+    },
+    "egypte": {
+      "teintes": false,
+      "prenoms": ["Ahhotep", "Amunet", "Ankhesen", "Aset", "Bastet", "Hathor", "Hatshepsut", "Iset", "Isis", "Kiya", "Maat", "Meresankh", "Meritamen", "Merit", "Mutnedjmet", "Nebet", "Nefertari", "Nefertiti", "Neith", "Nephthys", "Nitocris", "Renenutet", "Satiah", "Sekhmet", "Seshat", "Sitamun", "Tefnut", "Tiye", "Wadjet"],
+      "noms": ["Abydos", "Amarna", "Aswan", "Asyut", "Dendera", "Edfu", "Giza", "Goldnile", "Heliopolis", "Karnak", "Kom-Ombo", "Luxor", "Memphis", "Nilewater", "Philae", "Sandborn", "Saqqara", "Sunreed", "Thebes"]
+    }
+  },
+  "teintes": {
+    "black": ["Noir", "Ebony", "Onyx", "Sable", "Inkwell", "Nightfall", "Corbeau", "Ravenwood"],
+    "brown": ["Châtaigne", "Hazelwood", "Walnut", "Umber", "Russet", "Mahogany", "Oakhart", "Chestnut"],
+    "blonde": ["Goldwyn", "Goldenrod", "Sunfield", "Wheatley", "Honeyfield", "Aurum", "Summers", "Fairhaven"],
+    "red": ["Ember", "Scarlet", "Carmine", "Cinnabar", "Redmayne", "Rubis", "Ardent", "Rouge"],
+    "pink": ["Rosewood", "Rosenthal", "Blossom", "Peony", "Camellia", "Fuchsia", "Rosemont", "Pinkerton"],
+    "blue": ["Bluewater", "Azur", "Cobalt", "Sapphire", "Indigo", "Bleuet", "Seawright", "Lazuli"],
+    "aqua": ["Seaglass", "Turquoise", "Lagoon", "Aquamarine", "Cyan", "Tidewater", "Bluewater", "Mariner"],
+    "green": ["Greenleaf", "Moss", "Fern", "Sage", "Jade", "Emerald", "Verdant", "Vert"],
+    "purple": ["Violet", "Amethyst", "Lavender", "Wisteria", "Mauve", "Lilac", "Orchid", "Purcell"],
+    "white": ["Frost", "Winter", "Snow", "Blanc", "Ivory", "Alabaster", "Whitmore", "Neige"],
+    "grey": ["Grey", "Ash", "Silver", "Argent", "Ashford", "Stone", "Pewter", "Greyson"],
+    "orange": ["Amber", "Saffron", "Copper", "Marigold", "Sunset", "Ochre", "Tangerine", "Apricot"]
+  }
+}

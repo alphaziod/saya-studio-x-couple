@@ -1,5 +1,23 @@
 # Changelog
 
+## Saya Studio 1.1.0 — 2026-11-07
+
+Saya Couple 2.3.1: HTTP routes hardened, nothing else changes in the nodes.
+
+- **Security (after a full audit):** a family read from a PNG can no longer send an image outside the output
+  folder; compressed PNG metadata is limited (a crafted file used gigabytes of memory); long reroute chains and
+  nested subgraphs end in an error instead of crashing the app; unreadable workflows are refused. Civitai bridge:
+  the token only goes to Civitai, local and foreign addresses are refused, ids are checked, the requested file or
+  an error, an empty token file no longer opens the bridge, the extension keeps no copy of the token. Nodes: routes
+  refuse DNS rebinding (`SAYA_ALLOWED_HOSTS` for a named LAN machine) and malformed bodies, status creates nothing.
+- **Casting:** a duo stops at pass 1; duo trials (experimental) when the draw engine provides pair types; invented characters renamed
+  at launch in a style that follows their family and P1 tags, without reusing a taken name; the sheet name
+  starts from the trial's name, and a saved sheet's name wins in the history, gallery and later file names.
+- **Files:** `<local date>_<character>_<pose>.png` and `…_p<N>.png`; one image per render (the review gate's
+  copy is skipped when the pass saved its own, ComfyUI's copy is removed once delivered and hash-checked);
+  dates use the local day.
+
+
 ## Saya Studio 1.0.1 — 2026-11-05
 
 Saya Couple nodes unchanged (2.3.0).

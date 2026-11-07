@@ -79,6 +79,12 @@ enum Resolved {
     UndefinedWidget,
 }
 
+/// Steps followed for one input: far above a real graph (reroutes, Set/Get, bypassed nodes), and
+/// low enough that a crafted chain ends in an error instead of overflowing the stack.
+const MAX_RESOLVE_DEPTH: usize = 600;
+/// Subgraphs nested inside each other.
+const MAX_SUBGRAPH_DEPTH: usize = 32;
+
 struct Converter {
     scopes: Vec<Scope>,
     definitions: BTreeMap<String, Value>,
@@ -277,6 +283,9 @@ impl Converter {
         visited: &mut BTreeSet<String>,
     ) -> std::result::Result<Option<Resolved>, String> {
         let key = format!("{scope}:{node_id}:{slot}:i");
+        if visited.len() >= MAX_RESOLVE_DEPTH {
+            return Err(format!("chaîne de liens trop longue pendant la résolution de {node_id}[{slot}]"));
+        }
         if !visited.insert(key.clone()) {
             return Err(format!(
                 "référence circulaire pendant la résolution de {node_id}[{slot}]"
@@ -354,6 +363,9 @@ impl Converter {
         visited: &mut BTreeSet<String>,
     ) -> std::result::Result<Option<Resolved>, String> {
         let key = format!("{scope}:{node_id}:{slot}:o");
+        if visited.len() >= MAX_RESOLVE_DEPTH {
+            return Err(format!("chaîne de liens trop longue pendant la résolution de {node_id}[{slot}]"));
+        }
         if !visited.insert(key.clone()) {
             return Err(format!(
                 "référence circulaire pendant la résolution de {node_id}[{slot}]"
@@ -640,6 +652,9 @@ fn build_children(
         if stack.iter().any(|s| s == &class) {
             return Err(format!("référence circulaire de subgraphs : {class}").into());
         }
+        if stack.len() >= MAX_SUBGRAPH_DEPTH {
+            return Err(format!("subgraphs trop imbriqués (plus de {MAX_SUBGRAPH_DEPTH} niveaux)").into());
+        }
         let mut path = scopes[scope].path.clone();
         path.push(node_id.clone());
         let child = build_scope(
@@ -864,6 +879,23 @@ pub fn convert_ui(source: &str, object_info: Option<&Value>) -> Result<Value> {
                 definitions.insert(id.to_owned(), definition.clone());
             }
         }
+    }
+    // A node the converter cannot read would vanish silently and the report would say "complete".
+    let unreadable = |nodes: &Value| {
+        nodes.as_array().into_iter().flatten().find(|node| {
+            node.get("type").and_then(Value::as_str).is_none()
+                || !(node["id"].is_string() || node["id"].is_i64() || node["id"].is_u64())
+        }).cloned()
+    };
+    let all_nodes = std::iter::once(&workflow["nodes"]).chain(definitions.values().map(|d| &d["nodes"]));
+    for nodes in all_nodes {
+        if let Some(node) = unreadable(nodes) {
+            let text = node.to_string();
+            return Err(format!("workflow UI invalide : node illisible {}", text.chars().take(120).collect::<String>()).into());
+        }
+    }
+    if workflow["links"].as_array().into_iter().flatten().any(|link| link.get(5).is_none() && !link.is_object()) {
+        return Err("workflow UI invalide : lien illisible".into());
     }
     let root = build_scope(&workflow, Vec::new(), None, None);
     let mut scopes = vec![root];

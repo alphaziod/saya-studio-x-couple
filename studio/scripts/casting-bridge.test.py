@@ -19,7 +19,9 @@ class BridgeTests(unittest.TestCase):
             (root / "moteur").mkdir()
             (root / "moteur/registre_ids.py").write_text('raise RuntimeError("do not execute")\nFAMILLES = ("existing", "new_class")\n')
             (root / "moteur/generateur_femme_wiring.py").write_text('_MODES = ("mode_a", "girls", "new_mode")\n')
-            self.assertEqual(bridge.capabilities(root), {"families": ["existing", "new_class"], "modes": ["mode_a", "girls", "new_mode"], "subfamilies": {}})
+            self.assertEqual(bridge.capabilities(root), {"families": ["existing", "new_class"], "modes": ["mode_a", "girls", "new_mode"], "subfamilies": {}, "duoPairs": []})
+            (root / "moteur/duo.py").write_text('raise RuntimeError("do not execute")\nPOPULATIONS = {"girl_x_girl": "a", "futa_x_girl": "b"}\n')
+            self.assertEqual(bridge.capabilities(root)["duoPairs"], ["girl_x_girl", "futa_x_girl"])
 
     def test_subfamily_uses_existing_engine_choice_without_modifying_files(self):
         import subprocess

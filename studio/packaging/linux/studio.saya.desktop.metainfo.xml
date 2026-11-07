@@ -33,6 +33,11 @@
     <content_attribute id="sex-themes">moderate</content_attribute>
   </content_rating>
   <releases>
+    <release version="1.1.0" date="2026-11-07" type="stable">
+      <description>
+        <p>Duo casting (experimental), invented characters named in a style that suits them, and one clearly named file per render.</p>
+      </description>
+    </release>
     <release version="1.0.1" date="2026-11-05" type="stable">
       <description>
         <p>Much faster on large libraries, instant page switching, deferred six-pass finishes in Casting, a pending-action validator, workflow node checks and in-app updates.</p>

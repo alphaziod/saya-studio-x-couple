@@ -24,7 +24,7 @@
 
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "saya-studio";
-  version = "1.0.1";
+  version = "1.1.0";
 
   src = lib.cleanSource ../..; # studio/
 

@@ -33,6 +33,12 @@
   let castingFamilles=$state<string[]>([]),castingModes=$state<string[]>([]),castingGenre=$state('');
   let castingSubfamilies=$state<Record<string,string[]>>({}),castingSubfamily=$state('');
   let castingN=$state(5),castingFamille=$state(''),castingNote=$state('');
+  // Solo by default. Duo appears when the engine declares pair types; a duo trial shows two of its
+  // validated characters, so none of the solo draw options apply to it.
+  let castingFormat=$state<'solo'|'duo'>('solo'),castingDuo=$state(''),duoPairs=$state<string[]>([]);
+  const duoLabels:Record<string,string>={futa_x_futa:'Futa × Futa',girl_x_girl:'Femme × Femme',futa_x_girl:'Futa × Femme'};
+  const duoLabel=(pair:string)=>duoLabels[pair]?$t(duoLabels[pair]):pair;
+  const duoActif=$derived(castingFormat==='duo'&&duoPairs.includes(castingDuo));
   const selectedSubfamily=$derived((castingSubfamilies[castingFamille]??[]).includes(castingSubfamily)?castingSubfamily:'');
   // Rotations (U2): Mode A "1 character × N times the same pose" (character + N),
   // Mode B "1 pose × N random characters" (fixed pose + N).
@@ -301,7 +307,15 @@
   let choix=$state<string[]>([]);
   async function publier(runs:string[]){if(!runs.length)return;await task(async()=>{const r=await call<{published:number}>('casting_publish',{runs});castingNote=$tn("{n} image validée dans la galerie","{n} images validées dans la galerie",runs.length)+(r.published<runs.length?' '+$tn("({n} déjà présente)","({n} déjà présentes)",runs.length-r.published):'')+'.';choix=[];castingRows=await call<CastRow[]>('casting_history',{sync:false});if(preview)preview=castingRows.find(x=>x.run===preview!.run&&x.stem===preview!.stem)??preview})}
   async function supprimerLot(run:string,images:number){if(!confirm($tn("Supprimer ce lot du casting ({n} image) ? Les images validées dans la galerie ou enregistrées comme personnage sont conservées ; les autres sont effacées du disque.","Supprimer ce lot du casting ({n} images) ? Les images validées dans la galerie ou enregistrées comme personnage sont conservées ; les autres sont effacées du disque.",images)))return;await task(async()=>{const r=await call<{removedRuns:number;archivedRuns:number;removedFiles:number}>('casting_delete_lot',{run});castingNote=$t("Lot supprimé · {runs} essai(s) et {files} fichier(s) effacés · {archived} conservé(s) en galerie.",{runs:r.removedRuns,files:r.removedFiles,archived:r.archivedRuns});choix=[];castingRows=await call<CastRow[]>('casting_history',{sync:false});selectedLot=''})}
-  function ouvrirApercu(row:CastRow){zoom=false;saveName='';enregistrerNote='';focusKey=rowKey(row);preview=row}
+  // The sheet name starts from the trial's name and stays editable: a history refresh of the same
+  // trial never overwrites what the user typed, only moving to another trial does.
+  let saveNameTrial='';
+  function prefillSaveName(row:CastRow|null){
+    const trial=row?rowKey(row):'';
+    if(trial===saveNameTrial)return;
+    saveNameTrial=trial;saveName=row?.name??'';enregistrerNote='';
+  }
+  function ouvrirApercu(row:CastRow){zoom=false;prefillSaveName(row);focusKey=rowKey(row);preview=row}
   // Preview: navigation among the displayed images, neighbours preloaded in the
   // preview cache (no re-decoding on previous/next).
   const apercus=$derived(grilleAffichees.filter(r=>!!r.asset));
@@ -318,7 +332,10 @@
       if(!nom){enregistrerNote=$t("Donner un nom à la fiche personnage.");return}
       const r=await call<{characterId:string}>('casting_enregistrer_perso',{run:row.run,stem:row.stem,nom});
       // Owner rule: a saved character also gets its six passes, queued after the whole casting.
-      if(row.decision===''){castingRows=await call<CastRow[]>('casting_decide',{run:row.run,keep:true});if(!alive)return}
+      if(row.decision===''){await call<CastRow[]>('casting_decide',{run:row.run,keep:true});if(!alive)return}
+      // The history now carries the sheet's name, which the tile and the final image file use.
+      castingRows=await call<CastRow[]>('casting_history',{sync:false});if(!alive)return;
+      if(preview)preview=castingRows.find(x=>x.run===preview!.run&&x.stem===preview!.stem)??preview;
       enregistrerNote=$t("Fiche personnage enregistrée : {nom} ({id}) — réutilisable dans Personnages. Ses 6 passes sont en file : elles partent quand toutes les passes 1 sont finies.",{nom,id:r.characterId});
     }catch(e){enregistrerNote=$t("Enregistrement impossible : {detail}",{detail:message(e)})}
     finally{if(alive)busy=false}
@@ -355,7 +372,7 @@
     const resume=finishResume(row);
     ctxMenu={x:event.clientX,y:event.clientY,label:$t("Actions de {name}",{name:row.name}),items:[
       {label:$t("Ouvrir la fiche"),icon:'expand',disabled:!row.asset,run:()=>ouvrirApercu(row)},
-      ...(row.asset&&row.decision===''?[{label:$t("Finir les 6 passes"),icon:'play',run:()=>launchFull(row)}]:[]),
+      ...(row.asset&&row.decision===''&&!row.shot?.duo?[{label:$t("Finir les 6 passes"),icon:'play',run:()=>launchFull(row)}]:[]),
       ...(resume?.resume?[{label:$t("Reprendre depuis la passe {n}",{n:resume.next}),icon:'play',run:()=>resumeFinish(row)}]:[]),
       ...(row.asset&&!row.published?[{label:$t("Garder dans la galerie"),icon:'gallery',run:()=>publier([row.run])},{label:choix.includes(row.run)?$t("Désélectionner"):$t("Sélectionner"),icon:'check',run:()=>toggleChoice(row.run)}]:[]),
     ]};
@@ -379,6 +396,13 @@
     const graine=randomSeed();
     const exported=await call<{path:string}>('graph_save_ui',{session,name:`${sourceName||'Casting'} · base passe 1`});
     if(!alive)return;castingNote=$t("Le moteur tire le casting… (jusqu'à quelques minutes, aucune image envoyée par le moteur)");
+    if(duoActif&&!draftTest){
+      const r=await call<any>('casting_lancer',{graine,nombre:Math.max(1,Number(castingN)||5),source_path:exported.path,duo:castingDuo});
+      if(!alive)return;castingRows=await call<CastRow[]>('casting_history',{sync:false});
+      castingNote=$t("Duo en passe 1 seule · {n} essai(s) · {paire} · graine moteur {seed} · config « {config} »",{n:r.shots.length,paire:duoLabel(castingDuo),seed:r.graine,config:sourceName||'Generation'});
+      void syncCasting();
+      return;
+    }
     const cibles=draftTest?null:ciblageActif?ciblerChoisis:null;
     const visees=draftTest?draftTest.ids:ciblageActionsActif?actionsChoisies:null;
     // Exclude[]: reaches the REAL engine draw. Backend semantics: free draw,
@@ -420,7 +444,7 @@
     try{const r=await call<{rows:CastRow[]}>('casting_next',{run:current.run});if(alive)castingRows=r.rows}
     catch(e){if(/épuisé/.test(message(e)))await stepStart();else throw e}
   })}
-  async function stepFull(){const row=stepCurrent;if(!row||!row.asset||row.decision==='oui')return;await launchFull(row)}
+  async function stepFull(){const row=stepCurrent;if(!row||!row.asset||row.decision==='oui'||row.shot?.duo)return;await launchFull(row)}
   async function stepQuit(){const row=stepCurrent??stepLatest;stepView=false;if(row)await actionRun('stop',row.run)}
   // « Images manquantes »: walks the characters that have no picture yet, one at a time. Each
   // attempt is a one-trial rotation of that character with a random pose (pass 1 only), so no
@@ -451,7 +475,7 @@
     await task(()=>portraitNext(queue));
   }
   async function portraitYes(){
-    const row=portraitRow;if(!row?.asset||row.decision==='oui')return;
+    const row=portraitRow;if(!row?.asset||row.decision==='oui'||row.shot?.duo)return;
     await task(async()=>{
       castingRows=await call<CastRow[]>('casting_decide',{run:row.run,keep:true});
       await call('casting_publish',{runs:[row.run]});
@@ -503,7 +527,7 @@
   // Returning to the page = exact state restored; the preference is re-read on mount.
   let prefsLoaded=$state(false),dernierePrefs='';
   function savePrefs(value:string){castingPrefsWrite=castingPrefsWrite.catch(()=>{}).then(()=>call('set_preference',{key:'castingWorkspace',value:JSON.parse(value)})).then(()=>{}).catch(e=>{if(alive)syncError=$t("Options non enregistrées : {detail}",{detail:message(e)})});}
-  const prefsSnapshot=$derived(JSON.stringify({castingSubfamily,selectedLot,resultFilter,nombre:castingN,famille:castingFamille,persos:ciblerChoisis,actions:actionsChoisies,exclues:exclureChoisies,perso:castingPerso,pose:castingPoseFixe,rotN:castingRotN,poseN:castingPoseN,grilleFamille:grilleFamille,grilleModel:grilleModel,grilleLora:grilleLora,grilleTri:grilleTri,script:scriptChoisi,castingGenre,scriptPerso,ciblerRecherche,ciblerFamille,ciblerModel,actionsRecherche,actionsFamille,actionsLora,actionsMode}));
+  const prefsSnapshot=$derived(JSON.stringify({castingFormat,castingDuo,castingSubfamily,selectedLot,resultFilter,nombre:castingN,famille:castingFamille,persos:ciblerChoisis,actions:actionsChoisies,exclues:exclureChoisies,perso:castingPerso,pose:castingPoseFixe,rotN:castingRotN,poseN:castingPoseN,grilleFamille:grilleFamille,grilleModel:grilleModel,grilleLora:grilleLora,grilleTri:grilleTri,script:scriptChoisi,castingGenre,scriptPerso,ciblerRecherche,ciblerFamille,ciblerModel,actionsRecherche,actionsFamille,actionsLora,actionsMode}));
   $effect(()=>{
     // The reactive snapshot is read BEFORE any early return: a `return` before the
     // read would leave the effect without dependency, hence never re-run (the
@@ -523,6 +547,7 @@
       const saved=prefs.castingWorkspace;
       if(saved){
         castingSubfamily=saved.castingSubfamily??'';
+        castingFormat=saved.castingFormat==='duo'?'duo':'solo';castingDuo=saved.castingDuo??'';
         selectedLot=saved.selectedLot??'';resultFilter=['images','all','cancelled','pending'].includes(saved.resultFilter)?saved.resultFilter:'images';
         castingN=saved.nombre??5;castingFamille=saved.famille??'';ciblerChoisis=saved.persos??[];
         actionsChoisies=saved.actions??[];exclureChoisies=saved.exclues??[];
@@ -533,8 +558,11 @@
         actionsRecherche=saved.actionsRecherche??'';actionsFamille=saved.actionsFamille??'';actionsLora=saved.actionsLora??'';actionsMode=saved.actionsMode==='exclure'?'exclure':'cibler';
       }
       dernierePrefs=prefsSnapshot;prefsLoaded=true;
-      const capabilities=await call<{families:string[];modes:string[];subfamilies?:Record<string,string[]>}>('casting_capabilities');
+      const capabilities=await call<{families:string[];modes:string[];subfamilies?:Record<string,string[]>;duoPairs?:string[]}>('casting_capabilities');
       if(!alive)return;castingFamilles=capabilities.families;castingModes=capabilities.modes;castingSubfamilies=capabilities.subfamilies??{};
+      duoPairs=capabilities.duoPairs??[];
+      if(!duoPairs.includes(castingDuo))castingDuo=duoPairs[0]??'';
+      if(!duoPairs.length)castingFormat='solo';
       const state=prefs.generationWorkspace;
       if(state?.session){
         const r=await call<{session:string;view:GraphView}>('graph_resume',{id:state.session});
@@ -561,7 +589,8 @@
   const selLot=$derived(lots.find(l=>l.id===selectedLotId)??null);
   const passesFaites=(r:CastRow)=>[1,2,3,4,5,6].filter(n=>r.phases?.[String(n)]?.state==='succeeded').length;
   const lotEtat:Record<string,string>={active:'En cours',paused:'En pause',incomplete:'Incomplet',completed:'Terminé'};
-  function focaliser(row:CastRow){if(focusKey===rowKey(row))return;focusKey=rowKey(row);saveName='';enregistrerNote=''}
+  function focaliser(row:CastRow){focusKey=rowKey(row)}
+  $effect(()=>prefillSaveName(focused));
   function toggleChoice(run:string){choix=choix.includes(run)?choix.filter(r=>r!==run):[...choix,run]}
   async function tuileClavier(e:KeyboardEvent,row:CastRow){
     if(e.key==='ArrowRight'||e.key==='ArrowLeft'){
@@ -584,21 +613,23 @@
     <div class="wb-scroll">
       <div class="new-lot">
         <label class="field-row"><span>{$t("Essais")}</span><input class="num" data-casting-n type="number" min="1" bind:value={castingN} disabled={busy||preparing||castingEnVol||ciblageActif}/></label>
-        <label class="field-row"><span>{$t("Famille")}</span><select data-casting-famille bind:value={castingFamille} disabled={busy||preparing||castingEnVol||ciblageActif}><option value="">{$t("Tirage normal")}</option>{#each castingFamilles as f}<option value={f}>{f}</option>{/each}</select></label>
-        {#if castingSubfamilies[castingFamille]?.length}<label class="field-row"><span>{$t("Sous-famille")}</span><select data-casting-subfamily bind:value={castingSubfamily} disabled={busy||preparing||castingEnVol||ciblageActif}><option value="">{$t("Tirage normal")}</option>{#each castingSubfamilies[castingFamille] as sub}<option value={sub}>{sub}</option>{/each}</select></label>{/if}
-        <label class="field-row"><span>{$t("Genre")}</span><select data-casting-genre bind:value={castingGenre} disabled={busy||preparing||castingEnVol||ciblageActif}><option value="">{$t("Défaut du moteur")}</option>{#each castingModes as mode}<option value={mode}>{$t(({girls:'Femme',futa:'Futa',both:'Les deux'} as Record<string,string>)[mode]??mode)}</option>{/each}</select></label>
+        {#if duoPairs.length}<label class="field-row" title={$t("Duo : deux persos validés sur une même image, tirés par le moteur. Expérimental : à juger sur tes images.")}><span>{$t("Format")}</span><select data-casting-format bind:value={castingFormat} disabled={busy||preparing||castingEnVol||ciblageActif||ciblageActionsActif||exclusionActive}><option value="solo">{$t("SOLO")}</option><option value="duo">{$t("DUO")}</option></select></label>{/if}
+        {#if castingFormat==='duo'}<label class="field-row"><span>{$t("Type de duo")}</span><select data-casting-duo bind:value={castingDuo} disabled={busy||preparing||castingEnVol}>{#each duoPairs as pair}<option value={pair}>{duoLabel(pair)}</option>{/each}</select></label>{/if}
+        <label class="field-row"><span>{$t("Famille")}</span><select data-casting-famille bind:value={castingFamille} disabled={busy||preparing||castingEnVol||ciblageActif||duoActif}><option value="">{$t("Tirage normal")}</option>{#each castingFamilles as f}<option value={f}>{f}</option>{/each}</select></label>
+        {#if castingSubfamilies[castingFamille]?.length}<label class="field-row"><span>{$t("Sous-famille")}</span><select data-casting-subfamily bind:value={castingSubfamily} disabled={busy||preparing||castingEnVol||ciblageActif||duoActif}><option value="">{$t("Tirage normal")}</option>{#each castingSubfamilies[castingFamille] as sub}<option value={sub}>{sub}</option>{/each}</select></label>{/if}
+        <label class="field-row"><span>{$t("Genre")}</span><select data-casting-genre bind:value={castingGenre} disabled={busy||preparing||castingEnVol||ciblageActif||duoActif}><option value="">{$t("Défaut du moteur")}</option>{#each castingModes as mode}<option value={mode}>{$t(({girls:'Femme',futa:'Futa',both:'Les deux'} as Record<string,string>)[mode]??mode)}</option>{/each}</select></label>
         <div class="field-row top"><span>{$t("Ciblage")}</span>
           <div class="targets">
-            <button class="quiet" data-casting-cibler onclick={ouvrirCibler} disabled={busy||preparing||castingEnVol||ciblageActionsActif||exclusionActive}>{$t("Cibler des personnages")}</button>
+            <button class="quiet" data-casting-cibler onclick={ouvrirCibler} disabled={busy||preparing||castingEnVol||ciblageActionsActif||exclusionActive||duoActif}>{$t("Cibler des personnages")}</button>
             {#if ciblageActif}<span class="target-chip" data-casting-ciblage>{$tn("{n} perso ciblé","{n} persos ciblés",ciblerChoisis.length)}<button class="quiet icon-btn" data-casting-ciblage-retirer onclick={retirerCiblage} title={$t("Retirer le ciblage : retour au tirage aléatoire")} aria-label={$t("Retirer le ciblage : retour au tirage aléatoire")}><Icon name="close" size={12}/></button></span>{/if}
-            <button class="quiet" data-casting-cibler-actions onclick={()=>ouvrirCiblerActions('cibler')} disabled={busy||preparing||castingEnVol||ciblageActif}>{$t("Cibler des actions")}{ciblageActionsActif?` (${actionsChoisies.length})`:''}</button>
+            <button class="quiet" data-casting-cibler-actions onclick={()=>ouvrirCiblerActions('cibler')} disabled={busy||preparing||castingEnVol||ciblageActif||duoActif}>{$t("Cibler des actions")}{ciblageActionsActif?` (${actionsChoisies.length})`:''}</button>
             {#if ciblageActionsActif}<span class="target-chip" data-casting-actions-cible data-actions-compte={actionsChoisies.length}>{$tn("{n} action ciblée","{n} actions ciblées",actionsChoisies.length)}<button class="quiet icon-btn" data-casting-actions-retirer onclick={retirerCiblageActions} title={$t("Retirer le ciblage : retour au tirage d'actions normal")} aria-label={$t("Retirer le ciblage : retour au tirage d'actions normal")}><Icon name="close" size={12}/></button></span>{/if}
-            <button class="quiet" data-casting-exclure-actions onclick={()=>ouvrirCiblerActions('exclure')} disabled={busy||preparing||castingEnVol||ciblageActif}>{$t("Exclure des actions")}{exclusionActive?` (${exclureChoisies.length})`:''}</button>
+            <button class="quiet" data-casting-exclure-actions onclick={()=>ouvrirCiblerActions('exclure')} disabled={busy||preparing||castingEnVol||ciblageActif||duoActif}>{$t("Exclure des actions")}{exclusionActive?` (${exclureChoisies.length})`:''}</button>
             {#if exclusionActive}<span class="target-chip exclusion" data-casting-actions-exclues data-actions-exclues-compte={exclureChoisies.length}>{$tn("{n} action exclue","{n} actions exclues",exclureChoisies.length)}<button class="quiet icon-btn" data-casting-actions-exclues-retirer onclick={retirerExclusion} title={$t("Retirer l'exclusion : ces actions reviennent dans le tirage")} aria-label={$t("Retirer l'exclusion : ces actions reviennent dans le tirage")}><Icon name="close" size={12}/></button></span>{/if}
           </div>
         </div>
         <button class="primary launch" data-casting-lancer onclick={()=>lancerCasting()} disabled={busy||preparing||!session||castingEnVol}>{castingEnVol?$t("Casting en cours…"):$tn("Lancer {n} essai","Lancer {n} essais",ciblageActif?ciblerChoisis.length:Math.max(1,Number(castingN)||5))}</button>
-        <button class="launch" data-casting-step-start onclick={()=>stepRows.length&&!stepView?(stepView=true):stepLaunch()} disabled={busy||preparing||!session||(castingEnVol&&!stepRows.length)} title={$t("Une image à la fois : tu choisis Full (6 passes) ou Suivante")}>{stepRows.length&&!stepView?$t("Reprendre « une par une »"):$t("Une par une")}</button>
+        <button class="launch" data-casting-step-start onclick={()=>stepRows.length&&!stepView?(stepView=true):stepLaunch()} disabled={busy||preparing||!session||duoActif||(castingEnVol&&!stepRows.length)} title={$t("Une image à la fois : tu choisis Full (6 passes) ou Suivante")}>{stepRows.length&&!stepView?$t("Reprendre « une par une »"):$t("Une par une")}</button>
         {#if !preparing}<p class="casting-note" role="status">{castingNote}</p>{/if}
         <p class="source"><span data-casting-source title={note}>{note}</span><button class="quiet icon-btn" data-casting-config onclick={onconfigure} title={$t("Réglages dans Génération")} aria-label={$t("Réglages dans Génération")}><Icon name="settings" size={14}/></button></p>
       </div>
@@ -717,7 +748,7 @@
         {#if row}<b>{row.name}</b><span class="muted">{row.famille}</span>{/if}
         <span class="muted small" data-casting-portraits-state>{$t("Persos sans image restants : {n}",{n:portraitQueue.length})}</span>
         <span class="grow"></span>
-        <button class="primary" data-portrait-yes disabled={busy||!row?.asset||row?.decision==='oui'} onclick={portraitYes}>{$t("Oui · Full 6 passes")} <kbd>O</kbd></button>
+        <button class="primary" data-portrait-yes disabled={busy||!row?.asset||row?.decision==='oui'||!!row?.shot?.duo} onclick={portraitYes}>{$t("Oui · Full 6 passes")} <kbd>O</kbd></button>
         <button data-portrait-no disabled={busy||!portraitQueue.length||(!!row&&!row.asset&&!row.error)} onclick={portraitNo}>{$t("Non · autre pose")} <kbd>N</kbd></button>
         <button class="quiet" data-portrait-skip disabled={busy} onclick={portraitSkip}>{$t("Passer ce perso")}</button>
         <button class="quiet" data-portrait-quit disabled={busy} onclick={()=>portraitView=false}>{$t("Terminer")}</button>
@@ -786,13 +817,14 @@
         <div class="wb-actions">
           {#if fiche.published}<span class="in-gallery" data-casting-inspector-published><Icon name="check" size={14}/>{$t("Déjà dans la galerie")}</span>
           {:else}<button class="primary" data-casting-publish disabled={busy||!fiche.asset} onclick={()=>publier([fiche.run])}>{$t("Garder dans la galerie")}</button>{/if}
-          <div class="save-row" title={$t("Crée une fiche personnage réutilisable depuis ce résultat. Ne lance JAMAIS les passes 2 à 6.")}>
+          {#if fiche.shot?.duo}<p class="small muted" data-casting-duo-note>{$t("Un duo n'a pas de fiche à lui : chaque perso garde la sienne.")}</p>
+          {:else}<div class="save-row" title={$t("Crée une fiche personnage réutilisable depuis ce résultat. Ne lance JAMAIS les passes 2 à 6.")}>
             <input data-casting-save-nom placeholder={$t("Nom de la fiche…")} aria-label={$t("Nom de la fiche…")} bind:value={saveName} disabled={busy||!fiche.asset}/>
             <button data-casting-enregistrer disabled={busy||!fiche.asset||!saveName.trim()} onclick={()=>saveCharacter(fiche)}>{$t("Enregistrer comme personnage")}</button>
-          </div>
+          </div>{/if}
           {#if enregistrerNote}<p class="small muted" data-casting-enregistre-note role="status">{enregistrerNote}</p>{/if}
           {#if fiche.decision==='oui'}<p class="small muted">{fiche.runState==='completed'?$t("Workflow complet déjà lancé sur cet essai · terminé."):$t("Workflow complet déjà lancé sur cet essai · suivi dans la grille.")}</p>{#if finishResume(fiche)?.resume}<button class="primary" data-casting-resume-finish disabled={busy} title={$t("Reprise après un plantage, une erreur ou un arrêt : même seed, les passes terminées sont gardées.")} onclick={()=>resumeFinish(fiche)}>{$t("Reprendre depuis la passe {n}",{n:finishResume(fiche)?.next})}</button>{/if}
-          {:else}<button data-casting-complet disabled={busy||!fiche.asset} onclick={()=>launchFull(fiche)} title={$t("Lance les 6 passes sur CE résultat — seed et réglages préservés, mécanique existante.")}>{$t("Finir les 6 passes")}</button>{/if}
+          {:else}<button data-casting-complet disabled={busy||!fiche.asset||!!fiche.shot?.duo} onclick={()=>launchFull(fiche)} title={$t("Lance les 6 passes sur CE résultat — seed et réglages préservés, mécanique existante.")}>{$t("Finir les 6 passes")}</button>{/if}
         </div>
       {/if}
     </div>
@@ -868,15 +900,16 @@
   <div class="casting-preview-layout"><button class:zoom class="casting-large-image" data-casting-zoom onclick={()=>zoom=!zoom} aria-label={$t("Ajuster à la fenêtre ou taille réelle")} title={zoom?$t("Taille réelle · clic pour ajuster"):$t("Ajusté à la fenêtre · clic pour la taille réelle")}>{#key fiche.finalAsset||fiche.asset}<Thumbnail id={fiche.finalAsset||fiche.asset!} preview alt={fiche.name}/>{/key}</button><aside>
   {#if fiche.published}<p class="in-gallery" data-casting-published><Icon name="check" size={14}/>{$t("Déjà dans la galerie")}</p>{:else}<button class="primary" data-casting-publish disabled={busy} onclick={()=>publier([fiche.run])}>{$t("Garder dans la galerie")}</button>{/if}
   <div class="casting-detail-actions" data-casting-detail-actions>
-    <div class="save-row" title={$t("Crée une fiche personnage réutilisable depuis ce résultat. Ne lance JAMAIS les passes 2 à 6.")}>
+    {#if fiche.shot?.duo}<p class="small muted" data-casting-duo-note>{$t("Un duo n'a pas de fiche à lui : chaque perso garde la sienne.")}</p>
+    {:else}<div class="save-row" title={$t("Crée une fiche personnage réutilisable depuis ce résultat. Ne lance JAMAIS les passes 2 à 6.")}>
       <input data-casting-save-nom placeholder={$t("Nom de la fiche…")} aria-label={$t("Nom de la fiche…")} bind:value={saveName} disabled={busy}/>
       <button data-casting-enregistrer disabled={busy||!fiche.asset||!saveName.trim()} onclick={()=>saveCharacter(fiche)}>{$t("Enregistrer comme personnage")}</button>
-    </div>
+    </div>{/if}
     {#if enregistrerNote}<p class="small muted" data-casting-enregistre-note role="status">{enregistrerNote}</p>{/if}
     {#if fiche.decision==='oui'}
       <p class="small muted" data-casting-complet-etat>{fiche.runState==='completed'?$t("Workflow complet déjà lancé sur cet essai · terminé."):$t("Workflow complet déjà lancé sur cet essai · suivi dans la grille.")}</p>{#if finishResume(fiche)?.resume}<button class="primary" data-casting-resume-finish disabled={busy} title={$t("Reprise après un plantage, une erreur ou un arrêt : même seed, les passes terminées sont gardées.")} onclick={()=>resumeFinish(fiche)}>{$t("Reprendre depuis la passe {n}",{n:finishResume(fiche)?.next})}</button>{/if}
     {:else}
-      <button data-casting-complet disabled={busy||!fiche.asset} onclick={()=>launchFull(fiche)} title={$t("Lance les 6 passes sur CE résultat — seed et réglages préservés, mécanique existante.")}>{$t("Finir les 6 passes")}</button>
+      <button data-casting-complet disabled={busy||!fiche.asset||!!fiche.shot?.duo} onclick={()=>launchFull(fiche)} title={$t("Lance les 6 passes sur CE résultat — seed et réglages préservés, mécanique existante.")}>{$t("Finir les 6 passes")}</button>
     {/if}
   </div>
 </aside></div></dialog>{/if}

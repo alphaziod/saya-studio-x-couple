@@ -24,7 +24,8 @@ async function ensureToken() {
   if (native) {
     token = native;
     tokenSource = 'native';
-    try { await chrome.storage.local.set({token: native}); } catch (_e) {}
+    // Asked again each time the worker starts: no copy stays in the browser profile.
+    try { await chrome.storage.local.remove('token'); } catch (_e) {}
     return token;
   }
   const stored = await chrome.storage.local.get(['token']);

@@ -112,7 +112,8 @@ impl Database {
                     .collect::<std::result::Result<Vec<_>, _>>()?;
                 v
             };
-            let tx = self.connection.transaction()?;
+            // Reads, then writes: a deferred transaction would fail on "database is locked".
+            let tx = self.connection.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
             for alias in aliases {
                 let mut relative = format!("./{kept_relative}");
                 while tx.query_row(

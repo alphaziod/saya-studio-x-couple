@@ -111,6 +111,7 @@ a subprocess: `python3 test_solo.py --casting N [--famille F] [--actions a,b] �
 | `SAYA_STUDIO_PRESETS` | `<config>/workflows` if it has `preset.json`, else `/usr/share/saya-studio/presets` | Base presets (six-pass workflows) |
 | `XDG_DATA_HOME` / `XDG_PICTURES_DIR` | `~/.local/share`, `~/Images` | App data (`studio.saya.desktop/`), capture root |
 | `SAYA_STUDIO_TRACE=1` | off | Logs each IPC action, duration and error on stderr |
+| `SAYA_ALLOWED_HOSTS` | empty | Read by the Couple nodes' HTTP routes: machine names allowed besides IP addresses and localhost (DNS rebinding guard) |
 | `SAYA_STUDIO_SANDBOX` | set by smokes | Blocks image writes outside the isolated test dirs |
 
 Personal paths must never be hard-coded: always a variable, a preference, autodetection, or a
@@ -241,11 +242,19 @@ user keep some for the full six passes. In the UI: Génération → open the Say
 six passes, `presets/passes/`), set it up, then Casting → "Lancer". By IPC:
 `casting_lancer {graine:"<u64 as string>", nombre:N, source_path:"<preset file>", famille?,
 subfamily?, genre?, persos?:[ids], actions?:[names], exclude?:[names], perso?+pose_fixe?
-(rotations), all_actions?, step?, drafts?}`. Then `casting_history`, `casting_decide {run, keep:true}`
+(rotations), all_actions?, step?, drafts?, duo?:"<pair type>"}` (`duo` is exclusive with every other
+option; `casting_capabilities.duoPairs` lists the pair types of the engine's `moteur/duo.py`). Then `casting_history`, `casting_decide {run, keep:true}`
 (launches passes 2-6 on that trial), `casting_publish`, `casting_enregistrer_perso` (saves a
 character sheet: P1 + anatomy; the background becomes a variant; no action; a clothed or caged trial
 gets its full anatomy rebuilt with a note), `casting_delete_lot`. Trials are queued one at a time
 (deferred jobs), never flooded into ComfyUI. Seeds are fresh for every real test.
+
+Invented characters are renamed at launch (`casting_names.rs` + `casting_names.json`): the style follows
+the family and P1 tags, taken names are never reused, existing characters keep theirs and the engine's name
+stays in `shot.engine_name`. Delivered files: `<local date>_<character>_<pose>.png` (finished) and
+`…_p<N>.png` (before), a saved sheet's name winning over the drawn one. One image per render: the review
+gate's copy is not downloaded when the pass saved its own, and ComfyUI's copy in the run's `image/` folder
+is removed once delivered (hash checked, journaled). `phase_*` state stays until the usual cleanup.
 
 ### 9.4 Add prompts (actions) to the casting
 

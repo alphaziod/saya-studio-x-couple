@@ -101,6 +101,47 @@ def test_path_traversal(tmp_path):
     return c.report()
 
 
+def test_read_only_requests_create_nothing(tmp_path):
+    services = _services(tmp_path)
+    c = Check("read_only_requests_create_nothing")
+    before = sorted(p.name for p in tmp_path.rglob("*"))
+    for phase, label in ((1, "phase 1"), (3, "phase 3")):
+        services.phase_status(phase, "none", "fresh/status")
+        c.ok(services.discard_candidate(phase, "fresh/discard") == {"removed": []}, f"{label}: discard")
+        c.ok(services.invalidate_phase(phase, "fresh/redo") == {"removed": []}, f"{label}: redo")
+    created = [p.name for p in tmp_path.rglob("*") if p.name in ("fresh", "status", "discard", "redo")]
+    c.ok(not created, f"no folder created: {created} (before: {len(before)})")
+    return c.report()
+
+
+def test_routes_refuse_rebinding_and_bad_bodies(tmp_path):
+    import asyncio
+
+    _services(tmp_path)
+    from saya_couple.src.routes import image_phases as routes
+
+    c = Check("routes_refuse_rebinding_and_bad_bodies")
+    for host in ("127.0.0.1:8188", "127.0.0.1", "localhost:8188", "LOCALHOST", "[::1]:8188", "::1",
+                 "192.168.1.20:8188", "app.localhost:8188"):
+        c.ok(routes.is_local_host(host), f"accepted: {host}")
+    for host in ("evil.example", "evil.example:8188", "127.0.0.1.evil.example", "localhost.evil.example:8188",
+                 "", None, "[evil]:80", "mypc.lan:8188"):
+        c.ok(not routes.is_local_host(host), f"refused: {host}")
+    c.ok(routes.is_local_host("mypc.lan:8188", "other, mypc.lan"), "named machine allowed on purpose")
+
+    class Request:
+        def __init__(self, body):
+            self.body = body
+
+        async def json(self):
+            return self.body
+
+    c.ok(asyncio.run(routes.read_object(Request({"phase": 1}))) == {"phase": 1}, "object read")
+    for body in ([], [1], "x", None, 3):
+        c.raises(ValueError, lambda value=body: asyncio.run(routes.read_object(Request(value))), f"body refused: {body!r}")
+    return c.report()
+
+
 def test_parse_json_widget(tmp_path):
     services = _services(tmp_path)
     c = Check("parse_json_widget")
@@ -328,6 +369,8 @@ def run(tmp_path):
         test_phase5_restarts_from_phase4,
         test_manifest_validation,
         test_path_traversal,
+        test_read_only_requests_create_nothing,
+        test_routes_refuse_rebinding_and_bad_bodies,
         test_parse_json_widget,
         test_concurrent_promotion,
         test_transaction_mismatch_refused,

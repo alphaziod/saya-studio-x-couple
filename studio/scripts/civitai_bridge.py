@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Local Civitai -> Saya Studio test bridge. Token never leaves this process."""
-import argparse, hashlib, json, os, re, secrets, threading, time, uuid
+import argparse, hashlib, hmac, json, os, re, secrets, threading, time, uuid
 from collections import deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -45,9 +45,35 @@ class JobControl:
         self.cancel=threading.Event()
         self.paused=threading.Event()
 
+CIVITAI_HOSTS=("civitai.com","civitai.red")
+
+def trusted_url(url):
+    """Civitai over https, or the API server itself when SAYA_CIVITAI_API overrides it (tests)."""
+    parts=urlsplit(str(url))
+    host=(parts.hostname or "").lower()
+    if parts.scheme=="https" and any(host==h or host.endswith("."+h) for h in CIVITAI_HOSTS): return True
+    api=urlsplit(API_BASE)
+    return parts.scheme in ("http","https") and (parts.scheme,parts.hostname,parts.port)==(api.scheme,api.hostname,api.port)
+
+def positive_id(value, name):
+    """A Civitai id: a positive integer, as a number or as digits (the extension reads it from a link)."""
+    text=str(value) if not isinstance(value,bool) else ""
+    if not re.fullmatch(r"[1-9][0-9]{0,17}",text): raise ValueError(f"{name} invalide")
+    return int(text)
+
+def pick_file(files, file_id):
+    """The file asked for, never another one in its place; without a request, the primary file."""
+    if file_id is not None:
+        wanted=positive_id(file_id,"fileId")
+        found=next((x for x in files if x.get("id")==wanted),None)
+        if not found: raise ValueError("Ce fichier n'existe pas dans cette version")
+        return found
+    return next((x for x in files if x.get("primary")),None) or (files[0] if files else None)
+
 class SameHostRedirect(HTTPRedirectHandler):
     """Never forward credentials to another host after a redirect."""
     def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if urlsplit(newurl).scheme not in ("http","https"): return None
         new=super().redirect_request(req, fp, code, msg, headers, newurl)
         if new is not None:
             a=urlsplit(req.full_url); b=urlsplit(newurl)
@@ -66,16 +92,23 @@ def token():
     try: return TOKEN.read_text().strip()
     except OSError: return None
 
+TOKEN_LOCK=threading.Lock()
+
 def bridge_token():
+    """Never empty: an empty file would make every request match it. A missing or empty file gets a new token."""
     global TOKEN_FILE
     path=Path(TOKEN_FILE or (Path.home()/".config/saya-studio/civitai-token"))
     path.parent.mkdir(parents=True,exist_ok=True)
-    if not path.exists():
-        try:
-            fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
-            with os.fdopen(fd,"w") as f: f.write(secrets.token_hex(32))
-        except FileExistsError: pass
-    return path.read_text().strip()
+    with TOKEN_LOCK:
+        try: value=path.read_text().strip()
+        except FileNotFoundError: value=""
+        if value: return value
+        value=secrets.token_hex(32)
+        temporary=path.with_name(path.name+".%d.tmp"%os.getpid())
+        fd=os.open(temporary,os.O_WRONLY|os.O_CREAT|os.O_TRUNC,0o600)
+        with os.fdopen(fd,"w") as f: f.write(value)
+        os.replace(temporary,path)
+        return value
 
 def allowed_root(dest):
     # The destination comes from the HTTP request: normalized (symlinks resolved), then accepted only
@@ -176,12 +209,13 @@ def download(job, version_id, file_id, dest):
     response=None
     file_key=None
     try:
-        v=api(f"/model-versions/{version_id}")
+        v=api(f"/model-versions/{positive_id(version_id,'versionId')}")
         files=v.get("files") or []
-        f=next((x for x in files if file_id and x.get("id")==file_id),None)
-        if not f: f=next((x for x in files if x.get("primary")),None) or (files[0] if files else None)
+        f=pick_file(files,file_id)
         if not f or not f.get("downloadUrl"): raise ValueError("Aucun fichier téléchargeable")
         url=f["downloadUrl"]
+        # The token goes with this request: only ever to Civitai, and never a local file.
+        if not trusted_url(url): raise ValueError("Adresse de téléchargement hors de Civitai refusée")
         name=re.sub(r"[^A-Za-z0-9._-]","_",f.get("name") or f"civitai-{version_id}.safetensors")
         root=allowed_root(dest)
         final=root/name
@@ -280,7 +314,8 @@ class H(BaseHTTPRequestHandler):
         body=json.dumps(obj).encode(); self.send_response(code); self.cors(); self.send_header("Content-Type","application/json"); self.send_header("Content-Length",str(len(body))); self.end_headers(); self.wfile.write(body)
     def do_OPTIONS(self): self.send_response(204); self.cors(); self.end_headers()
     def authorized(self):
-        return self.headers.get("X-Saya-Token","")==bridge_token()
+        sent=self.headers.get("X-Saya-Token","").encode("utf-8","replace")
+        return hmac.compare_digest(sent,bridge_token().encode("utf-8"))
     def control(self, verb, job):
         with JOBS_LOCK:
             j=JOBS.get(job); state=j.get("state") if j else None
@@ -334,8 +369,11 @@ class H(BaseHTTPRequestHandler):
         if self.path!="/download": return self.out(404,{"error":"not found"})
         try:
             n=int(self.headers.get("Content-Length","0")); p=json.loads(self.rfile.read(n) or b"{}")
+            if not isinstance(p,dict): return self.out(400,{"error":"objet JSON attendu"})
             vid=p.get("versionId") or p.get("modelVersionId")
             if not vid: return self.out(400,{"error":"versionId manquant"})
+            vid=positive_id(vid,"versionId")
+            if p.get("fileId") is not None: positive_id(p["fileId"],"fileId")
             root=allowed_root(p.get("destination"))
             job=uuid.uuid4().hex
             with JOBS_LOCK:
