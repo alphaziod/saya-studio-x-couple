@@ -22,9 +22,13 @@ How one image goes from the *Create* screen to the Gallery. Code references are 
 2. Moves the row to **`submitting`** and records a `submission_requested` event *before* POSTing.
 3. POSTs `/prompt` with `client_id` and `extra_data.saya_studio_job_id` so the job can be found
    again in ComfyUI's queue/history.
-4. Success → **`queued`** with `comfy_prompt_id`. Network error or lost response →
+4. Success → **`queued`** with `comfy_prompt_id`. A lost response, a timeout or a server error →
    **`submission_unknown`**: the job is reconciled later by looking for its id in the queue and
    history, never resubmitted automatically.
+5. A certain refusal → **`failed`** (`failure_json.type = "submission_refused"`): the engine was
+   unreachable (the request never left) or answered a client error (ComfyUI validates a prompt
+   before queuing it and answers 400). Nothing was queued, so the job is replayable at once
+   (`comfy::definitely_not_accepted`).
 
 ## 3. Follow (live + reconciliation)
 
@@ -36,6 +40,13 @@ How one image goes from the *Create* screen to the Gallery. Code references are 
   latest 100 jobs keep syncing.
 - `jobs.rs` holds explicit controls (cancel/interrupt) that only ever target a prompt owned by
   Studio — never ComfyUI's global queue.
+- A `submission_unknown` job without prompt id cannot be targeted. Stop and resume settle it from
+  a fresh look at the queue and the recent history (`saya.rs::settle_lost_submission`): absent →
+  `cancelled`; found once → its prompt id is attached and the targeted delete applies; several
+  matches stay uncertain.
+- A finished prompt whose image can never be read (file gone from ComfyUI, not an image, over
+  64 MiB) fails the job (`failure_json.type = "output_unavailable"`) instead of being retried at
+  every poll. Transient errors (network) keep the job active with a `reconciliation_error`.
 
 ## 4. Deliver
 
@@ -43,7 +54,10 @@ On success, outputs are copied into the data dir `results/` buffer, then
 `Database::organize_delivery` (`gallery.rs`) places them under the capture root
 (`~/Images/saya studio` by default, `preferences.captureRoot`), grouped by day: trials in `<day>/pull/<family>/`, finals in `<day>/pull/Final/`.
 A render whose bytes already exist is not duplicated; the kept copy is re-hashed first so a new
-render is never dropped in favour of a vanished file. The asset is indexed and appears in the
+render is never dropped in favour of a vanished file. One image per render: the image of an
+auxiliary node (Saya review gate, `MaskPreview`) is not downloaded when another node of the job
+produced a real image, and the image that stands for a job or a pass is a render before any
+preview (`comfy::representative_asset`). The asset is indexed and appears in the
 Gallery with its provenance (job, pass, seed, config).
 
 ## Saya six-pass runs
@@ -56,6 +70,12 @@ A Saya run is a sequence of six phase jobs described by a manifest
 - `saya_restart` writes the manifest *before* submitting the new phase and moves only
   intermediate jobs (phases 2–5, and 1 once 6 is done) to `retiredJobs`, so finals stay visible.
 - The Gallery shows the final image when the run is complete, otherwise the pass-1 image.
+- A failed pass records its cause on the run (`autoError`, shown by the generation page and the
+  casting tiles) and on the phase (`phases.<n>.error`), from `comfy::failure_summary`.
+- Seeds: pass 1 receives the master seed on every literal `seed`/`noise_seed` input; passes 2-6
+  read the seed back from the validated checkpoint manifest of the previous pass (the phase
+  `Load` node's `seed` output), and their own literal seeds also receive the master seed.
+  Restart draws a new master seed (the old ones stay in `previousSeeds`); resume keeps it.
 
 ## Casting batches
 

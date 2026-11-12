@@ -248,15 +248,7 @@ pub fn prepare_phase_api(
     let mut targets = Vec::new();
     if let Some(seed_text) = master_seed.filter(|s| !s.trim().is_empty()) {
         let seed: u64 = seed_text.parse().map_err(|_| "Master seed u64 invalide")?;
-        let api = converted["api"].as_object_mut().ok_or("API absente")?;
-        for (node, value) in api.iter_mut() {
-            for (input, current) in value["inputs"].as_object_mut().into_iter().flatten() {
-                if (input == "seed" || input == "noise_seed") && current.is_number() {
-                    *current = json!(seed);
-                    targets.push(json!({"node":node,"input":input}));
-                }
-            }
-        }
+        targets = apply_master_seed(&mut converted["api"], seed)?;
     }
     if let Some(root) = isolated_root {
         for (_, node) in converted["api"].as_object_mut().into_iter().flatten() {
@@ -280,6 +272,24 @@ pub fn prepare_phase_api(
         json!({"phase":phase,"api":converted["api"],"report":converted["report"],
         "seedTargets":targets,"seed":master_seed}),
     )
+}
+
+/// Writes the master seed on every LITERAL `seed` / `noise_seed` input of an API graph and
+/// returns the inputs written. A linked seed is never touched: it follows its wire (the
+/// `Seed (rgthree)` node in pass 1, the phase `Load` node's manifest seed in passes 2-6), so
+/// one master seed reaches every sampler without rewiring. A non-numeric value under that name
+/// (a JSON text widget) is not a seed and stays as it is.
+fn apply_master_seed(api: &mut Value, seed: u64) -> Result<Vec<Value>> {
+    let mut targets = Vec::new();
+    for (node, value) in api.as_object_mut().ok_or("API absente")?.iter_mut() {
+        for (input, current) in value["inputs"].as_object_mut().into_iter().flatten() {
+            if (input == "seed" || input == "noise_seed") && current.is_number() {
+                *current = json!(seed);
+                targets.push(json!({"node":node,"input":input}));
+            }
+        }
+    }
+    Ok(targets)
 }
 
 /// Folders to search for split passes: `SAYA_PASSES_DIR`, the ComfyUI copy placed by the
@@ -492,11 +502,8 @@ fn casting_representative(db: &Database, run: &Value) -> Option<String> {
             |r| r.get(0),
         )
         .ok()?;
-    serde_json::from_str::<Value>(&outputs)
-        .ok()?
-        .as_array()?
-        .iter()
-        .find_map(|o| o["assetId"].as_str().map(str::to_owned))
+    let outputs = serde_json::from_str::<Value>(&outputs).ok()?;
+    crate::comfy::representative_asset(&outputs).map(str::to_owned)
 }
 pub(crate) fn write_run(db: &Database, run: &str, value: &Value) -> CoreResult<()> {
     crate::fsutil::write_atomic(&run_file(db, run)?, value.to_string().as_bytes())
@@ -860,10 +867,7 @@ impl Database {
                             phase["state"] = json!(state);
                         }
                         let outputs: Value = serde_json::from_str(outputs)?;
-                        if let Some(asset) = outputs
-                            .as_array()
-                            .and_then(|o| o.iter().find_map(|a| a["assetId"].as_str()))
-                        {
+                        if let Some(asset) = crate::comfy::representative_asset(&outputs) {
                             phase["asset"] = json!(asset);
                         }
                     }
@@ -1321,10 +1325,7 @@ impl Database {
             {
                 value["phases"][&key]["state"] = job["state"].clone();
             }
-            if let Some(asset) = job["outputs"]
-                .as_array()
-                .and_then(|o| o.iter().find_map(|x| x["assetId"].as_str()))
-            {
+            if let Some(asset) = crate::comfy::representative_asset(&job["outputs"]) {
                 value["phases"][&key]["asset"] = json!(asset);
                 if let Ok(sha) = self.connection.query_row(
                     "SELECT content_sha256 FROM assets WHERE id=?",
@@ -1343,9 +1344,20 @@ impl Database {
             }
             match job["state"].as_str() {
                 Some("succeeded") => {}
-                Some("failed" | "cancelled" | "interrupted") => {
+                Some(state @ ("failed" | "cancelled" | "interrupted")) => {
                     all_done = false;
                     value["autoAdvance"] = json!(false);
+                    // The cause reaches the interface: a failed pass used to show "Erreur"
+                    // only, its message (an out-of-memory, a missing model) staying in the
+                    // database.
+                    if state == "failed" {
+                        if let Some(reason) = crate::comfy::failure_summary(&job["error"]) {
+                            if value["autoError"].is_null() {
+                                value["autoError"] = json!(format!("Passe {phase} : {reason}"));
+                            }
+                            value["phases"][&key]["error"] = json!(reason);
+                        }
+                    }
                 }
                 _ => all_done = false,
             }
@@ -1543,23 +1555,47 @@ impl Database {
             [job],
             |r| r.get(0),
         )?;
-        if prompt.is_some() {
-            let outcome = self.control_job(job, "cancel_queue", true, client)?;
-            if outcome["confirmed"] != true {
-                return Err(format!(
-                    "Passe perdue non confirmée : {}",
-                    outcome["message"].as_str().unwrap_or("état moteur incertain")
-                )
-                .into());
-            }
+        // Without a prompt id, fresh evidence decides; found after all, it is cancelled below.
+        if prompt.is_none() && !self.settle_lost_submission(job, client)? {
             return Ok(());
         }
-        self.connection.execute(
-            "UPDATE generation_jobs SET state='cancelled' WHERE id=? AND state='submission_unknown'",
-            [job],
-        )?;
-        self.job_event(job, "lost_submission_abandoned", &json!({"evidence":"absent_after_sync"}))?;
+        let outcome = self.control_job(job, "cancel_queue", true, client)?;
+        if outcome["confirmed"] != true {
+            return Err(format!(
+                "Passe perdue non confirmée : {}",
+                outcome["message"].as_str().unwrap_or("état moteur incertain")
+            )
+            .into());
+        }
         Ok(())
+    }
+
+    /// Settles a `submission_unknown` job that has no prompt id (the answer to its POST was
+    /// lost) from a fresh look at the engine's queue and recent history. Absent: the job is
+    /// recorded cancelled and `false` is returned. Found once: its prompt id is attached and
+    /// `true` is returned, so the usual targeted control applies. Several matches stay
+    /// uncertain and are an error.
+    fn settle_lost_submission(&self, job: &str, client: &Comfy) -> CoreResult<bool> {
+        let queue = client.get("/queue")?;
+        crate::comfy::queue_contains(&queue, "queue_running", "")?;
+        crate::comfy::queue_contains(&queue, "queue_pending", "")?;
+        let history = client.get("/history?max_items=200")?;
+        match self.engine_candidates(job, &queue, &history)?.len() {
+            0 => {
+                self.connection.execute(
+                    "UPDATE generation_jobs SET state='cancelled' WHERE id=? AND state='submission_unknown' AND comfy_prompt_id IS NULL",
+                    [job],
+                )?;
+                self.job_event(
+                    job,
+                    "lost_submission_abandoned",
+                    &json!({"evidence":"absent_from_queue_and_history"}),
+                )?;
+                Ok(false)
+            }
+            1 => Ok(self.recover_prompt(job, &queue, &history)?.is_some()),
+            _ => Err("Plusieurs prompts du moteur correspondent à ce job : état non confirmé".into()),
+        }
     }
 
     /// Sends the matching control for every phase job ComfyUI may still execute: a queued
@@ -1577,6 +1613,21 @@ impl Database {
             let Some(record) = jobs.iter().find(|j| j["id"] == job) else {
                 continue;
             };
+            // A lost submission without prompt id cannot be targeted: `control_job` refused
+            // it, the stop stayed pending for ever and the batch could not be resumed.
+            if record["state"] == "submission_unknown" && record["promptId"].is_null() {
+                match self.settle_lost_submission(job, client) {
+                    Ok(true) => {}
+                    Ok(false) => {
+                        controls.push(json!({"job":job,"phase":phase,"action":"abandon_lost","sent":true}));
+                        continue;
+                    }
+                    Err(error) => {
+                        controls.push(json!({"job":job,"phase":phase,"action":"abandon_lost","sent":false,"error":error.to_string()}));
+                        continue;
+                    }
+                }
+            }
             let action = match record["state"].as_str() {
                 Some("queued" | "submission_unknown") => "cancel_queue",
                 Some("running") => "interrupt",
@@ -2072,6 +2123,58 @@ mod tests {
             "SayaImagePhaseCheckpointLoad": {"input": {"required": {"phase": options}}},
             "SayaImagePhaseCheckpointStop": {"input": {"required": {"phase": options}}}
         })
+    }
+
+    /// Seed invariants of a Saya pass, on the shapes of the real preset: the master seed
+    /// lands exactly (u64 above 2^53 included) on every literal seed, whatever it held (a
+    /// stale number, rgthree's -1 "random" sentinel, a detailer left on "randomize"); wired
+    /// seeds keep their wire, so passes 2-6 still read the seed of the validated checkpoint.
+    #[test]
+    fn master_seed_reaches_every_literal_seed_and_no_wire() {
+        const SEED: u64 = 18_446_744_073_709_551_557; // not representable as an f64
+        let mut api = json!({
+            "100032": {"class_type": "Seed (rgthree)", "inputs": {"seed": 463900182678381u64}},
+            "100033:100021": {"class_type": "ClownsharKSampler_Beta",
+                "inputs": {"seed": ["100032", 0], "steps": 30, "cfg": 4.5}},
+            "100034:100022": {"class_type": "ClownsharKSampler_Beta", "inputs": {"seed": -1}},
+            "9:29": {"class_type": "SayaDuoSegsDetail", "inputs": {"seed": 473090418616687u64}},
+            "12": {"class_type": "SamplerCustom", "inputs": {"noise_seed": 5, "cfg": 1.0}},
+            "100055:100088": {"class_type": "ClownsharKSampler_Beta",
+                "inputs": {"seed": ["100055:10150", 3]}},
+            "100060": {"class_type": "SayaImagePhaseCheckpointStop",
+                "inputs": {"seed": "[]", "models_json": "[]"}},
+            "7": {"class_type": "EmptyLatentImage", "inputs": {"width": 832, "batch_size": 1}}
+        });
+        let before = api.clone();
+        let targets = apply_master_seed(&mut api, SEED).unwrap();
+        let written: Vec<String> = targets
+            .iter()
+            .map(|t| format!("{}.{}", t["node"].as_str().unwrap(), t["input"].as_str().unwrap()))
+            .collect();
+        assert_eq!(
+            written,
+            ["100032.seed", "100034:100022.seed", "12.noise_seed", "9:29.seed"]
+        );
+        for target in &targets {
+            let value = &api[target["node"].as_str().unwrap()]["inputs"][target["input"].as_str().unwrap()];
+            assert_eq!(value.as_u64(), Some(SEED), "exact u64 on {target}");
+        }
+        // Everything else is byte-identical: wires, text widgets, sampling parameters.
+        for (node, input) in [
+            ("100033:100021", "seed"),
+            ("100033:100021", "steps"),
+            ("100033:100021", "cfg"),
+            ("100055:100088", "seed"),
+            ("100060", "seed"),
+            ("100060", "models_json"),
+            ("12", "cfg"),
+            ("7", "width"),
+        ] {
+            assert_eq!(api[node]["inputs"][input], before[node]["inputs"][input], "{node}.{input}");
+        }
+        // The exact value survives serialization to the engine.
+        assert!(api.to_string().contains("18446744073709551557"));
+        assert!(apply_master_seed(&mut json!([]), SEED).is_err());
     }
 
     #[test]
