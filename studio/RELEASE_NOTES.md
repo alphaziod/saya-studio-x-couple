@@ -1,13 +1,41 @@
-# Saya Studio 1.1.0 × Saya Couple 2.3.1
+# Saya Studio 1.1.1 × Saya Couple 2.3.1
 
 Saya Studio is a local desktop app that drives **ComfyUI** for anime-style character images. ComfyUI renders,
 Saya Studio organizes: casting, a six-pass workflow, gallery, character sheets, LoRA manager, graph editor.
 Nothing runs in the cloud.
 
-**1.1.0 adds duo casting, gives invented characters names that suit them and delivers one clearly named file
-per render.** Updating keeps your database, images, characters and settings.
+**1.1.1 is a reliability release for the generation engine: a failed pass says why, a batch no longer gets
+stuck on a prompt the engine refused or lost, and mask previews are no longer delivered among your renders.**
+Updating keeps your database, images, characters and settings. The Saya Couple nodes are unchanged (2.3.1).
 
-## What's new in 1.1.0
+## What's new in 1.1.1
+
+### Generation engine
+
+- **A failed pass says why.** The generation page and the casting tiles show the cause (for example
+  "out of GPU memory", with the node) instead of "Error" alone. The message used to stay in the database.
+- **A refused prompt is a failure, not a mystery.** When ComfyUI rejects a prompt (a missing model, a value out
+  of range) or is closed when the prompt is sent, the job is recorded as failed and can be replayed at once.
+  It used to stay "to verify" with nothing to find, stop or resume. A lost answer still stays uncertain and is
+  never sent twice.
+- **A lost submission can be stopped.** When the answer to a submission was lost, Stop and Resume now look at
+  ComfyUI's queue and recent history themselves. Before, the stop stayed pending for ever and the batch could
+  only be deleted.
+- **A vanished image no longer blocks everything.** When ComfyUI reports a finished render whose image can no
+  longer be read (file removed, not an image, over 64 MiB), the job fails once with the reason. It used to be
+  retried at every refresh, and every run's status returned an error.
+- **Mask previews stay out of your renders.** A mask preview node (pass 3 of the preset) is no longer
+  downloaded when the pass saved its own image, and the image shown for a pass is always a render.
+
+### Validation
+
+535 Rust tests and 109 frontend tests pass. The eleven new tests were checked against the previous code: nine
+fail without the fixes. They run against a mock ComfyUI server; no GPU render was part of this validation.
+
+## What was new in 1.1.0
+
+**1.1.0 added duo casting, gave invented characters names that suit them and delivered one clearly named file
+per render.**
 
 ### Casting
 

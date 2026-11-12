@@ -4,7 +4,7 @@
 #
 #   bash scripts/build-arch-private.sh PRESETS_DIR
 #
-# The version is the PKGBUILD one plus a build stamp (1.1.0.dev.wt<stamp>), so the app's update check
+# The version is the PKGBUILD one plus a build stamp (1.1.1.dev.wt<stamp>), so the app's update check
 # reports it as a local build and never replaces it without asking. The package is written under
 # test-results/arch-package-private-<stamp>-*/stage/.
 set -euo pipefail
