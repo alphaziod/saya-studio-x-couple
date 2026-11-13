@@ -17,6 +17,7 @@
   glib-networking,
   openssl,
   librsvg,
+  sqlite,
   python3,
   curl,
   xdg-utils,
@@ -50,6 +51,9 @@ rustPlatform.buildRustPackage (finalAttrs: {
     glib-networking # TLS for WebKitGTK / GIO
     openssl
     librsvg
+    # nixpkgs' cargo setup hook exports LIBSQLITE3_SYS_USE_PKG_CONFIG=1: rusqlite links the
+    # system SQLite even with its `bundled` feature, and fails with "cannot find -lsqlite3" without it.
+    sqlite
   ];
 
   # The Tauri crate embeds ../dist (frontendDist): build the frontend first.
