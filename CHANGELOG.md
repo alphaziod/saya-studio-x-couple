@@ -1,5 +1,19 @@
 # Changelog
 
+## Saya Studio 1.1.1 — 2026-11-12
+
+Saya Couple nodes unchanged (2.3.1).
+
+- **Generation engine reliability:** a failed pass records its cause on the run and shows it on the generation
+  page and the casting tiles; a prompt refused by ComfyUI (HTTP 4xx) or sent while it was closed is a replayable
+  failure instead of an unknown submission; a submission whose answer was lost can be stopped and its batch
+  resumed (stop and resume check the queue and the recent history themselves); a finished render whose image can
+  no longer be read fails once with the reason instead of being retried at every poll.
+- **Files:** the image of a mask preview node is no longer downloaded or delivered when the pass saved its own
+  image, and the image that stands for a pass is a render before any preview.
+- **Tests:** eleven regression tests (engine refusals, lost submissions, vanished outputs, failure messages,
+  seed invariants of a pass).
+
 ## Saya Studio 1.1.0 — 2026-11-07
 
 Saya Couple 2.3.1: HTTP routes hardened, nothing else changes in the nodes.

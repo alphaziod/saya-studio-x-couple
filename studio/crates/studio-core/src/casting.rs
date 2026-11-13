@@ -1535,6 +1535,258 @@ mod controle_tests {
         assert_eq!(db.jobs().unwrap()[0]["state"], "cancelled");
     }
 
+    /// A draft job ready to submit: (job id, snapshot hash).
+    fn draft_job(db: &Database) -> (String, String) {
+        let workflow = db
+            .import_workflow(
+                "synthetic",
+                r#"{"n":{"class_type":"Text","inputs":{"text":"exact"}}}"#,
+            )
+            .unwrap();
+        let schema = json!({"Text":{"input":{"required":{"text":["STRING"]}},"output":["STRING"]}});
+        let draft = db.prepare_job(&workflow, &[], &schema).unwrap();
+        (draft.job_id, draft.snapshot_hash)
+    }
+
+    fn job_row(db: &Database, job: &str) -> Value {
+        db.jobs_by_ids(&[job.to_owned()]).unwrap().remove(0)
+    }
+
+    /// Regression: ComfyUI validates a prompt before queuing it and answers HTTP 400 (missing
+    /// model, value out of range). That refusal, like an unreachable engine, was recorded as
+    /// `submission_unknown`: a job no sync could find, no stop could target and no batch
+    /// resume could replace. Both are honest failures now; a lost answer stays uncertain
+    /// (`lost_post_response_cannot_be_submitted_again`).
+    #[test]
+    fn a_prompt_refused_by_the_engine_fails_instead_of_staying_unknown() {
+        let (_dir, db) = base();
+        let (job, hash) = draft_job(&db);
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let client = Comfy::loopback(listener.local_addr().unwrap().port()).unwrap();
+        let server = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let (received, _) = request(&mut stream);
+            assert_eq!(received, "POST /prompt HTTP/1.1");
+            let body = json!({"error":{"type":"prompt_outputs_failed_validation",
+                "message":"Prompt outputs failed validation"},"node_errors":{"n":{}}})
+            .to_string();
+            write!(
+                stream,
+                "HTTP/1.1 400 Bad Request\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                body.len(),
+                body
+            )
+            .unwrap();
+        });
+        let error = db.submit_job(&job, &hash, true, true, &client).unwrap_err();
+        server.join().unwrap();
+        assert!(error.to_string().contains("ComfyUI HTTP 400"), "{error}");
+        let row = job_row(&db, &job);
+        assert_eq!(row["state"], "failed");
+        assert_eq!(row["error"]["type"], "submission_refused");
+        assert!(row["error"]["message"].as_str().unwrap().contains("failed validation"));
+
+        // Engine closed: the request never left.
+        let (offline_job, offline_hash) = draft_job(&db);
+        let closed = Comfy::loopback(1).unwrap();
+        assert!(db.submit_job(&offline_job, &offline_hash, true, true, &closed).is_err());
+        assert_eq!(job_row(&db, &offline_job)["state"], "failed");
+        // A failed trial is replayable and never holds its batch.
+        assert!(db
+            .submit_job(&offline_job, &offline_hash, true, true, &closed)
+            .unwrap_err()
+            .to_string()
+            .contains("déjà envoyé"));
+    }
+
+    /// Regression: a trial whose POST answer was lost has no prompt id. `control_job` refused
+    /// to target it, so the stop stayed pending for ever and « Reprendre » answered "confirm
+    /// the remote stop first": the batch could only be deleted. The stop now looks at the
+    /// engine's queue and recent history itself and records the absence.
+    #[test]
+    fn stop_settles_a_lost_submission_that_has_no_prompt_id() {
+        let (dir, mut db) = base();
+        let id = "lost-noprompt-1";
+        forced_job(&db, &dir, "job-lost", "submission_unknown", "");
+        db.connection
+            .execute("UPDATE generation_jobs SET comfy_prompt_id=NULL WHERE id='job-lost'", [])
+            .unwrap();
+        crate::saya::write_run(
+            &db,
+            id,
+            &manifest(id, "running", json!({"job":"job-lost","state":"submission_unknown"})),
+        )
+        .unwrap();
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let client = Comfy::loopback(listener.local_addr().unwrap().port()).unwrap();
+        let empty = json!({"queue_running": [], "queue_pending": []});
+        let server = std::thread::spawn(move || {
+            let expected = [
+                // Synchronization: nothing matches the job.
+                ("GET /queue HTTP/1.1", empty.clone()),
+                ("GET /history?max_items=200 HTTP/1.1", json!({})),
+                // The stop's own fresh evidence. No POST: there is nothing to target.
+                ("GET /queue HTTP/1.1", empty),
+                ("GET /history?max_items=200 HTTP/1.1", json!({})),
+            ];
+            for (wanted, response) in expected {
+                let (mut stream, _) = listener.accept().unwrap();
+                let (received, _) = request(&mut stream);
+                assert_eq!(received, wanted);
+                respond(&mut stream, response);
+            }
+        });
+        let stopped = db.saya_stop(id, &client, &dir.join("results")).unwrap();
+        server.join().unwrap();
+        assert_eq!(stopped["state"], "stopped");
+        assert_eq!(stopped["stopPending"], json!(false), "nothing left to confirm");
+        assert_eq!(job_row(&db, "job-lost")["state"], "cancelled");
+        // The batch can be resumed: the cancelled trial gets a fresh draft.
+        let resumed = db.casting_resume_batch(id).unwrap();
+        assert_eq!(resumed["runs"].as_array().unwrap().len(), 1);
+        let run = crate::saya::read_run(&db, id).unwrap();
+        assert_eq!(run["state"], "running");
+        assert_eq!(run["phases"]["1"]["state"], "waiting");
+        assert_ne!(run["phases"]["1"]["job"], "job-lost");
+    }
+
+    /// The same prompt found in the queue is not abandoned: it gets its id back and the
+    /// targeted delete applies.
+    #[test]
+    fn stop_recovers_then_deletes_a_lost_submission_still_queued() {
+        let (dir, mut db) = base();
+        let id = "lost-queued-1";
+        forced_job(&db, &dir, "job-lost", "submission_unknown", "");
+        db.connection
+            .execute("UPDATE generation_jobs SET comfy_prompt_id=NULL WHERE id='job-lost'", [])
+            .unwrap();
+        crate::saya::write_run(
+            &db,
+            id,
+            &manifest(id, "running", json!({"job":"job-lost","state":"submission_unknown"})),
+        )
+        .unwrap();
+        let snapshot: Value = serde_json::from_str(
+            db.job_details("job-lost").unwrap()["requestJson"].as_str().unwrap(),
+        )
+        .unwrap();
+        let prompt = uuid::Uuid::new_v4().to_string();
+        let row = json!([0, prompt, snapshot["prompt"],
+            {"saya_studio_job_id":"job-lost","client_id":snapshot["clientId"]}, []]);
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let client = Comfy::loopback(listener.local_addr().unwrap().port()).unwrap();
+        let empty = json!({"queue_running": [], "queue_pending": []});
+        let queued = json!({"queue_running": [], "queue_pending": [row]});
+        let expected_delete = prompt.clone();
+        let server = std::thread::spawn(move || {
+            let expected = [
+                // First synchronization: the engine had not listed it yet.
+                ("GET /queue HTTP/1.1", empty.clone()),
+                ("GET /history?max_items=200 HTTP/1.1", json!({})),
+                // Stop: found in the queue, attached, then deleted and verified absent.
+                ("GET /queue HTTP/1.1", queued.clone()),
+                ("GET /history?max_items=200 HTTP/1.1", json!({})),
+                ("GET /queue HTTP/1.1", queued),
+                ("POST /queue HTTP/1.1", json!({})),
+                ("GET /queue HTTP/1.1", empty),
+                ("GET /history/", json!({})),
+            ];
+            for (wanted, response) in expected {
+                let (mut stream, _) = listener.accept().unwrap();
+                let (received, body) = request(&mut stream);
+                assert!(received.starts_with(wanted), "{received} ≁ {wanted}");
+                if wanted == "POST /queue HTTP/1.1" {
+                    assert_eq!(body, json!({"delete": [expected_delete]}));
+                }
+                respond(&mut stream, response);
+            }
+        });
+        let stopped = db.saya_stop(id, &client, &dir.join("results")).unwrap();
+        server.join().unwrap();
+        assert_eq!(stopped["stopPending"], json!(false));
+        let row = job_row(&db, "job-lost");
+        assert_eq!(row["state"], "cancelled");
+        assert_eq!(row["promptId"], json!(prompt));
+    }
+
+    /// Regression: the engine reports a finished prompt whose image is gone (output folder
+    /// cleaned, file moved). The download failed at every poll, the job stayed "running" for
+    /// ever and each synchronization returned an error, which broke the status of every run.
+    /// The job now fails once, with the cause, and the synchronization succeeds.
+    #[test]
+    fn a_finished_prompt_whose_image_is_gone_fails_once_instead_of_blocking_every_sync() {
+        let (dir, mut db) = base();
+        let prompt = uuid::Uuid::new_v4().to_string();
+        forced_job(&db, &dir, "job-gone", "running", &prompt);
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let client = Comfy::loopback(listener.local_addr().unwrap().port()).unwrap();
+        let mut history = json!({});
+        history[&prompt] = json!({"status":{"status_str":"success","completed":true},
+            "outputs":{"n":{"images":[{"filename":"gone.png","subfolder":"","type":"output"}]}}});
+        let server = std::thread::spawn(move || {
+            for (wanted, response) in [
+                ("GET /queue HTTP/1.1", Some(json!({"queue_running": [], "queue_pending": []}))),
+                ("GET /history/", Some(history)),
+                ("GET /view?filename=gone.png", None),
+            ] {
+                let (mut stream, _) = listener.accept().unwrap();
+                let (received, _) = request(&mut stream);
+                assert!(received.starts_with(wanted), "{received} ≁ {wanted}");
+                match response {
+                    Some(value) => respond(&mut stream, value),
+                    None => write!(
+                        stream,
+                        "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                    )
+                    .unwrap(),
+                }
+            }
+        });
+        db.sync_jobs(&client, &dir.join("results")).expect("one lost image is not a sync error");
+        server.join().unwrap();
+        let row = job_row(&db, "job-gone");
+        assert_eq!(row["state"], "failed");
+        assert_eq!(row["error"]["type"], "output_unavailable");
+        assert!(row["error"]["message"].as_str().unwrap().contains("gone.png"));
+        // Terminal: the next synchronization has nothing to ask the engine.
+        db.sync_jobs(&Comfy::loopback(1).unwrap(), &dir.join("results")).unwrap();
+    }
+
+    /// Regression (owner's data, 2026-10-22 and 2026-11-04): pass 3 failed three times with a
+    /// CUDA out-of-memory and the run only showed « Erreur ». The cause now reaches the run
+    /// (`autoError`, read by the generation page and the casting tiles) and the phase.
+    #[test]
+    fn a_failed_pass_reports_its_cause_to_the_interface() {
+        let (dir, mut db) = base();
+        let id = "failed-cause-1";
+        forced_job(&db, &dir, "job-1", "succeeded", "");
+        forced_job(&db, &dir, "job-3", "failed", "");
+        let failure = json!({"type":"execution_error","node":"100055:100088",
+            "exception_type":"torch.OutOfMemoryError",
+            "exception_message":"CUDA out of memory. Tried to allocate 300.00 MiB.\nmore"});
+        db.connection
+            .execute(
+                "UPDATE generation_jobs SET failure_json=?1 WHERE id='job-3'",
+                [failure.to_string()],
+            )
+            .unwrap();
+        let mut value = manifest(id, "running", json!({"job":"job-1","state":"succeeded"}));
+        value["phases"]["2"] = json!({"job":"job-1","state":"succeeded"});
+        value["phases"]["3"] = json!({"job":"job-3","state":"running"});
+        value["autoAdvance"] = json!(true);
+        crate::saya::write_run(&db, id, &value).unwrap();
+        // No active job: the status needs no engine request.
+        let client = Comfy::loopback(1).unwrap();
+        let status = db.saya_status(id, &client, &dir.join("results")).unwrap();
+        assert_eq!(status["phases"]["3"]["state"], "failed");
+        assert_eq!(status["autoAdvance"], json!(false));
+        let expected = "Mémoire GPU insuffisante (OOM) : CUDA out of memory. Tried to allocate 300.00 MiB. (node 100055:100088)";
+        assert_eq!(status["phases"]["3"]["error"], expected);
+        assert_eq!(status["autoError"], format!("Passe 3 : {expected}"));
+        let row = db.casting_history().unwrap().into_iter().find(|r| r["run"] == id).unwrap();
+        assert_eq!(row["error"], format!("Passe 3 : {expected}"), "shown on the casting tile");
+    }
+
     /// Resume never duplicates a phase ComfyUI still runs.
     #[test]
     fn saya_resume_refuses_while_a_phase_runs() {

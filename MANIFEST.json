@@ -17,7 +17,7 @@
   {
    "path": "CHANGELOG.md",
    "type": "markdown",
-   "sha256": "e94033e808df6410d7c86aaaf43558a167ebd0b9c20066a2aa578a5c906b762a",
+   "sha256": "35dc16ac966b22a67e9f96fdbcdfcac3f296c24162b7bc8484376bf3b03803b2",
    "destination": null,
    "origin": "Saya Couple (original)",
    "license": "GPL-3.0-or-later",
@@ -39,7 +39,7 @@
   {
    "path": "README.md",
    "type": "markdown",
-   "sha256": "ccf09e0516e8e0d1d2564bf68351f6c108374ed9e86f05c4705d9f9fee9002c9",
+   "sha256": "6c9ab4b422e1ff892825a10c3027c0c9abe190cc8564e2fcd7381686ec692f52",
    "destination": null,
    "origin": "Saya Couple (original)",
    "license": "GPL-3.0-or-later",

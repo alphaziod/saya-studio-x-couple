@@ -284,9 +284,11 @@ The app sends **one ComfyUI job at a time** (one Saya pass, one casting trial, o
 `engine_operations` / `saya_operations` locks; casting trials are deferred). A whole workflow can run
 as a single API graph only when its peak VRAM fits the card (e.g. one SDXL/Illustrious checkpoint
 plus small LoRAs). Heavy chains (several checkpoints, HiDream/Flux-class models, big upscales) must
-be **split into passes** with memory released between them. `vram_policy.rs` plans this:
-two SDXL-class checkpoints may stay resident; a third model or a large architecture
-(flux, hidream…) unloads first. If you see OOM, split further, or ask the user whether they want to change
+be **split into passes** with memory released between them. Two mechanisms, do not confuse them:
+Saya six-pass runs rely on the Couple nodes (every phase `Stop` node unloads all models and
+schedules an executor cache reset; `saya.rs` sends no unload itself); Pipelines
+(`orchestrator.rs`) use `vram_policy.rs`: two SDXL-class checkpoints may stay resident, a third
+model or a measured shortage unloads first. If you see OOM, split further, or ask the user whether they want to change
 their own settings; do not change them yourself.
 
 ### 9.6 Raw VRAM flush (how we do it)

@@ -6,19 +6,21 @@
 |:---:|:---:|
 | ![Casting grid](../docs/images/studio-casting.webp) | ![Gallery](../docs/images/studio-gallery.webp) |
 
-**1.1.0 — stable.** A local desktop app (Tauri 2, Rust, Svelte 5, SQLite) that drives
+**1.1.1 — stable.** A local desktop app (Tauri 2, Rust, Svelte 5, SQLite) that drives
 [ComfyUI](https://github.com/comfyanonymous/ComfyUI) for anime-style character images. Nothing runs in the
 cloud: Saya Studio is the interface, ComfyUI is the render engine.
 
 It is the companion app of the **Saya Couple** node pack in this repository, and like the pack it is first a
 backup of my own setup, published in case it helps someone. Back up your data, and use it at your own risk.
 
-## New in 1.1.0
+## New in 1.1.1
 
-Duo casting (experimental), invented characters named in a style that suits them, and one clearly named file per
-render, dated on your local day.
+A reliability release for the generation engine: a failed pass says why (for example out of GPU memory, with
+the node), a batch no longer gets stuck on a prompt the engine refused or lost, and mask previews are no longer
+delivered among your renders. 1.1.1 brought duo casting (experimental), invented characters named in a style
+that suits them, and one clearly named file per render, dated on your local day.
 
-See the [complete 1.1.0 changes and validation](RELEASE_NOTES.md#whats-new-in-110).
+See the [complete 1.1.1 changes and validation](RELEASE_NOTES.md#whats-new-in-111).
 
 ## What it does
 
@@ -62,7 +64,7 @@ See the [complete 1.1.0 changes and validation](RELEASE_NOTES.md#whats-new-in-11
 ## Install
 
 Packages are attached to the GitHub release
-[`studio-v1.1.0`](https://github.com/alphaziod/saya-studio-x-couple/releases/tag/studio-v1.1.0).
+[`studio-v1.1.1`](https://github.com/alphaziod/saya-studio-x-couple/releases/tag/studio-v1.1.1).
 
 **Linux, the simple way:** download `install.sh` from the release and run `sh install.sh`. It detects your
 distribution, downloads the matching package, checks it against `SHA256SUMS` and asks before installing. It can
@@ -70,15 +72,15 @@ also install the Saya Couple nodes (choice 1, 2 or 3).
 
 | Distribution | File / command |
 |---|---|
-| Windows 10/11 x64 | `saya-studio-1.1.0-windows-x64.exe` |
-| macOS Apple Silicon | `saya-studio-1.1.0-macos-arm64.dmg` |
-| macOS Intel | `saya-studio-1.1.0-macos-x64.dmg` |
-| Debian, Ubuntu | `sudo apt install ./saya-studio_1.1.0_amd64.deb` |
-| Fedora | `sudo dnf install ./saya-studio-1.1.0.fedora.x86_64.rpm` |
-| openSUSE | `sudo zypper install ./saya-studio-1.1.0.opensuse.x86_64.rpm` |
-| Arch, EndeavourOS | `sudo pacman -U ./saya-studio-1.1.0-x86_64.pkg.tar.zst`, or AUR `saya-studio-bin` |
+| Windows 10/11 x64 | `saya-studio-1.1.1-windows-x64.exe` |
+| macOS Apple Silicon | `saya-studio-1.1.1-macos-arm64.dmg` |
+| macOS Intel | `saya-studio-1.1.1-macos-x64.dmg` |
+| Debian, Ubuntu | `sudo apt install ./saya-studio_1.1.1_amd64.deb` |
+| Fedora | `sudo dnf install ./saya-studio-1.1.1.fedora.x86_64.rpm` |
+| openSUSE | `sudo zypper install ./saya-studio-1.1.1.opensuse.x86_64.rpm` |
+| Arch, EndeavourOS | `sudo pacman -U ./saya-studio-1.1.1-x86_64.pkg.tar.zst`, or AUR `saya-studio-bin` |
 | NixOS / Nix | `nix run github:alphaziod/saya-studio-x-couple?dir=studio` |
-| Any distribution | `saya-studio_1.1.0_amd64.AppImage` (`chmod +x`, then run it), or `flatpak install --user ./saya-studio-1.1.0-x86_64.flatpak` |
+| Any distribution | `saya-studio_1.1.1_amd64.AppImage` (`chmod +x`, then run it), or `flatpak install --user ./saya-studio-1.1.1-x86_64.flatpak` |
 
 Check a download by hand: `sha256sum -c SHA256SUMS --ignore-missing`.
 

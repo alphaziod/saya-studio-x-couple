@@ -8,6 +8,54 @@ use std::{
 };
 
 pub const ENDPOINT: &str = "http://127.0.0.1:8188";
+
+/// The engine could not be reached at all: the request was never sent.
+#[derive(Debug)]
+pub struct EngineOffline(String);
+impl std::fmt::Display for EngineOffline {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "ComfyUI hors ligne : connexion refusée par le moteur local ({})",
+            self.0
+        )
+    }
+}
+impl std::error::Error for EngineOffline {}
+
+/// The engine answered with an HTTP error status. `body` is truncated for display.
+#[derive(Debug)]
+pub struct EngineHttpError {
+    pub status: reqwest::StatusCode,
+    pub body: String,
+}
+impl std::fmt::Display for EngineHttpError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ComfyUI HTTP {}: {}", self.status, self.body)
+    }
+}
+impl std::error::Error for EngineHttpError {}
+
+/// True when the engine certainly did not take the request: it was unreachable, or it answered
+/// with a client error (ComfyUI validates a prompt before queuing it and answers 400). A timeout,
+/// a dropped response or a server error stay uncertain.
+pub(crate) fn definitely_not_accepted(error: &(dyn std::error::Error + Send + Sync + 'static)) -> bool {
+    error.downcast_ref::<EngineOffline>().is_some()
+        || error
+            .downcast_ref::<EngineHttpError>()
+            .is_some_and(|e| e.status.is_client_error())
+}
+
+/// The engine reports a finished prompt whose output can never be fetched or read (file gone,
+/// not an image, over the size limit). Retrying cannot help.
+#[derive(Debug)]
+pub struct OutputUnavailable(String);
+impl std::fmt::Display for OutputUnavailable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+impl std::error::Error for OutputUnavailable {}
 pub struct Comfy {
     client: reqwest::blocking::Client,
     endpoint: String,
@@ -44,11 +92,7 @@ impl Comfy {
     /// full detail for diagnosis.
     fn connect_error(&self, error: reqwest::Error) -> Box<dyn std::error::Error + Send + Sync> {
         if error.is_connect() {
-            format!(
-                "ComfyUI hors ligne : connexion refusée par le moteur local ({})",
-                self.endpoint
-            )
-            .into()
+            Box::new(EngineOffline(self.endpoint.clone()))
         } else {
             error.into()
         }
@@ -64,11 +108,10 @@ impl Comfy {
             return Err("Réponse ComfyUI trop grande".into());
         }
         if !status.is_success() {
-            return Err(format!(
-                "ComfyUI HTTP {status}: {}",
-                String::from_utf8_lossy(&body[..body.len().min(2000)])
-            )
-            .into());
+            return Err(Box::new(EngineHttpError {
+                status,
+                body: String::from_utf8_lossy(&body[..body.len().min(2000)]).into_owned(),
+            }));
         }
         Ok(serde_json::from_slice(&body)?)
     }
@@ -317,16 +360,20 @@ impl Comfy {
             .get(format!("{}/view", self.endpoint))
             .query(&[("filename", file), ("subfolder", sub), ("type", kind)])
             .send()
-            .map_err(|e| self.connect_error(e))?
-            .error_for_status()?;
+            .map_err(|e| self.connect_error(e))?;
+        if response.status().is_client_error() {
+            return Err(Box::new(OutputUnavailable(format!(
+                "Sortie « {file} » introuvable dans ComfyUI (HTTP {})",
+                response.status()
+            ))));
+        }
+        let response = response.error_for_status()?;
         let mut bytes = Vec::new();
         response
-            .take(64 * 1024 * 1024 + 1)
+            .take(MAX_OUTPUT_BYTES + 1)
             .read_to_end(&mut bytes)?;
-        if bytes.len() > 64 * 1024 * 1024 {
-            return Err("Sortie supérieure à 64 Mio".into());
-        }
-        validate_output(&bytes)?;
+        validate_output(&bytes)
+            .map_err(|error| Box::new(OutputUnavailable(format!("Sortie « {file} » illisible : {error}"))))?;
         Ok(bytes)
     }
 }
@@ -356,8 +403,11 @@ fn validate_latent(bytes: &[u8]) -> Result<()> {
     Ok(())
 }
 
+/// Largest image output accepted from the engine.
+const MAX_OUTPUT_BYTES: u64 = 64 * 1024 * 1024;
+
 fn validate_output(bytes: &[u8]) -> Result<()> {
-    if bytes.len() > 64 * 1024 * 1024 {
+    if bytes.len() as u64 > MAX_OUTPUT_BYTES {
         return Err("Sortie supérieure à 64 Mio".into());
     }
     let format = image::guess_format(bytes)?;
@@ -370,18 +420,79 @@ fn validate_output(bytes: &[u8]) -> Result<()> {
     reader.decode()?;
     Ok(())
 }
-/// True for the image of a Saya review gate when another node of the same job saved an image: the
-/// gate's copy is the same render, without its metadata. Alone, it is the only image of the job.
-fn review_copy_is_redundant(snapshot: &Value, outputs: &Value, node: &str) -> bool {
-    fn class<'a>(snapshot: &'a Value, node: &str) -> Option<&'a str> {
-        snapshot["prompt"][node]["class_type"].as_str()
-    }
-    const REVIEW: &str = "SayaImageGenerationReview";
-    class(snapshot, node) == Some(REVIEW)
+/// Classes whose image is never a render of its own: the Saya review gate re-emits the pass image
+/// without its metadata, `MaskPreview` draws a mask.
+const AUXILIARY_IMAGE_CLASSES: &[&str] = &["SayaImageGenerationReview", "MaskPreview"];
+
+/// True for the image of an auxiliary node (review gate, mask preview) when another node of the
+/// same job produced a real image: the copy is not a render and must not be delivered beside it.
+/// Alone, it is the only image of the job and is kept.
+fn auxiliary_copy_is_redundant(snapshot: &Value, outputs: &Value, node: &str) -> bool {
+    let auxiliary = |node: &str| {
+        snapshot["prompt"][node]["class_type"]
+            .as_str()
+            .is_some_and(|class| AUXILIARY_IMAGE_CLASSES.contains(&class))
+    };
+    auxiliary(node)
         && outputs.as_object().into_iter().flatten().any(|(other, output)| {
-            class(snapshot, other) != Some(REVIEW)
+            !auxiliary(other)
                 && output["images"].as_array().is_some_and(|images| !images.is_empty())
         })
+}
+
+/// Output kind recorded for a node class. Unlisted savers stay "unknown" (a real render).
+fn output_kind(class: Option<&str>) -> &'static str {
+    match class {
+        Some("SaveImage") => "saved",
+        Some("PreviewImage" | "MaskPreview") => "preview",
+        Some("SayaImageGenerationReview") => "review",
+        _ => "unknown",
+    }
+}
+
+/// One line a user can act on, from a job's recorded failure. The three recorded shapes are
+/// read: a live execution event, a ComfyUI history status, and a Studio `{"message"}`.
+pub(crate) fn failure_summary(error: &Value) -> Option<String> {
+    let execution = error["messages"]
+        .as_array()
+        .and_then(|messages| messages.iter().find(|m| m[0] == "execution_error"))
+        .map(|m| &m[1]);
+    let source = execution.unwrap_or(error);
+    let text = source["exception_message"]
+        .as_str()
+        .or_else(|| error["message"].as_str())?;
+    let first: String = text
+        .lines()
+        .map(str::trim)
+        .find(|line| !line.is_empty())?
+        .chars()
+        .take(240)
+        .collect();
+    let out_of_memory = source["exception_type"]
+        .as_str()
+        .is_some_and(|kind| kind.contains("OutOfMemory"))
+        || text.to_ascii_lowercase().contains("out of memory");
+    let mut line = if out_of_memory {
+        format!("Mémoire GPU insuffisante (OOM) : {first}")
+    } else {
+        first
+    };
+    if let Some(node) = source["node"].as_str().or_else(|| source["node_id"].as_str()) {
+        line.push_str(&format!(" (node {node})"));
+    }
+    Some(line)
+}
+
+/// The image that stands for a job: a real render first; a preview or review copy only when the
+/// job has nothing else. Output order follows node ids, so "the first one" could be a mask
+/// preview sorted before the pass's saved image.
+pub(crate) fn representative_asset(outputs: &Value) -> Option<&str> {
+    let outputs = outputs.as_array()?;
+    outputs
+        .iter()
+        .filter(|o| !matches!(o["kind"].as_str(), Some("preview" | "review")))
+        .find_map(|o| o["assetId"].as_str())
+        .or_else(|| outputs.iter().find_map(|o| o["assetId"].as_str()))
 }
 
 impl Database {
@@ -466,6 +577,14 @@ impl Database {
                 self.job_event(job, "submitted", &json!({"promptId":prompt}))?;
                 Ok(value)
             }
+            Err(error) if definitely_not_accepted(error.as_ref()) => {
+                // Nothing was queued: an honest failure, replayable at once. Recording it as
+                // "unknown" left a job that no sync could ever find, stop or resume.
+                let detail = json!({"type":"submission_refused","message":error.to_string()});
+                self.connection.execute("UPDATE generation_jobs SET state='failed',failure_json=?2 WHERE id=?1 AND comfy_prompt_id IS NULL AND state IN ('submitting','submission_unknown')",params![job,detail.to_string()])?;
+                self.job_event(job, "submission_refused", &detail)?;
+                Err(error)
+            }
             Err(error) => {
                 let detail = json!({"message":error.to_string()});
                 self.connection.execute("UPDATE generation_jobs SET state='submission_unknown',failure_json=?2 WHERE id=?1 AND comfy_prompt_id IS NULL AND state IN ('submitting','submission_unknown')",params![job,detail.to_string()])?;
@@ -475,7 +594,14 @@ impl Database {
         }
     }
 
-    fn recover_prompt(&self, job: &str, queue: &Value, history: &Value) -> Result<Option<String>> {
+    /// Prompt ids the engine holds for this job (queue and given history): same job id, same
+    /// client id and the exact graph of the snapshot. Normally zero or one.
+    pub(crate) fn engine_candidates(
+        &self,
+        job: &str,
+        queue: &Value,
+        history: &Value,
+    ) -> Result<std::collections::BTreeSet<String>> {
         let snapshot: String = self.connection.query_row(
             "SELECT request_snapshot_json FROM generation_jobs WHERE id=?",
             [job],
@@ -508,7 +634,16 @@ impl Database {
                 }
             }
         }
-        let mut ids = ids.into_iter();
+        Ok(ids)
+    }
+
+    pub(crate) fn recover_prompt(
+        &self,
+        job: &str,
+        queue: &Value,
+        history: &Value,
+    ) -> Result<Option<String>> {
+        let mut ids = self.engine_candidates(job, queue, history)?.into_iter();
         let (Some(id), None) = (ids.next(), ids.next()) else {
             return Ok(None);
         };
@@ -617,11 +752,13 @@ impl Database {
                                 if stopped() {
                                     return Ok(());
                                 }
-                                // One image per render: the review gate's copy is never downloaded
-                                // when the pass saved its own. Its decision data stays on the job.
-                                if review_copy_is_redundant(&snapshot, &entry["outputs"], node) {
+                                // One image per render: the review gate's copy and mask previews
+                                // are never downloaded when the pass saved its own image. The
+                                // review decision data stays on the job.
+                                if auxiliary_copy_is_redundant(&snapshot, &entry["outputs"], node) {
+                                    let kind = output_kind(snapshot["prompt"][node]["class_type"].as_str());
                                     let mut review = json!({"assetId":Value::Null,"source":image,"nodeId":node,
-                                        "outputIndex":index,"kind":"review"});
+                                        "outputIndex":index,"kind":kind});
                                     if let Some(data) = review_by_node.get(node) {
                                         review["sayaReview"] = data.clone();
                                     }
@@ -635,13 +772,16 @@ impl Database {
                                     index
                                 );
                                 let path = results.join(&name);
-                                if path.exists() {
+                                // A buffer copy left by an earlier sync is reused only when it
+                                // still reads as an image; otherwise it is fetched again.
+                                let buffered = path.exists() && {
                                     let mut bytes = Vec::new();
                                     std::fs::File::open(&path)?
-                                        .take(64 * 1024 * 1024 + 1)
+                                        .take(MAX_OUTPUT_BYTES + 1)
                                         .read_to_end(&mut bytes)?;
-                                    validate_output(&bytes)?;
-                                } else {
+                                    validate_output(&bytes).is_ok()
+                                };
+                                if !buffered {
                                     let bytes = client.download(image)?;
                                     crate::fsutil::write_atomic(&path, &bytes)?;
                                 }
@@ -735,12 +875,7 @@ impl Database {
                             } else {
                                 self.connection.query_row("SELECT a.id FROM assets a JOIN libraries l ON l.id=a.library_id WHERE l.root_path=?1 AND a.relative_path=?2",params![canonical.to_str(),name],|r|r.get(0))?
                             };
-                            let kind = match snapshot["prompt"][&node]["class_type"].as_str() {
-                                Some("SaveImage") => "saved",
-                                Some("PreviewImage") => "preview",
-                                Some("SayaImageGenerationReview") => "review",
-                                _ => "unknown",
-                            };
+                            let kind = output_kind(snapshot["prompt"][&node]["class_type"].as_str());
                             if placement.is_some_and(|p| p.error.is_none()) {
                                 if let Ok(kept) = self.asset_path(&asset) {
                                     delivered.push((descriptor.clone(), kept));
@@ -798,6 +933,15 @@ impl Database {
                 Ok(())
             })();
             if let Err(error) = outcome {
+                if error.downcast_ref::<OutputUnavailable>().is_some() {
+                    // The engine finished but its image can never be read: the job fails with
+                    // the cause. Left active, it was retried at every poll for ever and made
+                    // every status call of every run return an error.
+                    let detail = json!({"type":"output_unavailable","message":error.to_string()});
+                    self.connection.execute("UPDATE generation_jobs SET state='failed',failure_json=?2 WHERE id=?1 AND state IN ('queued','running','submitting','submission_unknown')",params![job,detail.to_string()])?;
+                    self.job_event(&job, "output_unavailable", &detail)?;
+                    continue;
+                }
                 let detail = json!({"type":"reconciliation_error","message":error.to_string()});
                 self.connection.execute("UPDATE generation_jobs SET failure_json=?2 WHERE id=?1 AND state IN ('queued','running','submitting','submission_unknown')",params![job,detail.to_string()])?;
                 failures.push(format!("{job}: {error}"));
@@ -889,12 +1033,87 @@ mod tests {
             "1":{"class_type":"DaSiWa_MetadataImageSaver"},
             "2":{"class_type":"SayaImageGenerationReview"}}});
         let both = json!({"1":{"images":[{"filename":"a.png"}]},"2":{"images":[{"filename":"b.png"}]}});
-        assert!(review_copy_is_redundant(&snapshot, &both, "2"));
-        assert!(!review_copy_is_redundant(&snapshot, &both, "1"), "the saved image stays");
+        assert!(auxiliary_copy_is_redundant(&snapshot, &both, "2"));
+        assert!(!auxiliary_copy_is_redundant(&snapshot, &both, "1"), "the saved image stays");
         let alone = json!({"2":{"images":[{"filename":"b.png"}]}});
-        assert!(!review_copy_is_redundant(&snapshot, &alone, "2"), "the job's only image stays");
+        assert!(!auxiliary_copy_is_redundant(&snapshot, &alone, "2"), "the job's only image stays");
         let no_image = json!({"1":{"images":[]},"2":{"images":[{"filename":"b.png"}]}});
-        assert!(!review_copy_is_redundant(&snapshot, &no_image, "2"));
+        assert!(!auxiliary_copy_is_redundant(&snapshot, &no_image, "2"));
+    }
+
+    /// Pass 3 of the Saya preset: the HiDream refiner's `MaskPreview` (id `100055:12425`) sorts
+    /// before the pass's saver (`100096`). The mask is not a render: it is neither delivered
+    /// nor chosen as the image of the pass.
+    #[test]
+    fn mask_preview_is_never_the_image_of_a_pass() {
+        let snapshot = json!({"prompt":{
+            "100055:12425":{"class_type":"MaskPreview"},
+            "100096":{"class_type":"DaSiWa_MetadataImageSaver"}}});
+        let outputs = json!({"100055:12425":{"images":[{"filename":"mask.png","type":"temp"}]},
+            "100096":{"images":[{"filename":"pass3.png"}]}});
+        assert!(auxiliary_copy_is_redundant(&snapshot, &outputs, "100055:12425"));
+        assert!(!auxiliary_copy_is_redundant(&snapshot, &outputs, "100096"));
+        // Two auxiliary images and no render: both stay, nothing is lost.
+        let only_aux = json!({"prompt":{"1":{"class_type":"MaskPreview"},"2":{"class_type":"SayaImageGenerationReview"}}});
+        let aux_outputs = json!({"1":{"images":[{"filename":"m.png"}]},"2":{"images":[{"filename":"r.png"}]}});
+        assert!(!auxiliary_copy_is_redundant(&only_aux, &aux_outputs, "1"));
+        assert!(!auxiliary_copy_is_redundant(&only_aux, &aux_outputs, "2"));
+        assert_eq!(output_kind(Some("MaskPreview")), "preview");
+        assert_eq!(output_kind(Some("DaSiWa_MetadataImageSaver")), "unknown");
+    }
+
+    #[test]
+    fn failure_summary_reads_the_three_recorded_shapes() {
+        // Live event shape, as stored for the owner's pass-3 failures.
+        let live = json!({"type":"execution_error","node":"100055:100088",
+            "exception_type":"torch.OutOfMemoryError",
+            "exception_message":"CUDA out of memory. Tried to allocate 300.00 MiB.\nThis error means you ran out of memory on your GPU."});
+        assert_eq!(
+            failure_summary(&live).unwrap(),
+            "Mémoire GPU insuffisante (OOM) : CUDA out of memory. Tried to allocate 300.00 MiB. (node 100055:100088)"
+        );
+        // History status shape.
+        let history = json!({"status_str":"error","completed":false,"messages":[
+            ["execution_start",{}],
+            ["execution_error",{"node_id":"7","exception_type":"ValueError","exception_message":"\n  bad mask size\n"}]]});
+        assert_eq!(failure_summary(&history).unwrap(), "bad mask size (node 7)");
+        // Studio message shape.
+        assert_eq!(
+            failure_summary(&json!({"message":"Exécution terminée sans sortie image ni latent."})).unwrap(),
+            "Exécution terminée sans sortie image ni latent."
+        );
+        assert_eq!(failure_summary(&Value::Null), None);
+        assert_eq!(failure_summary(&json!({"status_str":"error","messages":[]})), None);
+    }
+
+    #[test]
+    fn only_certain_refusals_are_definite() {
+        let offline: Box<dyn std::error::Error + Send + Sync> = Box::new(EngineOffline("x".into()));
+        assert!(definitely_not_accepted(offline.as_ref()));
+        let http = |code: u16| -> Box<dyn std::error::Error + Send + Sync> {
+            Box::new(EngineHttpError {
+                status: reqwest::StatusCode::from_u16(code).unwrap(),
+                body: String::new(),
+            })
+        };
+        assert!(definitely_not_accepted(http(400).as_ref()));
+        assert!(!definitely_not_accepted(http(500).as_ref()), "a server error may follow queuing");
+        let other: Box<dyn std::error::Error + Send + Sync> = "timeout".into();
+        assert!(!definitely_not_accepted(other.as_ref()));
+    }
+
+    #[test]
+    fn representative_asset_prefers_a_render_over_previews() {
+        // Recorded order follows node ids: the preview comes first.
+        let outputs = json!([
+            {"assetId":"mask","kind":"preview","nodeId":"100055:12425"},
+            {"assetId":null,"kind":"review","nodeId":"100054"},
+            {"assetId":"render","kind":"unknown","nodeId":"100096"}]);
+        assert_eq!(representative_asset(&outputs), Some("render"));
+        let preview_only = json!([{"assetId":"only","kind":"preview"}]);
+        assert_eq!(representative_asset(&preview_only), Some("only"), "a job's only image stays");
+        assert_eq!(representative_asset(&json!([{"assetId":null,"kind":"latent"}])), None);
+        assert_eq!(representative_asset(&json!(null)), None);
     }
 
 
